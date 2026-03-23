@@ -6,6 +6,8 @@ The app blinks the board's onboard LD2 LED by using the standard Zephyr `led0`
 devicetree alias.
 On this board, `led0` maps to GPIO `PA5`, but the application intentionally uses
 the alias rather than hard-coding the pin.
+In addition to the blink loop, the firmware sends text to the board's ST-LINK
+virtual serial port, which appears on the host as `ttyACM0`.
 
 ## Requirements
 
@@ -51,6 +53,8 @@ west build -p always -b nucleo_f411re -d build . -- -G"Unix Makefiles"
 
 `-p always` forces a pristine rebuild so stale CMake or board configuration does
 not leak into the next build.
+The `-- -G"Unix Makefiles"` tail tells `west` to generate a GNU Make-based build
+directory instead of Ninja.
 
 Successful builds produce artifacts under `build/zephyr/`, including
 `zephyr.elf`, `zephyr.hex`, and `zephyr.bin`.
@@ -74,7 +78,8 @@ Verified on this machine with:
 ## Expected Behavior
 
 When the application is flashed and running on the board, the onboard LD2 LED
-blinks continuously with a 500 ms toggle interval.
+blinks continuously with a 500 ms toggle interval and the firmware emits serial
+messages on `ttyACM0`.
 
 ## Troubleshooting
 
