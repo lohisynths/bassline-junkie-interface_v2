@@ -78,6 +78,16 @@ static void run_pca9685_chase_step(size_t step)
     }
 }
 
+static void set_one_pca9685_channel(uint8_t channel, uint32_t pulse) {
+    uint8_t device = channel / ARRAY_SIZE(pca9685_controllers);
+    uint8_t channel_internal = channel % PCA9685_CHANNEL_COUNT;
+    int err = pwm_set(pca9685_controllers[device].dev, channel_internal,
+            PCA9685_PERIOD, pulse, 0U);
+    if (err != 0) {
+        printf("Setting PWM value failed with %d error code.", err);
+    }
+}
+
 int main(void)
 {
     int ret;
