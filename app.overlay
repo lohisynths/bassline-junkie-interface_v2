@@ -1,0 +1,94 @@
+&i2c1 {
+    status = "okay";
+
+    pca9685_40: pca9685@40 {
+        status = "okay";
+        compatible = "nxp,pca9685-pwm";
+        reg = <0x40>;
+        #pwm-cells = <3>;
+    };
+
+    pca9685_41: pca9685@41 {
+        status = "okay";
+        compatible = "nxp,pca9685-pwm";
+        reg = <0x41>;
+        #pwm-cells = <3>;
+    };
+
+    pca9685_42: pca9685@42 {
+        status = "okay";
+        compatible = "nxp,pca9685-pwm";
+        reg = <0x42>;
+        #pwm-cells = <3>;
+    };
+
+    pca9685_43: pca9685@43 {
+        status = "okay";
+        compatible = "nxp,pca9685-pwm";
+        reg = <0x43>;
+        #pwm-cells = <3>;
+    };
+
+    pca9685_44: pca9685@44 {
+        status = "okay";
+        compatible = "nxp,pca9685-pwm";
+        reg = <0x44>;
+        #pwm-cells = <3>;
+    };
+
+    pca9685_45: pca9685@45 {
+        status = "okay";
+        compatible = "nxp,pca9685-pwm";
+        reg = <0x45>;
+        #pwm-cells = <3>;
+    };
+
+    pca9685_46: pca9685@46 {
+        status = "okay";
+        compatible = "nxp,pca9685-pwm";
+        reg = <0x46>;
+        #pwm-cells = <3>;
+    };
+
+    pca9685_47: pca9685@47 {
+        status = "okay";
+        compatible = "nxp,pca9685-pwm";
+        reg = <0x47>;
+        #pwm-cells = <3>;
+    };
+
+    pca9685_48: pca9685@48 {
+        status = "okay";
+        compatible = "nxp,pca9685-pwm";
+        reg = <0x48>;
+        #pwm-cells = <3>;
+    };
+
+    pca9685_49: pca9685@49 {
+        status = "okay";
+        compatible = "nxp,pca9685-pwm";
+        reg = <0x49>;
+        #pwm-cells = <3>;
+    };
+
+    pca9685_4a: pca9685@4a {
+        status = "okay";
+        compatible = "nxp,pca9685-pwm";
+        reg = <0x4a>;
+        #pwm-cells = <3>;
+    };
+
+    pca9685_4b: pca9685@4b {
+        status = "okay";
+        compatible = "nxp,pca9685-pwm";
+        reg = <0x4b>;
+        #pwm-cells = <3>;
+    };
+
+    pca9685_4c: pca9685@4c {
+        status = "okay";
+        compatible = "nxp,pca9685-pwm";
+        reg = <0x4c>;
+        #pwm-cells = <3>;
+    };
+};
