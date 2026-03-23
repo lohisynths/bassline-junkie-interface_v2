@@ -1,4 +1,4 @@
-# Nucleo-F411RE Blink
+# Nucleo-F411RE Blink + UART Console TX
 
 Minimal standalone Zephyr application for the ST Nucleo-F411RE board.
 
@@ -46,7 +46,7 @@ and `west flash` on this machine.
 From the repository root, after the shell setup above:
 
 ```bash
-west build -p always -b nucleo_f411re .
+west build -p always -b nucleo_f411re -d build . -- -G"Unix Makefiles"
 ```
 
 `-p always` forces a pristine rebuild so stale CMake or board configuration does
