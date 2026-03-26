@@ -1,61 +1,26 @@
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/gpio.h>
-#include <zephyr/drivers/mux/cd4067.h>
-#include <zephyr/drivers/pwm.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #include "LEDS.h"
+#include "MUX.h"
 
 LOG_MODULE_REGISTER(app, LOG_LEVEL_INF);
 
 #define LED0_NODE DT_ALIAS(led0)
-#define CD4067_NODE DT_NODELABEL(cd4067_0)
 
 #if !DT_NODE_HAS_STATUS(LED0_NODE, okay)
 #error "This board does not define a usable led0 alias"
 #endif
 
-#if !DT_NODE_HAS_STATUS(CD4067_NODE, okay)
-#error "This build expects a usable cd4067_0 devicetree node"
-#endif
-
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
-static const struct device *const mux = DEVICE_DT_GET(CD4067_NODE);
-
-static int log_mux_state()
-{
-    uint16_t active_mask = 0U;
-
-    for (uint8_t channel = 0U; channel < CD4067_CHANNEL_COUNT; ++channel) {
-        int value = 0;
-        int ret = cd4067_set_channel(mux, channel);
-
-        if (ret < 0) {
-            return ret;
-        }
-
-        ret = cd4067_read_raw(mux, &value);
-
-        if (ret < 0) {
-            return ret;
-        }
-
-        if (value != 0) {
-            active_mask |= (uint16_t)(1U << channel);
-        }
-    }
-
-    LOG_INF("CD4067 active mask: 0x%04x", active_mask);
-
-    return 0;
-}
 
 int main(void)
 {
     int ret;
     uint32_t blink_count = 0U;
     size_t chase_step = 0U;
-
+    MUX mux;
 
     if (!gpio_is_ready_dt(&led)) {
         LOG_ERR("LED GPIO device is not ready");
@@ -71,8 +36,9 @@ int main(void)
     LOG_INF("Bassline Junkie Interface");
     LOG_INF("Console TX ready on ttyACM0");
 
-    if (!device_is_ready(mux)) {
-        LOG_ERR("CD4067 device is not ready");
+    ret = mux.init();
+    if (ret < 0) {
+        LOG_ERR("Failed to initialize CD4067: %d", ret);
         return 0;
     }
 
@@ -106,7 +72,7 @@ int main(void)
 
         blink_count++;
         if ((blink_count % 10U) == 0U) {
-            ret = log_mux_state();
+            ret = mux.log_state();
             if (ret < 0) {
                 LOG_ERR("Failed to scan CD4067 channels: %d", ret);
                 return 0;

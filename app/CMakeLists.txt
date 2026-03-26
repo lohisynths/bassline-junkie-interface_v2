@@ -7,4 +7,5 @@ project(bassline_junkie_interface)
 
 target_sources(app PRIVATE
     src/main.cpp
-    src/LEDS.cpp)
+    src/LEDS.cpp
+    src/MUX.cpp)
