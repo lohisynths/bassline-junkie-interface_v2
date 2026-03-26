@@ -4,11 +4,12 @@ Zephyr firmware for the ST Nucleo-F411RE board.
 
 The application blinks the onboard LD2 LED through the standard Zephyr `led0`
 alias, logs status over the ST-LINK virtual serial port, and drives multiple
-PCA9685 PWM controllers through the `LEDS` class. It also samples a CD4067
-GPIO multiplexer through an out-of-tree Zephyr driver located in `cd4067/`.
-The current runtime pattern clears all external LED channels, lights one
-channel at 50% brightness, advances that channel in a chase loop, and logs the
-CD4067 16-channel input mask once per heartbeat.
+PCA9685 PWM controllers through the `LEDS` class. It also samples multiple
+CD4067 GPIO multiplexers through the `MUX` class, which is backed by an
+out-of-tree Zephyr driver located in `cd4067/`. The current runtime pattern
+clears all external LED channels, lights one channel at 50% brightness,
+advances that channel in a chase loop, and logs one 16-channel CD4067 input
+mask per mux once per heartbeat.
 
 The current CD4067 wiring described in `app/app.overlay` is:
 
@@ -16,7 +17,13 @@ The current CD4067 wiring described in `app/app.overlay` is:
 - `S1` -> `PB4`
 - `S2` -> `PB10`
 - `S3` -> `PA8`
-- `SIG` -> `PA0`
+
+The four configured mux `SIG` inputs are:
+
+- `MUX0` -> `PA0`
+- `MUX1` -> `PA1`
+- `MUX2` -> `PA4`
+- `MUX3` -> `PB0`
 
 ## Requirements
 
@@ -61,6 +68,12 @@ and `west flash` on this machine.
     └── zephyr
 ```
 
+The main application sources are:
+
+- `app/src/main.cpp`: entrypoint and top-level runtime loop
+- `app/src/LEDS.h` and `app/src/LEDS.cpp`: PCA9685 LED control
+- `app/src/MUX.h` and `app/src/MUX.cpp`: CD4067 mux aggregation and scanning
+
 ## Build
 
 From the repository root, after the shell setup above:
@@ -98,7 +111,8 @@ app/docs/doxygen/html/index.html
 
 The Doxygen landing page focuses on code structure and module responsibilities.
 Use this README as the canonical source for environment setup, build, flash,
-and hardware wiring information.
+and hardware wiring information. The generated API docs include both the
+`LEDS` and `MUX` classes.
 
 ## Flash
 
@@ -126,5 +140,6 @@ When the application is flashed and running on the board:
 - the onboard LD2 LED toggles every 100 ms
 - one PCA9685 channel at a time is driven at 50% brightness
 - the active PCA9685 channel advances in a chase loop across all configured channels
-- the firmware scans all 16 CD4067 inputs and logs the active bitmask periodically
+- the firmware scans all 16 channels on each configured CD4067 instance
+- the firmware logs one active-input bitmask per mux periodically
 - the firmware emits serial log messages on `ttyACM0`
