@@ -4,7 +4,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 
 - onboard status LED blinking through the board `led0` alias
 - PCA9685-based LED output control through the `LEDS` class
-- CD4067 input scanning through an out-of-tree Zephyr driver
+- CD4067 input scanning through the `MUX` class and an out-of-tree Zephyr driver
 - serial logging over the ST-LINK virtual COM port
 
 ## Modules
@@ -18,6 +18,9 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 
 - The application configures the onboard `led0` GPIO as a heartbeat indicator.
 - The `LEDS` class verifies all configured PCA9685 devices, clears them, and advances a single lit output in a chase loop.
+- The `MUX` class manages four configured CD4067 instances that share the same select lines.
+- Each mux uses one dedicated `SIG` input:
+  `MUX0` on `PA0`, `MUX1` on `PA1`, `MUX2` on `PA4`, and `MUX3` on `PB0`.
 - The `MUX` class scans each configured CD4067 by selecting all 16 channels and sampling its `SIG` input.
 - The current mux state is logged periodically as a 16-bit active-channel mask for each mux instance.
 - Status and error messages are emitted over the ST-LINK virtual serial port.
