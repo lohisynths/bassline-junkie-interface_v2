@@ -1,5 +1,7 @@
 build/
 
+app/docs/doxygen/
+
 .cproject
 .project
 .settings/
