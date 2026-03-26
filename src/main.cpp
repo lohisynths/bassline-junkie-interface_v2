@@ -57,7 +57,7 @@ int main(void)
             return 0;
         }
 
-        ret = leds.set_channel(chase_step, LEDS::pca9685_period / 2U);
+        ret = leds.set_channel_percent(chase_step, 50U);
         if (ret < 0) {
             LOG_ERR("Failed to set LED channel: %d", ret);
             return 0;

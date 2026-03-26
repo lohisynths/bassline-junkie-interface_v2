@@ -33,8 +33,8 @@ const LEDS::pca9685_controller LEDS::pca9685_controllers[] = {
     PCA9685_CTRL(pca9685_4c),
 };
 
-const size_t LEDS::controller_count = ARRAY_SIZE(LEDS::pca9685_controllers);
-const size_t LEDS::led_count = LEDS::controller_count * LEDS::pca9685_channel_count;
+const size_t LEDS::pca9685_count = ARRAY_SIZE(LEDS::pca9685_controllers);
+const size_t LEDS::led_count = LEDS::pca9685_count * LEDS::pca9685_channel_count;
 
 int LEDS::init() {
     initialized_ = false;
@@ -62,7 +62,7 @@ int LEDS::clear_all() {
         return -EACCES;
     }
 
-    for (size_t ctrl = 0; ctrl < controller_count; ctrl++) {
+    for (size_t ctrl = 0; ctrl < pca9685_count; ctrl++) {
         for (uint32_t channel = 0; channel < pca9685_channel_count; channel++) {
             err = pwm_set(pca9685_controllers[ctrl].dev, channel, pca9685_period, 0U, 0U);
             if (err != 0) {
@@ -79,7 +79,7 @@ int LEDS::clear_all() {
 int LEDS::report_status() {
     int err = 0;
 
-    for (size_t ctrl = 0; ctrl < controller_count; ctrl++) {
+    for (size_t ctrl = 0; ctrl < pca9685_count; ctrl++) {
         if (device_is_ready(pca9685_controllers[ctrl].dev)) {
             LOG_INF("PCA9685 ready at 0x%02x",
                     pca9685_controllers[ctrl].address);
@@ -95,6 +95,16 @@ int LEDS::report_status() {
     return err;
 }
 
+int LEDS::set_channel_percent(size_t channel, uint8_t percent) {
+    if (percent > 100U) {
+        LOG_ERR("Invalid PCA9685 brightness %u%%", (unsigned int)percent);
+        return -EINVAL;
+    }
+
+    const uint32_t pulse = (pca9685_period * percent) / 100U;
+    return set_channel(channel, pulse);
+}
+
 int LEDS::set_channel(size_t channel, uint32_t pulse) {
     int err = 0;
 
@@ -105,6 +115,11 @@ int LEDS::set_channel(size_t channel, uint32_t pulse) {
 
     if (channel >= led_count) {
         LOG_ERR("Invalid PCA9685 channel %u", (unsigned int)channel);
+        return -EINVAL;
+    }
+
+    if (pulse > pca9685_period) {
+        LOG_ERR("Invalid PCA9685 pulse %u", (unsigned int)pulse);
         return -EINVAL;
     }
 
