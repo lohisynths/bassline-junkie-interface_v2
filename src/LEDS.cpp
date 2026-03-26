@@ -34,6 +34,7 @@ const LEDS::pca9685_controller LEDS::pca9685_controllers[] = {
 };
 
 const size_t LEDS::controller_count = ARRAY_SIZE(LEDS::pca9685_controllers);
+const size_t LEDS::led_count = LEDS::controller_count * LEDS::pca9685_channel_count;
 
 int LEDS::init() {
     initialized_ = false;
@@ -51,10 +52,6 @@ int LEDS::init() {
     }
 
     return err;
-}
-
-size_t LEDS::led_count() {
-    return controller_count * pca9685_channel_count;
 }
 
 int LEDS::clear_all() {
@@ -106,7 +103,7 @@ int LEDS::set_channel(size_t channel, uint32_t pulse) {
         return -EACCES;
     }
 
-    if (channel >= led_count()) {
+    if (channel >= led_count) {
         LOG_ERR("Invalid PCA9685 channel %u", (unsigned int)channel);
         return -EINVAL;
     }
