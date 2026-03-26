@@ -8,6 +8,8 @@
 #ifndef SRC_MUX_H_
 #define SRC_MUX_H_
 
+#include <zephyr/drivers/gpio.h>
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -42,8 +44,11 @@ public:
 private:
     /** @brief Describes one configured CD4067 instance. */
     struct mux_device {
+        /** @brief Zephyr device handle for the configured CD4067 instance. */
         const struct device *dev;
-        uint8_t sig_pin;
+
+        /** @brief GPIO specification for the mux SIG input. */
+        gpio_dt_spec sig;
     };
 
     /**
