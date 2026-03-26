@@ -5,13 +5,11 @@
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/mux/cd4067.h>
-#include <zephyr/kernel.h>
 #include <zephyr/sys/util.h>
 
 struct cd4067_config {
 	struct gpio_dt_spec select[4];
 	struct gpio_dt_spec sig;
-	uint32_t settle_time_us;
 };
 
 struct cd4067_data {
@@ -40,17 +38,13 @@ static int cd4067_set_channel_internal(const struct device *dev, uint8_t channel
 	return 0;
 }
 
-static int cd4067_read_selected_internal(const struct device *dev, int *value)
+static int cd4067_read_raw_internal(const struct device *dev, int *value)
 {
 	const struct cd4067_config *cfg = dev->config;
 	int ret;
 
 	if (value == NULL) {
 		return -EINVAL;
-	}
-
-	if (cfg->settle_time_us > 0U) {
-		k_busy_wait(cfg->settle_time_us);
 	}
 
 	ret = gpio_pin_get_dt(&cfg->sig);
@@ -79,7 +73,7 @@ int cd4067_set_channel(const struct device *dev, uint8_t channel)
 	return api->set_channel(dev, channel);
 }
 
-int cd4067_read_selected(const struct device *dev, int *value)
+int cd4067_read_raw(const struct device *dev, int *value)
 {
 	const struct cd4067_driver_api *api;
 
@@ -88,23 +82,11 @@ int cd4067_read_selected(const struct device *dev, int *value)
 	}
 
 	api = (const struct cd4067_driver_api *)dev->api;
-	if ((api == NULL) || (api->read_selected == NULL)) {
+	if ((api == NULL) || (api->read_raw == NULL)) {
 		return -ENOSYS;
 	}
 
-	return api->read_selected(dev, value);
-}
-
-int cd4067_read_channel(const struct device *dev, uint8_t channel, int *value)
-{
-	int ret;
-
-	ret = cd4067_set_channel(dev, channel);
-	if (ret < 0) {
-		return ret;
-	}
-
-	return cd4067_read_selected(dev, value);
+	return api->read_raw(dev, value);
 }
 
 static int cd4067_init(const struct device *dev)
@@ -158,12 +140,11 @@ static int cd4067_init(const struct device *dev)
 			CD4067_SELECT_SPEC(inst, 3),                                              \
 		},                                                                                 \
 		.sig = GPIO_DT_SPEC_INST_GET_BY_IDX(inst, sig_gpios, 0),                          \
-		.settle_time_us = DT_INST_PROP_OR(inst, settle_time_us, 1),                       \
 	};                                                                                        \
 	static struct cd4067_data cd4067_data_##inst;                                            \
 	static const struct cd4067_driver_api cd4067_api_##inst = {                              \
 		.set_channel = cd4067_set_channel_internal,                                      \
-		.read_selected = cd4067_read_selected_internal,                                  \
+		.read_raw = cd4067_read_raw_internal,                                            \
 	};                                                                                        \
 	DEVICE_DT_INST_DEFINE(inst, cd4067_init, NULL, &cd4067_data_##inst,                     \
 			      &cd4067_config_##inst, POST_KERNEL,                                 \

@@ -14,12 +14,11 @@ extern "C" {
 
 __subsystem struct cd4067_driver_api {
 	int (*set_channel)(const struct device *dev, uint8_t channel);
-	int (*read_selected)(const struct device *dev, int *value);
+	int (*read_raw)(const struct device *dev, int *value);
 };
 
 int cd4067_set_channel(const struct device *dev, uint8_t channel);
-int cd4067_read_selected(const struct device *dev, int *value);
-int cd4067_read_channel(const struct device *dev, uint8_t channel, int *value);
+int cd4067_read_raw(const struct device *dev, int *value);
 
 #ifdef __cplusplus
 }
