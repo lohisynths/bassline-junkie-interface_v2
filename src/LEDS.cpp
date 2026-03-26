@@ -27,6 +27,8 @@ const LEDS::pca9685_controller LEDS::pca9685_controllers[] = {
     PCA9685_CTRL(pca9685_4c),
 };
 
+const size_t LEDS::controller_count = ARRAY_SIZE(LEDS::pca9685_controllers);
+
 int LEDS::init() {
     initialized_ = false;
 
@@ -46,7 +48,7 @@ int LEDS::init() {
 }
 
 size_t LEDS::led_count() {
-    return ARRAY_SIZE(pca9685_controllers) * pca9685_channel_count;
+    return controller_count * pca9685_channel_count;
 }
 
 int LEDS::clear_all() {
@@ -57,7 +59,7 @@ int LEDS::clear_all() {
         return -EACCES;
     }
 
-    for (size_t ctrl = 0; ctrl < ARRAY_SIZE(pca9685_controllers); ctrl++) {
+    for (size_t ctrl = 0; ctrl < controller_count; ctrl++) {
         for (uint32_t channel = 0; channel < pca9685_channel_count; channel++) {
             err = pwm_set(pca9685_controllers[ctrl].dev, channel, pca9685_period, 0U, 0U);
             if (err != 0) {
@@ -74,7 +76,7 @@ int LEDS::clear_all() {
 int LEDS::report_pca9685_status() {
     int err = 0;
 
-    for (size_t ctrl = 0; ctrl < ARRAY_SIZE(pca9685_controllers); ctrl++) {
+    for (size_t ctrl = 0; ctrl < controller_count; ctrl++) {
         if (device_is_ready(pca9685_controllers[ctrl].dev)) {
             LOG_INF("PCA9685 ready at 0x%02x",
                     pca9685_controllers[ctrl].address);

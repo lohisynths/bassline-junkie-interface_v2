@@ -24,6 +24,7 @@ class LEDS {
 public:
     static const uint32_t pca9685_period = PWM_MSEC(5);
     static const size_t pca9685_channel_count = 16U;
+    static const size_t controller_count;
 
     LEDS() = default;
 
