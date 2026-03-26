@@ -6,6 +6,7 @@
  */
 
 #include "LEDS.h"
+#include <errno.h>
 #include <stdio.h>
 
 const LEDS::pca9685_controller LEDS::pca9685_controllers[] = {
@@ -24,62 +25,65 @@ const LEDS::pca9685_controller LEDS::pca9685_controllers[] = {
     PCA9685_CTRL(pca9685_4c),
 };
 
-LEDS::LEDS() {
-    report_pca9685_status();
-    set_all_pca9685_channels(0);
+int LEDS::init() {
+    const int status = report_pca9685_status();
+    if (status != 0) {
+        return status;
+    }
+
+    return clear_all();
 }
 
-LEDS::~LEDS() = default;
-
-size_t LEDS::get_leds_count() {
+size_t LEDS::led_count() {
     return ARRAY_SIZE(pca9685_controllers) * pca9685_channel_count;
 }
 
-void LEDS::set_all_pca9685_channels(uint32_t pulse) {
+int LEDS::clear_all() {
+    int err = 0;
     for (size_t ctrl = 0; ctrl < ARRAY_SIZE(pca9685_controllers); ctrl++) {
         for (uint32_t channel = 0; channel < pca9685_channel_count; channel++) {
-            (void)pwm_set(pca9685_controllers[ctrl].dev, channel,
-                          pca9685_period, pulse, 0U);
+            err = pwm_set(pca9685_controllers[ctrl].dev, channel, pca9685_period, 0U, 0U);
+            if (err != 0) {
+                printf("Clearing PCA9685 channels failed with %d error code.\r\n", err);
+                return err;
+            }
         }
     }
+
+    return 0;
 }
 
-void LEDS::report_pca9685_status(void) {
+int LEDS::report_pca9685_status() {
+    int err = 0;
+
     for (size_t ctrl = 0; ctrl < ARRAY_SIZE(pca9685_controllers); ctrl++) {
         if (device_is_ready(pca9685_controllers[ctrl].dev)) {
             printf("PCA9685 ready at 0x%02X\r\n",
                    pca9685_controllers[ctrl].address);
         } else {
-            printf("PCA9685 not ready at 0x%02X\r\n",
-                   pca9685_controllers[ctrl].address);
+            printf("PCA9685 not ready at 0x%02X\r\n", pca9685_controllers[ctrl].address);
+            if (err == 0) {
+                err = -ENODEV;
+            }
         }
     }
+
+    return err;
 }
 
-void LEDS::run_pca9685_chase_step(size_t step) {
-    const size_t controller_index = step / pca9685_channel_count;
-    const uint32_t channel = step % pca9685_channel_count;
-
-    set_all_pca9685_channels(0U);
-
-    if (controller_index < ARRAY_SIZE(pca9685_controllers) &&
-        device_is_ready(pca9685_controllers[controller_index].dev)) {
-        (void)pwm_set(pca9685_controllers[controller_index].dev, channel,
-                      pca9685_period, pca9685_period / 2U, 0U);
-    }
-}
-
-void LEDS::set_one_pca9685_channel(uint8_t channel, uint32_t pulse) {
-    if (channel >= get_leds_count()) {
-        printf("Invalid PCA9685 channel %u\r\n", channel);
-        return;
+int LEDS::set_channel(size_t channel, uint32_t pulse) {
+    int err = 0;
+    if (channel >= led_count()) {
+        printf("Invalid PCA9685 channel %u\r\n", (unsigned int)channel);
+        return -EINVAL;
     }
 
     const size_t device = channel / pca9685_channel_count;
     const uint32_t channel_internal = channel % pca9685_channel_count;
-    const int err = pwm_set(pca9685_controllers[device].dev, channel_internal,
-                            pca9685_period, pulse, 0U);
+    err = pwm_set(pca9685_controllers[device].dev, channel_internal, pca9685_period, pulse, 0U);
     if (err != 0) {
         printf("Setting PWM value failed with %d error code.\r\n", err);
     }
+
+    return err;
 }

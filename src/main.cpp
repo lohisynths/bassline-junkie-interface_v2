@@ -36,6 +36,11 @@ int main(void)
     printf("Console TX ready on ttyACM0.\r\n");
 
     LEDS leds;
+    ret = leds.init();
+    if (ret < 0) {
+        printf("Error: failed to initialize LED controllers (%d)\n", ret);
+        return 0;
+    }
 
     while (1) {
         ret = gpio_pin_toggle_dt(&led);
@@ -44,8 +49,19 @@ int main(void)
             return 0;
         }
 
-        leds.run_pca9685_chase_step(chase_step);
-        chase_step = (chase_step + 1U) % leds.get_leds_count();
+        ret = leds.clear_all();
+        if (ret < 0) {
+            printf("Error: failed to clear LED channels (%d)\n", ret);
+            return 0;
+        }
+
+        ret = leds.set_channel(chase_step, LEDS::pca9685_period / 2U);
+        if (ret < 0) {
+            printf("Error: failed to set LED channel (%d)\n", ret);
+            return 0;
+        }
+
+        chase_step = (chase_step + 1U) % leds.led_count();
 
         blink_count++;
         if ((blink_count % 10U) == 0U) {
