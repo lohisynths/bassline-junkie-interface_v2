@@ -28,7 +28,13 @@ static int log_mux_state()
 
     for (uint8_t channel = 0U; channel < CD4067_CHANNEL_COUNT; ++channel) {
         int value = 0;
-        const int ret = cd4067_read_channel(mux, channel, &value);
+        int ret = cd4067_set_channel(mux, channel);
+
+        if (ret < 0) {
+            return ret;
+        }
+
+        ret = cd4067_read_raw(mux, &value);
 
         if (ret < 0) {
             return ret;

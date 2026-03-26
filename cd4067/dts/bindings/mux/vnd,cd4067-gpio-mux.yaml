@@ -16,9 +16,3 @@ properties:
     required: true
     description: |
       GPIO connected to the common SIG pin of the CD4067.
-
-  settle-time-us:
-    type: int
-    default: 1
-    description: |
-      Delay in microseconds between switching the select lines and sampling SIG.
