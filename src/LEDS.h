@@ -28,7 +28,7 @@ public:
     size_t led_count();
 
 private:
-    int report_pca9685_status();
+    int report_status();
 
     struct pca9685_controller {
         const struct device *dev;
