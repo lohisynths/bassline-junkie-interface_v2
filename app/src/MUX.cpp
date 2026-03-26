@@ -16,10 +16,10 @@
 
 LOG_MODULE_REGISTER(mux, LOG_LEVEL_INF);
 
-#define CD4067_MUX(node_label)                       \
-    {                                                \
-        .dev = DEVICE_DT_GET(DT_NODELABEL(node_label)), \
-        .sig_pin = DT_GPIO_PIN(DT_NODELABEL(node_label), sig_gpios), \
+#define CD4067_MUX(node_label)                                        \
+    {                                                                 \
+        .dev = DEVICE_DT_GET(DT_NODELABEL(node_label)),               \
+        .sig = GPIO_DT_SPEC_GET(DT_NODELABEL(node_label), sig_gpios), \
     }
 
 const MUX::mux_device MUX::mux_devices[] = {
@@ -38,11 +38,13 @@ int MUX::init() {
 
     for (size_t i = 0; i < mux_count; ++i) {
         if (device_is_ready(mux_devices[i].dev)) {
-            LOG_INF("CD4067 mux%u ready on SIG pin %u", (unsigned int)i,
-                    (unsigned int)mux_devices[i].sig_pin);
+            LOG_INF("CD4067 mux%u ready on %s pin %u", (unsigned int)i,
+                    mux_devices[i].sig.port->name,
+                    (unsigned int)mux_devices[i].sig.pin);
         } else {
-            LOG_ERR("CD4067 mux%u not ready on SIG pin %u", (unsigned int)i,
-                    (unsigned int)mux_devices[i].sig_pin);
+            LOG_ERR("CD4067 mux%u not ready on %s pin %u", (unsigned int)i,
+                    mux_devices[i].sig.port->name,
+                    (unsigned int)mux_devices[i].sig.pin);
             if (err == 0) {
                 err = -ENODEV;
             }
