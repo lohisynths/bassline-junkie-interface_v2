@@ -9,6 +9,8 @@ INPUT                  = README.md \
                          app/docs/mainpage.md \
                          app/src/LEDS.h \
                          app/src/LEDS.cpp \
+                         app/src/MUX.h \
+                         app/src/MUX.cpp \
                          app/src/main.cpp
 FILE_PATTERNS          = *.md \
                          *.h \

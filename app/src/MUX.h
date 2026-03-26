@@ -8,13 +8,17 @@
 #ifndef SRC_MUX_H_
 #define SRC_MUX_H_
 
+#include <stddef.h>
 #include <stdint.h>
 
 /**
- * @brief Controls the CD4067 GPIO multiplexer and logs its active inputs.
+ * @brief Controls the configured CD4067 multiplexers and logs their active inputs.
  */
 class MUX {
 public:
+    /** @brief Total number of configured CD4067 devices. */
+    static const size_t mux_count;
+
     /** @brief Constructs a CD4067 facade. */
     MUX() = default;
 
@@ -36,8 +40,28 @@ public:
     int log_state();
 
 private:
+    /** @brief Describes one configured CD4067 instance. */
+    struct mux_device {
+        const struct device *dev;
+        uint8_t sig_pin;
+    };
+
+    /**
+     * @brief Scans one CD4067 instance and returns its active bitmask.
+     *
+     * @param mux_index Index in @ref mux_devices.
+     * @param active_mask Output bitmask for the selected mux.
+     *
+     * @retval 0 The scan completed successfully.
+     * @retval negative Driver-specific error returned by the CD4067 driver.
+     */
+    int read_state(size_t mux_index, uint16_t *active_mask);
+
     /** @brief Tracks whether @ref init completed successfully. */
     bool initialized_ = false;
+
+    /** @brief Static table of CD4067 devices managed by this class. */
+    static const mux_device mux_devices[];
 };
 
 #endif /* SRC_MUX_H_ */
