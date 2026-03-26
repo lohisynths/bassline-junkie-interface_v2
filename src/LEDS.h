@@ -25,16 +25,16 @@ public:
     static const uint32_t pca9685_period = PWM_MSEC(5);
     static const size_t pca9685_channel_count = 16U;
 
-    LEDS();
-    ~LEDS();
+    LEDS() = default;
 
-    size_t get_leds_count();
-    void set_all_pca9685_channels(uint32_t pulse);
-    void report_pca9685_status(void);
-    void run_pca9685_chase_step(size_t step);
-    void set_one_pca9685_channel(uint8_t channel, uint32_t pulse);
+    int init();
+    int clear_all();
+    int set_channel(size_t channel, uint32_t pulse);
+    size_t led_count();
 
 private:
+    int report_pca9685_status();
+
     struct pca9685_controller {
         const struct device *dev;
         uint8_t address;
