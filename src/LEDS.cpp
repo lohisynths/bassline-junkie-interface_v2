@@ -11,6 +11,12 @@
 
 LOG_MODULE_REGISTER(leds, LOG_LEVEL_INF);
 
+#define PCA9685_CTRL(node_label)                           \
+    {                                                      \
+        .dev = DEVICE_DT_GET(DT_NODELABEL(node_label)),    \
+        .address = DT_REG_ADDR(DT_NODELABEL(node_label)),  \
+    }
+
 const LEDS::pca9685_controller LEDS::pca9685_controllers[] = {
     PCA9685_CTRL(pca9685_40),
     PCA9685_CTRL(pca9685_41),
