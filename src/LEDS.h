@@ -14,12 +14,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define PCA9685_CTRL(node_label)                           \
-    {                                                      \
-        .dev = DEVICE_DT_GET(DT_NODELABEL(node_label)),    \
-        .address = DT_REG_ADDR(DT_NODELABEL(node_label)),  \
-    }
-
 class LEDS {
 public:
     static const uint32_t pca9685_period = PWM_MSEC(5);
