@@ -1,15 +1,15 @@
 PROJECT_NAME           = "Bassline Junkie Interface"
 PROJECT_BRIEF          = "Zephyr firmware for onboard status LED and PCA9685-driven LED outputs."
-OUTPUT_DIRECTORY       = docs/doxygen
+OUTPUT_DIRECTORY       = app/docs/doxygen
 CREATE_SUBDIRS         = NO
 OUTPUT_LANGUAGE        = English
-USE_MDFILE_AS_MAINPAGE = docs/mainpage.md
+USE_MDFILE_AS_MAINPAGE = app/docs/mainpage.md
 
 INPUT                  = README.md \
-                         docs/mainpage.md \
-                         src/LEDS.h \
-                         src/LEDS.cpp \
-                         src/main.cpp
+                         app/docs/mainpage.md \
+                         app/src/LEDS.h \
+                         app/src/LEDS.cpp \
+                         app/src/main.cpp
 FILE_PATTERNS          = *.md \
                          *.h \
                          *.cpp
