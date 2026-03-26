@@ -2,8 +2,10 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/pwm.h>
 #include <zephyr/kernel.h>
-#include <stdio.h>
+#include <zephyr/logging/log.h>
 #include "LEDS.h"
+
+LOG_MODULE_REGISTER(app, LOG_LEVEL_INF);
 
 #define LED0_NODE DT_ALIAS(led0)
 
@@ -22,42 +24,42 @@ int main(void)
 
 
     if (!gpio_is_ready_dt(&led)) {
-        printf("Error: LED GPIO device is not ready\n");
+        LOG_ERR("LED GPIO device is not ready");
         return 0;
     }
 
     ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT_INACTIVE);
     if (ret < 0) {
-        printf("Error: failed to configure LED pin (%d)\n", ret);
+        LOG_ERR("Failed to configure LED pin: %d", ret);
         return 0;
     }
 
-    printf("\r\nBassline Junkie Interface\r\n");
-    printf("Console TX ready on ttyACM0.\r\n");
+    LOG_INF("Bassline Junkie Interface");
+    LOG_INF("Console TX ready on ttyACM0");
 
     LEDS leds;
     ret = leds.init();
     if (ret < 0) {
-        printf("Error: failed to initialize LED controllers (%d)\n", ret);
+        LOG_ERR("Failed to initialize LED controllers: %d", ret);
         return 0;
     }
 
     while (1) {
         ret = gpio_pin_toggle_dt(&led);
         if (ret < 0) {
-            printf("Error: failed to toggle LED (%d)\n", ret);
+            LOG_ERR("Failed to toggle LED: %d", ret);
             return 0;
         }
 
         ret = leds.clear_all();
         if (ret < 0) {
-            printf("Error: failed to clear LED channels (%d)\n", ret);
+            LOG_ERR("Failed to clear LED channels: %d", ret);
             return 0;
         }
 
         ret = leds.set_channel(chase_step, LEDS::pca9685_period / 2U);
         if (ret < 0) {
-            printf("Error: failed to set LED channel (%d)\n", ret);
+            LOG_ERR("Failed to set LED channel: %d", ret);
             return 0;
         }
 
@@ -65,7 +67,7 @@ int main(void)
 
         blink_count++;
         if ((blink_count % 10U) == 0U) {
-            printf("Heartbeat: LED blink running, chase step %u\r\n", (unsigned int)chase_step);
+            LOG_INF("Heartbeat: LED blink running, chase step %u", (unsigned int)chase_step);
         }
 
         k_msleep(100);
