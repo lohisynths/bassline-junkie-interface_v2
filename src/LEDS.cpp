@@ -9,19 +9,19 @@
 #include <stdio.h>
 
 const LEDS::pca9685_controller LEDS::pca9685_controllers[] = {
-    PCA9685_CTRL(pca9685_40, 0x40),
-    PCA9685_CTRL(pca9685_41, 0x41),
-    PCA9685_CTRL(pca9685_42, 0x42),
-    PCA9685_CTRL(pca9685_43, 0x43),
-    PCA9685_CTRL(pca9685_44, 0x44),
-    PCA9685_CTRL(pca9685_45, 0x45),
-    PCA9685_CTRL(pca9685_46, 0x46),
-    PCA9685_CTRL(pca9685_47, 0x47),
-    PCA9685_CTRL(pca9685_48, 0x48),
-    PCA9685_CTRL(pca9685_49, 0x49),
-    PCA9685_CTRL(pca9685_4a, 0x4A),
-    PCA9685_CTRL(pca9685_4b, 0x4B),
-    PCA9685_CTRL(pca9685_4c, 0x4C),
+    PCA9685_CTRL(pca9685_40),
+    PCA9685_CTRL(pca9685_41),
+    PCA9685_CTRL(pca9685_42),
+    PCA9685_CTRL(pca9685_43),
+    PCA9685_CTRL(pca9685_44),
+    PCA9685_CTRL(pca9685_45),
+    PCA9685_CTRL(pca9685_46),
+    PCA9685_CTRL(pca9685_47),
+    PCA9685_CTRL(pca9685_48),
+    PCA9685_CTRL(pca9685_49),
+    PCA9685_CTRL(pca9685_4a),
+    PCA9685_CTRL(pca9685_4b),
+    PCA9685_CTRL(pca9685_4c),
 };
 
 LEDS::LEDS() {
