@@ -38,7 +38,7 @@ const size_t LEDS::controller_count = ARRAY_SIZE(LEDS::pca9685_controllers);
 int LEDS::init() {
     initialized_ = false;
 
-    const int status = report_pca9685_status();
+    const int status = report_status();
     if (status != 0) {
         return status;
     }
@@ -79,7 +79,7 @@ int LEDS::clear_all() {
     return 0;
 }
 
-int LEDS::report_pca9685_status() {
+int LEDS::report_status() {
     int err = 0;
 
     for (size_t ctrl = 0; ctrl < controller_count; ctrl++) {
