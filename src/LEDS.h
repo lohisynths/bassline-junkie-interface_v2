@@ -40,6 +40,8 @@ private:
         uint8_t address;
     };
 
+    bool initialized_ = false;
+
     static const pca9685_controller pca9685_controllers[];
 };
 

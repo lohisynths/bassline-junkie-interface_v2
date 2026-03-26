@@ -28,12 +28,21 @@ const LEDS::pca9685_controller LEDS::pca9685_controllers[] = {
 };
 
 int LEDS::init() {
+    initialized_ = false;
+
     const int status = report_pca9685_status();
     if (status != 0) {
         return status;
     }
 
-    return clear_all();
+    initialized_ = true;
+
+    const int err = clear_all();
+    if (err != 0) {
+        initialized_ = false;
+    }
+
+    return err;
 }
 
 size_t LEDS::led_count() {
@@ -42,6 +51,11 @@ size_t LEDS::led_count() {
 
 int LEDS::clear_all() {
     int err = 0;
+
+    if (!initialized_) {
+        LOG_ERR("LED controller not initialized");
+        return -EACCES;
+    }
 
     for (size_t ctrl = 0; ctrl < ARRAY_SIZE(pca9685_controllers); ctrl++) {
         for (uint32_t channel = 0; channel < pca9685_channel_count; channel++) {
@@ -78,6 +92,11 @@ int LEDS::report_pca9685_status() {
 
 int LEDS::set_channel(size_t channel, uint32_t pulse) {
     int err = 0;
+
+    if (!initialized_) {
+        LOG_ERR("LED controller not initialized");
+        return -EACCES;
+    }
 
     if (channel >= led_count()) {
         LOG_ERR("Invalid PCA9685 channel %u", (unsigned int)channel);
