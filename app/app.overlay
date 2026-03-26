@@ -1,3 +1,20 @@
+/ {
+    aliases {
+        mux0 = &cd4067_0;
+    };
+
+    cd4067_0: cd4067_mux {
+        compatible = "vnd,cd4067-gpio-mux";
+        status = "okay";
+        select-gpios = <&gpiob 5 GPIO_ACTIVE_HIGH>,
+                       <&gpiob 4 GPIO_ACTIVE_HIGH>,
+                       <&gpiob 10 GPIO_ACTIVE_HIGH>,
+                       <&gpioa 8 GPIO_ACTIVE_HIGH>;
+        sig-gpios = <&gpioa 0 GPIO_ACTIVE_HIGH>;
+        settle-time-us = <5>;
+    };
+};
+
 &i2c1 {
     status = "okay";
 
