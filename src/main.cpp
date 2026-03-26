@@ -63,7 +63,7 @@ int main(void)
             return 0;
         }
 
-        chase_step = (chase_step + 1U) % leds.led_count();
+        chase_step = (chase_step + 1U) % LEDS::led_count;
 
         blink_count++;
         if ((blink_count % 10U) == 0U) {
