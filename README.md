@@ -1,13 +1,22 @@
-# Nucleo-F411RE Blink + UART Console TX
+# Bassline Junkie Interface
 
-Minimal standalone Zephyr application for the ST Nucleo-F411RE board.
+Zephyr firmware for the ST Nucleo-F411RE board.
 
-The app blinks the board's onboard LD2 LED by using the standard Zephyr `led0`
-devicetree alias.
-On this board, `led0` maps to GPIO `PA5`, but the application intentionally uses
-the alias rather than hard-coding the pin.
-In addition to the blink loop, the firmware sends text to the board's ST-LINK
-virtual serial port, which appears on the host as `ttyACM0`.
+The application blinks the onboard LD2 LED through the standard Zephyr `led0`
+alias, logs status over the ST-LINK virtual serial port, and drives multiple
+PCA9685 PWM controllers through the `LEDS` class. It also samples a CD4067
+GPIO multiplexer through an out-of-tree Zephyr driver located in `cd4067/`.
+The current runtime pattern clears all external LED channels, lights one
+channel at 50% brightness, advances that channel in a chase loop, and logs the
+CD4067 16-channel input mask once per heartbeat.
+
+The current CD4067 wiring described in `app/app.overlay` is:
+
+- `S0` -> `PB5`
+- `S1` -> `PB4`
+- `S2` -> `PB10`
+- `S3` -> `PA8`
+- `SIG` -> `PA0`
 
 ## Requirements
 
@@ -16,6 +25,7 @@ virtual serial port, which appears on the host as `ttyACM0`.
 - Zephyr SDK `0.17.4`
 - STM32CubeProgrammer installed
 - Board target: `nucleo_f411re`
+- Doxygen, if you want to generate API documentation locally
 
 ## Shell Setup
 
@@ -36,11 +46,19 @@ and `west flash` on this machine.
 
 ```text
 .
-├── CMakeLists.txt
-├── prj.conf
 ├── README.md
-└── src
-    └── main.c
+├── app
+│   ├── CMakeLists.txt
+│   ├── Doxyfile
+│   ├── app.overlay
+│   ├── docs
+│   ├── prj.conf
+│   └── src
+└── cd4067
+    ├── drivers
+    ├── dts
+    ├── include
+    └── zephyr
 ```
 
 ## Build
@@ -48,16 +66,39 @@ and `west flash` on this machine.
 From the repository root, after the shell setup above:
 
 ```bash
-west build -p always -b nucleo_f411re -d build . -- -G"Unix Makefiles"
+west build -p always -b nucleo_f411re -d build/app app -- -G"Unix Makefiles"
 ```
 
 `-p always` forces a pristine rebuild so stale CMake or board configuration does
 not leak into the next build.
-The `-- -G"Unix Makefiles"` tail tells `west` to generate a GNU Make-based build
-directory instead of Ninja.
+The `-d build/app` option keeps the generated files under `build/app/`.
+The final `app` argument tells `west` to use the application located in the
+`app/` directory. The app `CMakeLists.txt` registers `../cd4067` as an
+out-of-tree Zephyr module automatically.
 
-Successful builds produce artifacts under `build/zephyr/`, including
+Successful builds produce artifacts under `build/app/zephyr/`, including
 `zephyr.elf`, `zephyr.hex`, and `zephyr.bin`.
+
+## API Documentation
+
+This repository includes a Doxygen configuration and module documentation for
+the application code and the CD4067 integration.
+
+Generate the docs from the repository root with:
+
+```bash
+doxygen app/Doxyfile
+```
+
+The generated HTML entry point is:
+
+```text
+app/docs/doxygen/html/index.html
+```
+
+The Doxygen landing page focuses on code structure and module responsibilities.
+Use this README as the canonical source for environment setup, build, flash,
+and hardware wiring information.
 
 ## Flash
 
@@ -65,8 +106,10 @@ The generated runner configuration uses `stm32cubeprogrammer` by default.
 After the shell setup above, flash with:
 
 ```bash
-west flash
+west flash -d build/app
 ```
+
+This uses the artifacts already generated under `build/app/`.
 
 Verified on this machine with:
 
@@ -74,16 +117,14 @@ Verified on this machine with:
 - `west` `v1.5.0`
 - STM32CubeProgrammer `v2.22.0`
 - Board: `NUCLEO-F411RE`
+- Flash command: `west flash -d build/app`
 
 ## Expected Behavior
 
-When the application is flashed and running on the board, the onboard LD2 LED
-blinks continuously with a 500 ms toggle interval and the firmware emits serial
-messages on `ttyACM0`.
+When the application is flashed and running on the board:
 
-## Troubleshooting
-
-### Board alias errors
-
-This app expects the board to define the `led0` alias. The Zephyr
-`nucleo_f411re` board definition provides it for the onboard LD2 LED.
+- the onboard LD2 LED toggles every 100 ms
+- one PCA9685 channel at a time is driven at 50% brightness
+- the active PCA9685 channel advances in a chase loop across all configured channels
+- the firmware scans all 16 CD4067 inputs and logs the active bitmask periodically
+- the firmware emits serial log messages on `ttyACM0`

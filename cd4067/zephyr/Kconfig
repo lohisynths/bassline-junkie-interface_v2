@@ -1,0 +1,5 @@
+menu "CD4067 Driver"
+
+rsource "../drivers/Kconfig"
+
+endmenu

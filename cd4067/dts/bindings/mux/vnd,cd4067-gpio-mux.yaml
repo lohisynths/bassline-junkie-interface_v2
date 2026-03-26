@@ -1,0 +1,24 @@
+description: CD4067 GPIO-controlled digital multiplexer
+
+compatible: "vnd,cd4067-gpio-mux"
+
+include: base.yaml
+
+properties:
+  select-gpios:
+    type: phandle-array
+    required: true
+    description: |
+      Four GPIOs connected to S0, S1, S2, and S3 in that order.
+
+  sig-gpios:
+    type: phandle-array
+    required: true
+    description: |
+      GPIO connected to the common SIG pin of the CD4067.
+
+  settle-time-us:
+    type: int
+    default: 1
+    description: |
+      Delay in microseconds between switching the select lines and sampling SIG.

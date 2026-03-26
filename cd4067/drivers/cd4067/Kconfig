@@ -1,0 +1,5 @@
+config CD4067
+	bool "CD4067 GPIO mux driver"
+	depends on GPIO
+	help
+	  Enable the out-of-tree CD4067 digital input multiplexer driver.
