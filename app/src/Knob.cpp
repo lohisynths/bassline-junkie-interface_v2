@@ -6,7 +6,7 @@ static constexpr uint8_t knob_brightness_percent = 50U;
 static constexpr uint8_t knob_max_value = 127U;
 
 int Knob::init(InputController &inputs,
-               size_t button_state_index,
+               size_t button_mux_index,
                uint8_t button_pin,
                size_t encoder_mux_index,
                uint8_t encoder_pin_a,
@@ -22,7 +22,7 @@ int Knob::init(InputController &inputs,
         return -EINVAL;
     }
 
-    int ret = button_.init(inputs, button_state_index, button_pin);
+    int ret = button_.init(inputs, button_mux_index, button_pin);
     if (ret < 0) {
         return ret;
     }

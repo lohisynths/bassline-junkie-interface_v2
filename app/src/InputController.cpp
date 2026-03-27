@@ -38,7 +38,7 @@ int InputController::update() {
         }
     }
 
-    return gpio_.read_state(&active_masks_[gpio_state_index_]);
+    return gpio_.read_state(&active_masks_[gpio_mux_index_]);
 }
 
 uint16_t InputController::state(size_t state_index) const {

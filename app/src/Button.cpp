@@ -2,14 +2,14 @@
 
 #include <errno.h>
 
-int Button::init(InputController &inputs, size_t state_index, uint8_t pin)
+int Button::init(InputController &inputs, size_t mux_index, uint8_t pin)
 {
-    if ((state_index >= InputController::state_count) || (pin >= 16U)) {
+    if ((mux_index >= InputController::state_count) || (pin >= 16U)) {
         return -EINVAL;
     }
 
     inputs_ = &inputs;
-    state_index_ = state_index;
+    mux_index_ = mux_index;
     pin_ = pin;
     pressed_ = false;
 
@@ -22,7 +22,7 @@ int Button::update()
         return -EACCES;
     }
 
-    const uint16_t state = inputs_->state(state_index_);
+    const uint16_t state = inputs_->state(mux_index_);
     pressed_ = ((state >> pin_) & 0x1U) == 0U;
 
     return 0;

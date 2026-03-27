@@ -56,8 +56,8 @@ private:
     /** @brief Total number of configured CD4067 instances. */
     static const size_t mux_count_ = MUX::mux_count;
 
-    /** @brief Index of the cached discrete GPIO state in @ref active_masks_. */
-    static const size_t gpio_state_index_ = mux_count_;
+    /** @brief Mux-style index of the cached discrete GPIO state in @ref active_masks_. */
+    static const size_t gpio_mux_index_ = mux_count_;
 
     /** @brief Tracks whether @ref init completed successfully. */
     bool initialized_ = false;
