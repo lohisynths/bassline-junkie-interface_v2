@@ -2,6 +2,7 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+#include "Button.h"
 #include "Encoder.h"
 #include "InputController.h"
 #include "LEDS.h"
@@ -28,9 +29,13 @@ static int input_thread_status = 0;
 
 static void input_thread(void *, void *, void *) {
     InputController inputs;
+    Button button;
     Encoder encoder;
 
     int ret = inputs.init();
+    if (ret == 0) {
+        ret = button.init(inputs, 0U, 0U);
+    }
     if (ret == 0) {
         ret = encoder.init(inputs, 0U, 1U, 2U);
     }
@@ -43,6 +48,7 @@ static void input_thread(void *, void *, void *) {
         return;
     }
 
+    bool previous_button_pressed = button.get_state();
     int32_t previous_encoder_position = 0;
 
     while (1) {
@@ -58,8 +64,21 @@ static void input_thread(void *, void *, void *) {
             return;
         }
 
+        ret = button.update();
+        if (ret < 0) {
+            LOG_ERR("Failed to update button: %d", ret);
+            return;
+        }
+
+        const bool current_button_pressed = button.get_state();
         const int32_t current_encoder_delta = encoder.delta();
         const int32_t current_encoder_position = encoder.position();
+
+        if (current_button_pressed != previous_button_pressed) {
+            LOG_INF("Button %s", current_button_pressed ? "pressed" : "released");
+        }
+
+        previous_button_pressed = current_button_pressed;
 
         if ((current_encoder_delta != 0) ||
             (current_encoder_position != previous_encoder_position)) {

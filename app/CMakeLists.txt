@@ -6,6 +6,7 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(bassline_junkie_interface)
 
 target_sources(app PRIVATE
+    src/Button.cpp
     src/Encoder.cpp
     src/main.cpp
     src/GPIO.cpp
