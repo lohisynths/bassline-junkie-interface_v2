@@ -21,16 +21,18 @@ static const size_t input_thread_stack_size = 2048U;
 static const int input_thread_priority = -1;
 static const int input_poll_interval_ms = 5;
 static const size_t knob_led_count = 10U;
-
-static const Knob::Config knob_config = {
-    .button_mux_index = 0U,
-    .button_pin = 0U,
-    .encoder_mux_index = 0U,
-    .encoder_pin_a = 1U,
-    .encoder_pin_b = 2U,
-    .first_led = 0U,
-    .led_count = knob_led_count,
+static const Knob::Config knob_configs[] = {
+    {
+        .button_mux_index = 0U,
+        .button_pin = 0U,
+        .encoder_mux_index = 0U,
+        .encoder_pin_a = 1U,
+        .encoder_pin_b = 2U,
+        .first_led = 0U,
+        .led_count = knob_led_count,
+    },
 };
+static const size_t knob_count = ARRAY_SIZE(knob_configs);
 
 K_THREAD_STACK_DEFINE(input_thread_stack, input_thread_stack_size);
 static struct k_thread input_thread_data;
@@ -41,14 +43,14 @@ static int input_thread_status = 0;
 static void input_thread(void *, void *, void *) {
     InputController inputs;
     LEDSController leds;
-    Knob knob;
+    Knob knobs[knob_count];
 
     int ret = inputs.init();
     if (ret == 0) {
         ret = leds.init();
     }
-    if (ret == 0) {
-        ret = knob.init(inputs, knob_config, leds);
+    for (size_t i = 0U; (i < knob_count) && (ret == 0); ++i) {
+        ret = knobs[i].init(inputs, knob_configs[i], leds);
     }
 
     input_thread_status = ret;
@@ -59,8 +61,13 @@ static void input_thread(void *, void *, void *) {
         return;
     }
 
-    bool previous_button_pressed = knob.get_state();
-    int32_t previous_encoder_value = 0;
+    bool previous_button_pressed[knob_count] = {};
+    int32_t previous_encoder_value[knob_count] = {};
+
+    for (size_t i = 0U; i < knob_count; ++i) {
+        previous_button_pressed[i] = knobs[i].get_state();
+        previous_encoder_value[i] = knobs[i].get_value();
+    }
 
     while (1) {
         ret = inputs.update();
@@ -69,28 +76,33 @@ static void input_thread(void *, void *, void *) {
             return;
         }
 
-        ret = knob.update();
-        if (ret < 0) {
-            LOG_ERR("Failed to update knob: %d", ret);
-            return;
-        }
+        for (size_t i = 0U; i < knob_count; ++i) {
+            ret = knobs[i].update();
+            if (ret < 0) {
+                LOG_ERR("Failed to update knob %u: %d", (unsigned int)i, ret);
+                return;
+            }
 
-        const bool current_button_pressed = knob.get_state();
-        const int32_t current_encoder_delta = knob.get_delta();
-        const int32_t current_encoder_value = knob.get_value();
+            const bool current_button_pressed = knobs[i].get_state();
+            const int32_t current_encoder_delta = knobs[i].get_delta();
+            const int32_t current_encoder_value = knobs[i].get_value();
 
-        if (current_button_pressed != previous_button_pressed) {
-            LOG_INF("Button %s", current_button_pressed ? "pressed" : "released");
-        }
+            if (current_button_pressed != previous_button_pressed[i]) {
+                LOG_INF("Knob %u button %s",
+                        (unsigned int)i,
+                        current_button_pressed ? "pressed" : "released");
+            }
 
-        previous_button_pressed = current_button_pressed;
+            previous_button_pressed[i] = current_button_pressed;
 
-        if ((current_encoder_delta != 0) ||
-            (current_encoder_value != previous_encoder_value)) {
-            LOG_INF("Encoder delta=%d position=%d",
-                    (int)current_encoder_delta,
-                    (int)current_encoder_value);
-            previous_encoder_value = current_encoder_value;
+            if ((current_encoder_delta != 0) ||
+                (current_encoder_value != previous_encoder_value[i])) {
+                LOG_INF("Knob %u encoder delta=%d position=%d",
+                        (unsigned int)i,
+                        (int)current_encoder_delta,
+                        (int)current_encoder_value);
+                previous_encoder_value[i] = current_encoder_value;
+            }
         }
 
         k_msleep(input_poll_interval_ms);
