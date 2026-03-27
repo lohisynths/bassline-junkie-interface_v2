@@ -43,7 +43,7 @@ source ~/zephyrproject/.venv/bin/activate
 export ZEPHYR_TOOLCHAIN_VARIANT=zephyr
 export ZEPHYR_BASE=~/zephyrproject/zephyr
 export ZEPHYR_SDK_INSTALL_DIR=~/Downloads/zephyr-sdk-0.17.4
-export PATH="~/STMicroelectronics/STM32Cube/STM32CubeProgrammer/bin:$PATH"
+export PATH="$HOME/STMicroelectronics/STM32Cube/STM32CubeProgrammer/bin:$PATH"
 ```
 
 These exports are used here because they worked reliably for both `west build`
