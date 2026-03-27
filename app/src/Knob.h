@@ -81,13 +81,6 @@ public:
     uint8_t get_value();
 
     /**
-     * @brief Returns the most recent encoder delta observed by this knob.
-     *
-     * @return `-1`, `0`, or `1` from the internal encoder update.
-     */
-    int32_t get_delta();
-
-    /**
      * @brief Refreshes the knob value and LED indicator from the encoder state.
      *
      * The internal value is advanced by the encoder delta, clamped to the range

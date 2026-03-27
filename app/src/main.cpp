@@ -84,7 +84,6 @@ static void input_thread(void *, void *, void *) {
             }
 
             const bool current_button_pressed = knobs[i].get_state();
-            const int32_t current_encoder_delta = knobs[i].get_delta();
             const int32_t current_encoder_value = knobs[i].get_value();
 
             if (current_button_pressed != previous_button_pressed[i]) {
@@ -95,11 +94,9 @@ static void input_thread(void *, void *, void *) {
 
             previous_button_pressed[i] = current_button_pressed;
 
-            if ((current_encoder_delta != 0) ||
-                (current_encoder_value != previous_encoder_value[i])) {
-                LOG_INF("Knob %u encoder delta=%d position=%d",
+            if (current_encoder_value != previous_encoder_value[i]) {
+                LOG_INF("Knob %u position=%d",
                         (unsigned int)i,
-                        (int)current_encoder_delta,
                         (int)current_encoder_value);
                 previous_encoder_value[i] = current_encoder_value;
             }
