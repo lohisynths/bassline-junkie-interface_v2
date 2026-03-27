@@ -1,13 +1,12 @@
-# Nucleo-F411RE Blink + UART Console TX
+# Bassline Junkie Interface
 
-Minimal standalone Zephyr application for the ST Nucleo-F411RE board.
+Zephyr firmware for the ST Nucleo-F411RE board.
 
-The app blinks the board's onboard LD2 LED by using the standard Zephyr `led0`
-devicetree alias.
-On this board, `led0` maps to GPIO `PA5`, but the application intentionally uses
-the alias rather than hard-coding the pin.
-In addition to the blink loop, the firmware sends text to the board's ST-LINK
-virtual serial port, which appears on the host as `ttyACM0`.
+The application blinks the onboard LD2 LED through the standard Zephyr `led0`
+alias, logs status over the ST-LINK virtual serial port, and drives multiple
+PCA9685 PWM controllers through the `LEDS` class. The current runtime pattern
+clears all external LED channels, lights one channel at 50% brightness, and
+advances that channel in a chase loop.
 
 ## Requirements
 
@@ -16,6 +15,7 @@ virtual serial port, which appears on the host as `ttyACM0`.
 - Zephyr SDK `0.17.4`
 - STM32CubeProgrammer installed
 - Board target: `nucleo_f411re`
+- Doxygen, if you want to generate API documentation locally
 
 ## Shell Setup
 
@@ -37,10 +37,15 @@ and `west flash` on this machine.
 ```text
 .
 ├── CMakeLists.txt
+├── Doxyfile
 ├── prj.conf
 ├── README.md
+├── docs
+│   └── mainpage.md
 └── src
-    └── main.c
+    ├── LEDS.cpp
+    ├── LEDS.h
+    └── main.cpp
 ```
 
 ## Build
@@ -59,6 +64,22 @@ directory instead of Ninja.
 Successful builds produce artifacts under `build/zephyr/`, including
 `zephyr.elf`, `zephyr.hex`, and `zephyr.bin`.
 
+## API Documentation
+
+This repository includes a Doxygen configuration and module documentation for
+the LED control code.
+
+Generate the docs from the repository root with:
+
+```bash
+doxygen Doxyfile
+```
+
+The generated HTML entry point is:
+
+```text
+docs/doxygen/html/index.html
+```
 ## Flash
 
 The generated runner configuration uses `stm32cubeprogrammer` by default.
@@ -77,9 +98,12 @@ Verified on this machine with:
 
 ## Expected Behavior
 
-When the application is flashed and running on the board, the onboard LD2 LED
-blinks continuously with a 500 ms toggle interval and the firmware emits serial
-messages on `ttyACM0`.
+When the application is flashed and running on the board:
+
+- the onboard LD2 LED toggles every 100 ms
+- one PCA9685 channel at a time is driven at 50% brightness
+- the active PCA9685 channel advances in a chase loop across all configured channels
+- the firmware emits serial log messages on `ttyACM0`
 
 ## Troubleshooting
 
