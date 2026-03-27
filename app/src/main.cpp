@@ -61,14 +61,6 @@ static void input_thread(void *, void *, void *) {
         return;
     }
 
-    bool previous_button_pressed[knob_count] = {};
-    int32_t previous_encoder_value[knob_count] = {};
-
-    for (size_t i = 0U; i < knob_count; ++i) {
-        previous_button_pressed[i] = knobs[i].get_state();
-        previous_encoder_value[i] = knobs[i].get_value();
-    }
-
     while (1) {
         ret = inputs.update();
         if (ret < 0) {
@@ -77,28 +69,24 @@ static void input_thread(void *, void *, void *) {
         }
 
         for (size_t i = 0U; i < knob_count; ++i) {
-            ret = knobs[i].update();
+            Knob::knob_msg msg;
+
+            ret = knobs[i].update(msg);
             if (ret < 0) {
                 LOG_ERR("Failed to update knob %u: %d", (unsigned int)i, ret);
                 return;
             }
 
-            const bool current_button_pressed = knobs[i].get_state();
-            const int32_t current_encoder_value = knobs[i].get_value();
-
-            if (current_button_pressed != previous_button_pressed[i]) {
+            if (msg.switch_changed) {
                 LOG_INF("Knob %u button %s",
                         (unsigned int)i,
-                        current_button_pressed ? "pressed" : "released");
+                        knobs[i].get_state() ? "pressed" : "released");
             }
 
-            previous_button_pressed[i] = current_button_pressed;
-
-            if (current_encoder_value != previous_encoder_value[i]) {
+            if (msg.value_changed) {
                 LOG_INF("Knob %u position=%d",
                         (unsigned int)i,
-                        (int)current_encoder_value);
-                previous_encoder_value[i] = current_encoder_value;
+                        (int)knobs[i].get_value());
             }
         }
 

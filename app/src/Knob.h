@@ -21,6 +21,17 @@
 class Knob {
 public:
     /**
+     * @brief Reports which knob outputs changed during one @ref update call.
+     */
+    struct knob_msg {
+        /** @brief Set when the clamped knob value changed. */
+        bool value_changed = false;
+
+        /** @brief Set when the knob push-button state changed. */
+        bool switch_changed = false;
+    };
+
+    /**
      * @brief Groups the knob-specific binding and LED segment parameters.
      */
     struct Config {
@@ -87,11 +98,14 @@ public:
      * `[0, 127]`, and then projected onto the configured LED range without
      * wraparound.
      *
-     * @retval 0 The knob indicator is up to date.
+     * @param msg Per-update change flags populated from the latest button and
+     *        encoder processing.
+     *
+     * @retval 0 The knob indicator is up to date and @p msg was filled in.
      * @retval -EACCES The knob has not been initialized.
      * @retval negative Error propagated from @ref LEDSController::set_channel_percent.
      */
-    int update();
+    int update(knob_msg &msg);
 
 private:
     /**
