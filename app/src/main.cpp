@@ -24,12 +24,12 @@ K_THREAD_STACK_DEFINE(input_thread_stack, input_thread_stack_size);
 static struct k_thread input_thread_data;
 static K_SEM_DEFINE(input_thread_started, 0, 1);
 
-static InputController inputs;
-static Encoder encoder;
 static int input_thread_status = 0;
 
-static void input_thread(void *, void *, void *)
-{
+static void input_thread(void *, void *, void *) {
+    InputController inputs;
+    Encoder encoder;
+
     int ret = inputs.init();
     if (ret == 0) {
         ret = encoder.init(inputs, 0U, 1U, 2U);
