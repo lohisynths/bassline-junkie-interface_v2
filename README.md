@@ -6,10 +6,11 @@ The application blinks the onboard LD2 LED through the standard Zephyr `led0`
 alias, logs status over the ST-LINK virtual serial port, and drives multiple
 PCA9685 PWM controllers through the `LEDS` class. It also samples multiple
 CD4067 GPIO multiplexers through the `MUX` class, which is backed by an
-out-of-tree Zephyr driver located in `cd4067/`. The current runtime pattern
-clears all external LED channels, lights one channel at 50% brightness,
-advances that channel in a chase loop, and logs one 16-channel CD4067 input
-mask per mux once per heartbeat.
+out-of-tree Zephyr driver located in `cd4067/`. Discrete encoder GPIO inputs
+are sampled through the `GPIO` class. The current runtime pattern clears all
+external LED channels, lights one channel at 50% brightness, advances that
+channel in a chase loop, and periodically logs both CD4067 and GPIO input
+masks.
 
 The current CD4067 wiring described in `app/app.overlay` is:
 
@@ -24,6 +25,15 @@ The four configured mux `SIG` inputs are:
 - `MUX1` -> `PA1`
 - `MUX2` -> `PA4`
 - `MUX3` -> `PB0`
+
+The configured discrete GPIO inputs are:
+
+- `ENC13SW` -> `PH1`
+- `ENC13B` -> `PC2`
+- `ENC13A` -> `PC3`
+- `ENC14SW` -> `PC0`
+- `ENC14B` -> `PC1`
+- `ENC14A` -> `PH0`
 
 ## Requirements
 
@@ -71,6 +81,7 @@ and `west flash` on this machine.
 The main application sources are:
 
 - `app/src/main.cpp`: entrypoint and top-level runtime loop
+- `app/src/GPIO.h` and `app/src/GPIO.cpp`: discrete GPIO input initialization and bitmask reads
 - `app/src/LEDS.h` and `app/src/LEDS.cpp`: PCA9685 LED control
 - `app/src/MUX.h` and `app/src/MUX.cpp`: CD4067 mux aggregation and scanning
 
@@ -111,8 +122,8 @@ app/docs/doxygen/html/index.html
 
 The Doxygen landing page focuses on code structure and module responsibilities.
 Use this README as the canonical source for environment setup, build, flash,
-and hardware wiring information. The generated API docs include both the
-`LEDS` and `MUX` classes.
+and hardware wiring information. The generated API docs include the `GPIO`,
+`LEDS`, and `MUX` classes plus the CD4067 driver interface.
 
 ## Flash
 
@@ -141,5 +152,6 @@ When the application is flashed and running on the board:
 - one PCA9685 channel at a time is driven at 50% brightness
 - the active PCA9685 channel advances in a chase loop across all configured channels
 - the firmware scans all 16 channels on each configured CD4067 instance
-- the firmware logs one active-input bitmask per mux periodically
+- the firmware logs one 16-bit active-input bitmask per mux periodically
+- the firmware logs one active-input GPIO bitmask for the configured encoder inputs periodically
 - the firmware emits serial log messages on `ttyACM0`
