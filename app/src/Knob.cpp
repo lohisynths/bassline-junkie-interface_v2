@@ -48,11 +48,6 @@ uint8_t Knob::get_value()
     return value_;
 }
 
-int32_t Knob::get_delta()
-{
-    return encoder_.delta();
-}
-
 int Knob::update()
 {
     if (!initialized_) {
