@@ -1,3 +1,52 @@
+/ {
+    aliases {
+        mux0 = &cd4067_0;
+        mux1 = &cd4067_1;
+        mux2 = &cd4067_2;
+        mux3 = &cd4067_3;
+    };
+
+    cd4067_0: cd4067_mux {
+        compatible = "vnd,cd4067-gpio-mux";
+        status = "okay";
+        select-gpios = <&gpiob 5 GPIO_ACTIVE_HIGH>,
+                       <&gpiob 4 GPIO_ACTIVE_HIGH>,
+                       <&gpiob 10 GPIO_ACTIVE_HIGH>,
+                       <&gpioa 8 GPIO_ACTIVE_HIGH>;
+        sig-gpios = <&gpioa 0 GPIO_ACTIVE_HIGH>;
+    };
+
+    cd4067_1: cd4067_mux_1 {
+        compatible = "vnd,cd4067-gpio-mux";
+        status = "okay";
+        select-gpios = <&gpiob 5 GPIO_ACTIVE_HIGH>,
+                       <&gpiob 4 GPIO_ACTIVE_HIGH>,
+                       <&gpiob 10 GPIO_ACTIVE_HIGH>,
+                       <&gpioa 8 GPIO_ACTIVE_HIGH>;
+        sig-gpios = <&gpioa 1 GPIO_ACTIVE_HIGH>;
+    };
+
+    cd4067_2: cd4067_mux_2 {
+        compatible = "vnd,cd4067-gpio-mux";
+        status = "okay";
+        select-gpios = <&gpiob 5 GPIO_ACTIVE_HIGH>,
+                       <&gpiob 4 GPIO_ACTIVE_HIGH>,
+                       <&gpiob 10 GPIO_ACTIVE_HIGH>,
+                       <&gpioa 8 GPIO_ACTIVE_HIGH>;
+        sig-gpios = <&gpioa 4 GPIO_ACTIVE_HIGH>;
+    };
+
+    cd4067_3: cd4067_mux_3 {
+        compatible = "vnd,cd4067-gpio-mux";
+        status = "okay";
+        select-gpios = <&gpiob 5 GPIO_ACTIVE_HIGH>,
+                       <&gpiob 4 GPIO_ACTIVE_HIGH>,
+                       <&gpiob 10 GPIO_ACTIVE_HIGH>,
+                       <&gpioa 8 GPIO_ACTIVE_HIGH>;
+        sig-gpios = <&gpiob 0 GPIO_ACTIVE_HIGH>;
+    };
+};
+
 &i2c1 {
     status = "okay";
 
