@@ -29,8 +29,6 @@ const MUX::mux_device MUX::mux_devices[] = {
     CD4067_MUX(cd4067_3),
 };
 
-const size_t MUX::mux_count = ARRAY_SIZE(MUX::mux_devices);
-
 int MUX::init() {
     initialized_ = false;
 
@@ -64,6 +62,11 @@ int MUX::read_state(size_t mux_index, uint16_t *active_mask) {
         return -EINVAL;
     }
 
+    if (!initialized_) {
+        LOG_ERR("CD4067 devices not initialized");
+        return -EACCES;
+    }
+
     *active_mask = 0U;
 
     for (uint8_t channel = 0U; channel < CD4067_CHANNEL_COUNT; ++channel) {
@@ -88,11 +91,6 @@ int MUX::read_state(size_t mux_index, uint16_t *active_mask) {
 }
 
 int MUX::log_state() {
-    if (!initialized_) {
-        LOG_ERR("CD4067 devices not initialized");
-        return -EACCES;
-    }
-
     for (size_t i = 0; i < mux_count; ++i) {
         uint16_t active_mask = 0U;
         int ret = read_state(i, &active_mask);

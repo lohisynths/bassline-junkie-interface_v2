@@ -2,9 +2,8 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
-#include "GPIO.h"
+#include "InputController.h"
 #include "LEDS.h"
-#include "MUX.h"
 
 LOG_MODULE_REGISTER(app, LOG_LEVEL_INF);
 
@@ -21,8 +20,7 @@ int main(void)
     int ret;
     uint32_t blink_count = 0U;
     size_t chase_step = 0U;
-    GPIO gpio_inputs;
-    MUX mux;
+    InputController inputs;
 
     if (!gpio_is_ready_dt(&led)) {
         LOG_ERR("LED GPIO device is not ready");
@@ -38,15 +36,9 @@ int main(void)
     LOG_INF("Bassline Junkie Interface");
     LOG_INF("Console TX ready on ttyACM0");
 
-    ret = mux.init();
+    ret = inputs.init();
     if (ret < 0) {
-        LOG_ERR("Failed to initialize CD4067: %d", ret);
-        return 0;
-    }
-
-    ret = gpio_inputs.init();
-    if (ret < 0) {
-        LOG_ERR("Failed to initialize GPIO inputs: %d", ret);
+        LOG_ERR("Failed to initialize inputs: %d", ret);
         return 0;
     }
 
@@ -80,16 +72,14 @@ int main(void)
 
         blink_count++;
         if ((blink_count % 10U) == 0U) {
-            ret = mux.log_state();
+            ret = inputs.update();
             if (ret < 0) {
-                LOG_ERR("Failed to scan CD4067 channels: %d", ret);
+                LOG_ERR("Failed to read inputs: %d", ret);
                 return 0;
             }
 
-            ret = gpio_inputs.log_state();
-            if (ret < 0) {
-                LOG_ERR("Failed to read GPIO inputs: %d", ret);
-                return 0;
+            for (size_t i = 0; i < InputController::state_count; ++i) {
+                LOG_INF("Input %u active mask: 0x%04x", (unsigned int)i, inputs.state(i));
             }
 
             LOG_INF("Heartbeat: LED blink running, chase step %u", (unsigned int)chase_step);
