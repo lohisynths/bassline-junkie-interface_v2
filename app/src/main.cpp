@@ -17,10 +17,10 @@ LOG_MODULE_REGISTER(app, LOG_LEVEL_INF);
 
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 
-static constexpr size_t input_thread_stack_size = 2048U;
-static constexpr int input_thread_priority = -1;
-static constexpr int input_poll_interval_ms = 5;
-static constexpr size_t knob_led_count = 10U;
+static const size_t input_thread_stack_size = 2048U;
+static const int input_thread_priority = -1;
+static const int input_poll_interval_ms = 5;
+static const size_t knob_led_count = 10U;
 
 K_THREAD_STACK_DEFINE(input_thread_stack, input_thread_stack_size);
 static struct k_thread input_thread_data;

@@ -2,8 +2,8 @@
 
 #include <errno.h>
 
-static constexpr uint8_t knob_brightness_percent = 50U;
-static constexpr uint8_t knob_max_value = 127U;
+static const uint8_t knob_brightness_percent = 50U;
+static const uint8_t knob_max_value = 127U;
 
 int Knob::init(InputController &inputs,
                size_t button_mux_index,
