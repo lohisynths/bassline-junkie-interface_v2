@@ -7,18 +7,20 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - PCA9685-based LED output control through the `LEDS` class
 - CD4067 input scanning through the `MUX` class and an out-of-tree Zephyr driver
 - aggregated input caching through the `InputController` class
+- button decoding from cached input bits through the `Button` class
 - quadrature decoding from cached CD4067 channels through the `Encoder` class
 - serial logging over the ST-LINK virtual COM port
 
 ## Modules
 
+- `Button`: binds to one cached input state, samples one configured active-low channel as a button input, and reports the current button state through `get_state()`
 - `Encoder`: binds to one cached mux state, samples two configured channels as quadrature phase A/B, and reports per-update delta plus accumulated position
 - `GPIO`: wraps the configured discrete GPIO inputs and exposes per-pin and bitmask reads
 - `InputController`: owns the `MUX` and `GPIO` facades and exposes one flat cached input-state table
 - `LEDS`: wraps the configured PCA9685 controllers and exposes channel-based LED control
 - `MUX`: wraps the configured CD4067 devices, scans their inputs, and logs one active-channel mask per mux
 - `cd4067`: out-of-tree Zephyr module providing the CD4067 GPIO multiplexer driver
-- `main.cpp`: initializes the board LED, starts an input thread that constructs `InputController` and `Encoder` as plain locals, initializes `LEDS`, and runs a simple LED chase pattern
+- `main.cpp`: initializes the board LED, starts an input thread that constructs `InputController`, `Button`, and `Encoder` as plain locals, compares current and previous button state to log transitions, initializes `LEDS`, and runs a simple LED chase pattern
 
 ## Runtime Overview
 
@@ -29,14 +31,17 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
   `MUX0` on `PA0`, `MUX1` on `PA1`, `MUX2` on `PA4`, and `MUX3` on `PB0`.
 - The `MUX` class scans each configured CD4067 by selecting all 16 channels and sampling its `SIG` input.
 - The `InputController` class reads all mux masks plus the discrete GPIO mask into one cached array.
+- The `Button` class binds to one cached input state, uses one configured active-low channel as a button source, and reports the current button state through `get_state()`.
+- The current application configures the button on mux index `0`, channel `0`.
 - The `Encoder` class binds to one cached mux state, uses two configured channels as quadrature phase A/B, and converts valid AB transitions into signed movement.
 - The current application configures the encoder on mux index `0` with phase A on channel `1` and phase B on channel `2`.
 - The `LEDS` class verifies all configured PCA9685 devices, clears them, and advances a single lit output in a chase loop.
-- A dedicated input thread constructs `InputController` and `Encoder` as plain local objects, then refreshes the cached inputs, updates the decoder, and logs encoder delta and position when movement is detected.
+- A dedicated input thread constructs `InputController`, `Button`, and `Encoder` as plain local objects, then refreshes the cached inputs, updates both decoders, compares the current and previous button state to log transitions, and logs encoder delta and position when movement is detected.
 - Status and error messages are emitted over the ST-LINK virtual serial port.
 
 ## Developer Notes
 
+- Button decoding is implemented in `src/Button.cpp` and declared in `src/Button.h`.
 - Quadrature decoding is implemented in `src/Encoder.cpp` and declared in `src/Encoder.h`.
 - The application entrypoint is `src/main.cpp`.
 - Discrete GPIO input handling is implemented in `src/GPIO.cpp` and declared in `src/GPIO.h`.
