@@ -9,15 +9,17 @@ CD4067 GPIO multiplexers through the `MUX` class, which is backed by an
 out-of-tree Zephyr driver located in `cd4067/`. Discrete GPIO inputs are
 sampled through the `GPIO` class. The `InputController` class combines the mux
 and GPIO sources into one cached state table. The `Button` class decodes one
-button from a selected cached input bit, and the `Encoder` class decodes a
+button from a selected cached input bit, the `Encoder` class decodes a
 quadrature encoder from two selected CD4067 channels inside that cached input
-state. The current runtime pattern clears all external LED channels, lights one
-channel at 50% brightness, advances that channel in a chase loop, and logs
-button transitions plus encoder movement and position as the input thread
-refreshes the cached state. The input thread constructs its `InputController`,
-`Button`, and `Encoder` instances as plain local objects, so they live on that
-thread's stack instead of in static storage. The button input is treated as
-active-low, so a raw mux bit value of `0` means pressed and `1` means released.
+state, and the `Knob` class owns one internal `Encoder`, one internal `Button`,
+and one LED segment as a reusable knob UI. The current runtime pattern maps one encoder
+onto the first 10 PCA9685 channels, maintains one clamped knob value in the
+range `0..127`, lights one LED in that segment according to that value, and
+logs button transitions plus encoder movement as the input thread refreshes the
+cached state. The input thread constructs its `InputController`, `LEDS`, and
+`Knob` instances as plain local objects, and the `Knob` owns its internal
+`Button` and `Encoder` helpers. The button input is treated as active-low, so a
+raw mux bit value of `0` means pressed and `1` means released.
 
 The current CD4067 wiring described in `app/app.overlay` is:
 
@@ -89,7 +91,8 @@ The main application sources are:
 
 - `app/src/Button.h` and `app/src/Button.cpp`: button decoder bound to one cached input state and one source channel
 - `app/src/Encoder.h` and `app/src/Encoder.cpp`: quadrature decoder bound to one cached mux state and two CD4067 channels
-- `app/src/main.cpp`: entrypoint, input-thread setup, button transition logging, and top-level runtime loop
+- `app/src/Knob.h` and `app/src/Knob.cpp`: reusable knob UI that owns one encoder, one button, and one contiguous LED segment
+- `app/src/main.cpp`: entrypoint, input-thread setup, single-knob wiring, and top-level runtime loop
 - `app/src/GPIO.h` and `app/src/GPIO.cpp`: discrete GPIO input initialization and bitmask reads
 - `app/src/InputController.h` and `app/src/InputController.cpp`: aggregate input reads across all mux and GPIO sources
 - `app/src/LEDS.h` and `app/src/LEDS.cpp`: PCA9685 LED control
@@ -133,8 +136,8 @@ app/docs/doxygen/html/index.html
 The Doxygen landing page focuses on code structure and module responsibilities.
 Use this README as the canonical source for environment setup, build, flash,
 and hardware wiring information. The generated API docs include the `Button`,
-`Encoder`, `GPIO`, `InputController`, `LEDS`, and `MUX` classes plus the
-CD4067 driver interface.
+`Encoder`, `GPIO`, `InputController`, `Knob`, `LEDS`, and `MUX` classes plus
+the CD4067 driver interface.
 
 ## Flash
 
@@ -160,13 +163,16 @@ Verified on this machine with:
 When the application is flashed and running on the board:
 
 - the onboard LD2 LED toggles every 100 ms
-- one PCA9685 channel at a time is driven at 50% brightness
-- the active PCA9685 channel advances in a chase loop across all configured channels
 - the firmware scans all 16 channels on each configured CD4067 instance
 - the firmware updates one cached input-state table containing all mux masks plus the GPIO mask
 - the firmware decodes one button from mux `0`, channel `0`
 - the input thread compares the current and previous button state and logs `Button pressed` / `Button released` on transitions
 - the firmware decodes one quadrature encoder from mux `0`, channel `1` as phase A and channel `2` as phase B
-- the input thread constructs `InputController`, `Button`, and `Encoder` as plain local objects on its own stack before entering the polling loop
-- the firmware logs encoder delta and accumulated position whenever a valid quadrature edge is observed
+- the firmware constructs one `Knob` object that owns its internal encoder and button helpers and binds them to LED channels `0` through `9`
+- the knob maintains one internal value in the range `0..127`
+- one of the first 10 PCA9685 channels is lit at a time according to that clamped value
+- the LED indication does not wrap when the knob reaches the minimum or maximum value
+- the knob exposes the encoder push-button state for use elsewhere in the application
+- the input thread constructs `InputController`, `LEDS`, and `Knob` as plain local objects on its own stack before entering the polling loop
+- the firmware logs encoder delta and the current knob value whenever a valid quadrature edge is observed
 - the firmware emits serial log messages on `ttyACM0`
