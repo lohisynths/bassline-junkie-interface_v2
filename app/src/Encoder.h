@@ -60,7 +60,14 @@ public:
     int32_t position() const;
 
 private:
-    /** @brief Maps one AB transition to a quarter-step delta. */
+    /**
+     * @brief Maps one AB transition to a quarter-step delta.
+     *
+     * @param previous_ab Previously sampled AB state packed into bits 1:0.
+     * @param current_ab Currently sampled AB state packed into bits 1:0.
+     *
+     * @return `-1`, `0`, or `1` for reverse, invalid/no movement, or forward.
+     */
     static int8_t transition_(uint8_t previous_ab, uint8_t current_ab);
 
     /** @brief Borrowed input controller used to read cached mux states. */
@@ -69,8 +76,10 @@ private:
     /** @brief Index of the configured mux state inside @ref inputs_. */
     size_t mux_index_ = 0U;
 
-    /** @brief CD4067 channel numbers carrying encoder phases A and B. */
+    /** @brief InputController channel number carrying encoder phase A. */
     uint8_t pin_a_ = 0U;
+
+    /** @brief InputController channel number carrying encoder phase B. */
     uint8_t pin_b_ = 0U;
 
     /** @brief Tracks whether one initial AB sample has been captured. */

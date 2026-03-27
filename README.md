@@ -6,12 +6,13 @@ The application blinks the onboard LD2 LED through the standard Zephyr `led0`
 alias, logs status over the ST-LINK virtual serial port, and drives multiple
 PCA9685 PWM controllers through the `LEDS` class. It also samples multiple
 CD4067 GPIO multiplexers through the `MUX` class, which is backed by an
-out-of-tree Zephyr driver located in `cd4067/`. Discrete encoder GPIO inputs
-are sampled through the `GPIO` class. The `InputController` class combines both
-input sources into one cached state table. The current runtime pattern clears
-all external LED channels, lights one channel at 50% brightness, advances that
-channel in a chase loop, and periodically logs all input masks through one flat
-iteration.
+out-of-tree Zephyr driver located in `cd4067/`. Discrete GPIO inputs are
+sampled through the `GPIO` class. The `InputController` class combines the mux
+and GPIO sources into one cached state table, and the `Encoder` class decodes a
+quadrature encoder from two selected CD4067 channels inside that cached input
+state. The current runtime pattern clears all external LED channels, lights one
+channel at 50% brightness, advances that channel in a chase loop, and logs
+encoder movement and position as the input thread refreshes the cached state.
 
 The current CD4067 wiring described in `app/app.overlay` is:
 
@@ -81,6 +82,7 @@ and `west flash` on this machine.
 
 The main application sources are:
 
+- `app/src/Encoder.h` and `app/src/Encoder.cpp`: quadrature decoder bound to one cached mux state and two CD4067 channels
 - `app/src/main.cpp`: entrypoint and top-level runtime loop
 - `app/src/GPIO.h` and `app/src/GPIO.cpp`: discrete GPIO input initialization and bitmask reads
 - `app/src/InputController.h` and `app/src/InputController.cpp`: aggregate input reads across all mux and GPIO sources
@@ -124,8 +126,9 @@ app/docs/doxygen/html/index.html
 
 The Doxygen landing page focuses on code structure and module responsibilities.
 Use this README as the canonical source for environment setup, build, flash,
-and hardware wiring information. The generated API docs include the `GPIO`,
-`InputController`, `LEDS`, and `MUX` classes plus the CD4067 driver interface.
+and hardware wiring information. The generated API docs include the `Encoder`,
+`GPIO`, `InputController`, `LEDS`, and `MUX` classes plus the CD4067 driver
+interface.
 
 ## Flash
 
@@ -155,5 +158,6 @@ When the application is flashed and running on the board:
 - the active PCA9685 channel advances in a chase loop across all configured channels
 - the firmware scans all 16 channels on each configured CD4067 instance
 - the firmware updates one cached input-state table containing all mux masks plus the GPIO mask
-- the firmware logs the cached input masks by iterating one flat input-state array periodically
+- the firmware decodes one quadrature encoder from mux `0`, channel `1` as phase A and channel `2` as phase B
+- the firmware logs encoder delta and accumulated position whenever a valid quadrature edge is observed
 - the firmware emits serial log messages on `ttyACM0`

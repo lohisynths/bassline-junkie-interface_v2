@@ -1,5 +1,5 @@
 PROJECT_NAME           = "Bassline Junkie Interface"
-PROJECT_BRIEF          = "Zephyr firmware for status LED, discrete GPIO inputs, PCA9685 LED outputs, and CD4067 mux scanning."
+PROJECT_BRIEF          = "Zephyr firmware for status LED, discrete GPIO inputs, PCA9685 LED outputs, CD4067 mux scanning, and quadrature encoder decoding."
 OUTPUT_DIRECTORY       = app/docs/doxygen
 CREATE_SUBDIRS         = NO
 OUTPUT_LANGUAGE        = English
@@ -7,6 +7,8 @@ USE_MDFILE_AS_MAINPAGE = app/docs/mainpage.md
 
 INPUT                  = README.md \
                          app/docs/mainpage.md \
+                         app/src/Encoder.h \
+                         app/src/Encoder.cpp \
                          app/src/GPIO.h \
                          app/src/GPIO.cpp \
                          app/src/InputController.h \
