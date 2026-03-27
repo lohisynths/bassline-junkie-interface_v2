@@ -7,10 +7,11 @@ alias, logs status over the ST-LINK virtual serial port, and drives multiple
 PCA9685 PWM controllers through the `LEDS` class. It also samples multiple
 CD4067 GPIO multiplexers through the `MUX` class, which is backed by an
 out-of-tree Zephyr driver located in `cd4067/`. Discrete encoder GPIO inputs
-are sampled through the `GPIO` class. The current runtime pattern clears all
-external LED channels, lights one channel at 50% brightness, advances that
-channel in a chase loop, and periodically logs both CD4067 and GPIO input
-masks.
+are sampled through the `GPIO` class. The `InputController` class combines both
+input sources into one cached state table. The current runtime pattern clears
+all external LED channels, lights one channel at 50% brightness, advances that
+channel in a chase loop, and periodically logs all input masks through one flat
+iteration.
 
 The current CD4067 wiring described in `app/app.overlay` is:
 
@@ -82,6 +83,7 @@ The main application sources are:
 
 - `app/src/main.cpp`: entrypoint and top-level runtime loop
 - `app/src/GPIO.h` and `app/src/GPIO.cpp`: discrete GPIO input initialization and bitmask reads
+- `app/src/InputController.h` and `app/src/InputController.cpp`: aggregate input reads across all mux and GPIO sources
 - `app/src/LEDS.h` and `app/src/LEDS.cpp`: PCA9685 LED control
 - `app/src/MUX.h` and `app/src/MUX.cpp`: CD4067 mux aggregation and scanning
 
@@ -123,7 +125,7 @@ app/docs/doxygen/html/index.html
 The Doxygen landing page focuses on code structure and module responsibilities.
 Use this README as the canonical source for environment setup, build, flash,
 and hardware wiring information. The generated API docs include the `GPIO`,
-`LEDS`, and `MUX` classes plus the CD4067 driver interface.
+`InputController`, `LEDS`, and `MUX` classes plus the CD4067 driver interface.
 
 ## Flash
 
@@ -152,6 +154,6 @@ When the application is flashed and running on the board:
 - one PCA9685 channel at a time is driven at 50% brightness
 - the active PCA9685 channel advances in a chase loop across all configured channels
 - the firmware scans all 16 channels on each configured CD4067 instance
-- the firmware logs one 16-bit active-input bitmask per mux periodically
-- the firmware logs one active-input GPIO bitmask for the configured encoder inputs periodically
+- the firmware updates one cached input-state table containing all mux masks plus the GPIO mask
+- the firmware logs the cached input masks by iterating one flat input-state array periodically
 - the firmware emits serial log messages on `ttyACM0`
