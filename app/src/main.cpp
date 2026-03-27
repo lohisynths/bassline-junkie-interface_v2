@@ -22,6 +22,16 @@ static const int input_thread_priority = -1;
 static const int input_poll_interval_ms = 5;
 static const size_t knob_led_count = 10U;
 
+static const Knob::Config knob_config = {
+    .button_mux_index = 0U,
+    .button_pin = 0U,
+    .encoder_mux_index = 0U,
+    .encoder_pin_a = 1U,
+    .encoder_pin_b = 2U,
+    .first_led = 0U,
+    .led_count = knob_led_count,
+};
+
 K_THREAD_STACK_DEFINE(input_thread_stack, input_thread_stack_size);
 static struct k_thread input_thread_data;
 static K_SEM_DEFINE(input_thread_started, 0, 1);
@@ -38,7 +48,7 @@ static void input_thread(void *, void *, void *) {
         ret = leds.init();
     }
     if (ret == 0) {
-        ret = knob.init(inputs, 0U, 0U, 0U, 1U, 2U, leds, 0U, knob_led_count);
+        ret = knob.init(inputs, knob_config, leds);
     }
 
     input_thread_status = ret;

@@ -5,36 +5,31 @@
 static const uint8_t knob_brightness_percent = 50U;
 static const uint8_t knob_max_value = 127U;
 
-int Knob::init(InputController &inputs,
-               size_t button_mux_index,
-               uint8_t button_pin,
-               size_t encoder_mux_index,
-               uint8_t encoder_pin_a,
-               uint8_t encoder_pin_b,
-               LEDSController &leds,
-               size_t first_led,
-               size_t led_count)
+int Knob::init(InputController &inputs, const Config &config, LEDSController &leds)
 {
     initialized_ = false;
 
-    if ((led_count == 0U) ||
-        ((first_led + led_count) > LEDSController::led_count)) {
+    if ((config.led_count == 0U) ||
+        ((config.first_led + config.led_count) > LEDSController::led_count)) {
         return -EINVAL;
     }
 
-    int ret = button_.init(inputs, button_mux_index, button_pin);
+    int ret = button_.init(inputs, config.button_mux_index, config.button_pin);
     if (ret < 0) {
         return ret;
     }
 
-    ret = encoder_.init(inputs, encoder_mux_index, encoder_pin_a, encoder_pin_b);
+    ret = encoder_.init(inputs,
+                        config.encoder_mux_index,
+                        config.encoder_pin_a,
+                        config.encoder_pin_b);
     if (ret < 0) {
         return ret;
     }
 
     leds_ = &leds;
-    first_led_ = first_led;
-    led_count_ = led_count;
+    first_led_ = config.first_led;
+    led_count_ = config.led_count;
 
     value_ = 0U;
     previous_led_index_ = led_index_(value_);

@@ -21,6 +21,32 @@
 class Knob {
 public:
     /**
+     * @brief Groups the knob-specific binding and LED segment parameters.
+     */
+    struct Config {
+        /** @brief Cached mux index containing the button bit. */
+        size_t button_mux_index = 0U;
+
+        /** @brief Channel number used for the button source bit. */
+        uint8_t button_pin = 0U;
+
+        /** @brief Cached mux index containing the encoder phases. */
+        size_t encoder_mux_index = 0U;
+
+        /** @brief Channel number used for encoder phase A. */
+        uint8_t encoder_pin_a = 0U;
+
+        /** @brief Channel number used for encoder phase B. */
+        uint8_t encoder_pin_b = 0U;
+
+        /** @brief First global LED channel reserved for this knob. */
+        size_t first_led = 0U;
+
+        /** @brief Number of contiguous LED channels reserved for this knob. */
+        size_t led_count = 0U;
+    };
+
+    /**
      * @brief Constructs an unbound knob facade.
      */
     Knob() = default;
@@ -29,14 +55,8 @@ public:
      * @brief Binds the knob to existing input and LED objects.
      *
      * @param inputs Shared input controller used by the button and encoder.
-     * @param button_mux_index Cached mux index containing the button bit.
-     * @param button_pin Channel number used for the button source bit.
-     * @param encoder_mux_index Cached mux index containing the encoder phases.
-     * @param encoder_pin_a Channel number used for encoder phase A.
-     * @param encoder_pin_b Channel number used for encoder phase B.
+     * @param config Knob-specific channel and LED segment configuration.
      * @param leds Shared LED controller used to render the knob indicator.
-     * @param first_led First global LED channel reserved for this knob.
-     * @param led_count Number of contiguous LED channels reserved for this knob.
      *
      * @retval 0 The knob configuration is valid and the initial LED was rendered.
      * @retval -EINVAL The LED range configuration is invalid.
@@ -44,15 +64,7 @@ public:
      *         internal @ref Encoder::init,
      *         or @ref LEDSController::set_channel_percent.
      */
-    int init(InputController &inputs,
-             size_t button_mux_index,
-             uint8_t button_pin,
-             size_t encoder_mux_index,
-             uint8_t encoder_pin_a,
-             uint8_t encoder_pin_b,
-             LEDSController &leds,
-             size_t first_led,
-             size_t led_count);
+    int init(InputController &inputs, const Config &config, LEDSController &leds);
 
     /**
      * @brief Returns the current knob button state.
