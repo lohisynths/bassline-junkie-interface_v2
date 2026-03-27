@@ -12,7 +12,7 @@
 /**
  * @brief Couples one encoder, one button, and one LED segment into a knob UI.
  *
- * The knob borrows externally managed @ref InputController and @ref LEDS
+ * The knob borrows externally managed @ref InputController and @ref LEDSController
  * instances through @ref init. It owns its internal @ref Button and
  * @ref Encoder objects, updates one internal value in the range `[0, 127]`
  * from encoder movement, maps that value onto a contiguous LED range, and
@@ -42,7 +42,7 @@ public:
      * @retval -EINVAL The LED range configuration is invalid.
      * @retval negative Error propagated from the internal @ref Button::init,
      *         internal @ref Encoder::init,
-     *         or @ref LEDS::set_channel_percent.
+     *         or @ref LEDSController::set_channel_percent.
      */
     int init(InputController &inputs,
              size_t button_mux_index,
@@ -50,7 +50,7 @@ public:
              size_t encoder_mux_index,
              uint8_t encoder_pin_a,
              uint8_t encoder_pin_b,
-             LEDS &leds,
+             LEDSController &leds,
              size_t first_led,
              size_t led_count);
 
@@ -84,7 +84,7 @@ public:
      *
      * @retval 0 The knob indicator is up to date.
      * @retval -EACCES The knob has not been initialized.
-     * @retval negative Error propagated from @ref LEDS::set_channel_percent.
+     * @retval negative Error propagated from @ref LEDSController::set_channel_percent.
      */
     int update();
 
@@ -105,7 +105,7 @@ private:
     Button button_;
 
     /** @brief LED controller borrowed from the caller. */
-    LEDS *leds_ = nullptr;
+    LEDSController *leds_ = nullptr;
 
     /** @brief First global LED channel reserved for this knob. */
     size_t first_led_ = 0U;

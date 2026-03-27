@@ -4,7 +4,7 @@ Zephyr firmware for the ST Nucleo-F411RE board.
 
 The application blinks the onboard LD2 LED through the standard Zephyr `led0`
 alias, logs status over the ST-LINK virtual serial port, and drives multiple
-PCA9685 PWM controllers through the `LEDS` class. It also samples multiple
+PCA9685 PWM controllers through the `LEDSController` class. It also samples multiple
 CD4067 GPIO multiplexers through the `MUX` class, which is backed by an
 out-of-tree Zephyr driver located in `cd4067/`. Discrete GPIO inputs are
 sampled through the `GPIO` class. The `InputController` class combines the mux
@@ -16,7 +16,7 @@ and one LED segment as a reusable knob UI. The current runtime pattern maps one 
 onto the first 10 PCA9685 channels, maintains one clamped knob value in the
 range `0..127`, lights one LED in that segment according to that value, and
 logs button transitions plus encoder movement as the input thread refreshes the
-cached state. The input thread constructs its `InputController`, `LEDS`, and
+cached state. The input thread constructs its `InputController`, `LEDSController`, and
 `Knob` instances as plain local objects, and the `Knob` owns its internal
 `Button` and `Encoder` helpers. The button input is treated as active-low, so a
 raw mux bit value of `0` means pressed and `1` means released.
@@ -95,7 +95,7 @@ The main application sources are:
 - `app/src/main.cpp`: entrypoint, input-thread setup, single-knob wiring, and top-level runtime loop
 - `app/src/GPIO.h` and `app/src/GPIO.cpp`: discrete GPIO input initialization and bitmask reads
 - `app/src/InputController.h` and `app/src/InputController.cpp`: aggregate input reads across all mux and GPIO sources
-- `app/src/LEDS.h` and `app/src/LEDS.cpp`: PCA9685 LED control
+- `app/src/LEDS.h` and `app/src/LEDS.cpp`: PCA9685 LED control through `LEDSController`
 - `app/src/MUX.h` and `app/src/MUX.cpp`: CD4067 mux aggregation and scanning
 
 ## Build
@@ -136,7 +136,7 @@ app/docs/doxygen/html/index.html
 The Doxygen landing page focuses on code structure and module responsibilities.
 Use this README as the canonical source for environment setup, build, flash,
 and hardware wiring information. The generated API docs include the `Button`,
-`Encoder`, `GPIO`, `InputController`, `Knob`, `LEDS`, and `MUX` classes plus
+`Encoder`, `GPIO`, `InputController`, `Knob`, `LEDSController`, and `MUX` classes plus
 the CD4067 driver interface.
 
 ## Flash
@@ -173,6 +173,6 @@ When the application is flashed and running on the board:
 - one of the first 10 PCA9685 channels is lit at a time according to that clamped value
 - the LED indication does not wrap when the knob reaches the minimum or maximum value
 - the knob exposes the encoder push-button state for use elsewhere in the application
-- the input thread constructs `InputController`, `LEDS`, and `Knob` as plain local objects on its own stack before entering the polling loop
+- the input thread constructs `InputController`, `LEDSController`, and `Knob` as plain local objects on its own stack before entering the polling loop
 - the firmware logs encoder delta and the current knob value whenever a valid quadrature edge is observed
 - the firmware emits serial log messages on `ttyACM0`
