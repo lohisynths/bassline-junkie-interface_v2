@@ -43,17 +43,17 @@ int Knob::init(InputController &inputs,
     return leds_->set_channel_percent(first_led_ + previous_led_index_, knob_brightness_percent);
 }
 
-bool Knob::get_state() const
+bool Knob::get_state()
 {
     return button_.get_state();
 }
 
-uint8_t Knob::get_value() const
+uint8_t Knob::get_value()
 {
     return value_;
 }
 
-int32_t Knob::get_delta() const
+int32_t Knob::get_delta()
 {
     return encoder_.delta();
 }
@@ -108,7 +108,7 @@ int Knob::update()
     return 0;
 }
 
-size_t Knob::led_index_(uint8_t value) const
+size_t Knob::led_index_(uint8_t value)
 {
     const size_t index = ((size_t)value * led_count_) / (size_t)(knob_max_value + 1U);
     return (led_count_ - 1U) - index;
