@@ -18,7 +18,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - `LEDS`: wraps the configured PCA9685 controllers and exposes channel-based LED control
 - `MUX`: wraps the configured CD4067 devices, scans their inputs, and logs one active-channel mask per mux
 - `cd4067`: out-of-tree Zephyr module providing the CD4067 GPIO multiplexer driver
-- `main.cpp`: initializes the board LED, starts an input thread for `InputController` and `Encoder`, initializes `LEDS`, and runs a simple LED chase pattern
+- `main.cpp`: initializes the board LED, starts an input thread that constructs `InputController` and `Encoder` as plain locals, initializes `LEDS`, and runs a simple LED chase pattern
 
 ## Runtime Overview
 
@@ -32,7 +32,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - The `Encoder` class binds to one cached mux state, uses two configured channels as quadrature phase A/B, and converts valid AB transitions into signed movement.
 - The current application configures the encoder on mux index `0` with phase A on channel `1` and phase B on channel `2`.
 - The `LEDS` class verifies all configured PCA9685 devices, clears them, and advances a single lit output in a chase loop.
-- A dedicated input thread refreshes `InputController`, updates the decoder, and logs encoder delta and position when movement is detected.
+- A dedicated input thread constructs `InputController` and `Encoder` as plain local objects, then refreshes the cached inputs, updates the decoder, and logs encoder delta and position when movement is detected.
 - Status and error messages are emitted over the ST-LINK virtual serial port.
 
 ## Developer Notes
