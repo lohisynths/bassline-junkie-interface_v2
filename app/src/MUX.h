@@ -19,7 +19,7 @@
 class MUX {
 public:
     /** @brief Total number of configured CD4067 devices. */
-    static const size_t mux_count;
+    static constexpr size_t mux_count = 4U;
 
     /** @brief Constructs a CD4067 facade. */
     MUX() = default;
@@ -31,6 +31,19 @@ public:
      * @retval -ENODEV The configured CD4067 device is not ready.
      */
     int init();
+
+    /**
+     * @brief Scans one CD4067 instance and returns its active bitmask.
+     *
+     * @param mux_index Index in @ref mux_devices.
+     * @param active_mask Output bitmask for the selected mux.
+     *
+     * @retval 0 The scan completed successfully.
+     * @retval -EACCES The multiplexer has not been initialized.
+     * @retval -EINVAL The mux index is invalid or @p active_mask is null.
+     * @retval negative Driver-specific error returned by the CD4067 driver.
+     */
+    int read_state(size_t mux_index, uint16_t *active_mask);
 
     /**
      * @brief Scans all CD4067 channels and logs the active bitmask.
@@ -50,17 +63,6 @@ private:
         /** @brief GPIO specification for the mux SIG input. */
         gpio_dt_spec sig;
     };
-
-    /**
-     * @brief Scans one CD4067 instance and returns its active bitmask.
-     *
-     * @param mux_index Index in @ref mux_devices.
-     * @param active_mask Output bitmask for the selected mux.
-     *
-     * @retval 0 The scan completed successfully.
-     * @retval negative Driver-specific error returned by the CD4067 driver.
-     */
-    int read_state(size_t mux_index, uint16_t *active_mask);
 
     /** @brief Tracks whether @ref init completed successfully. */
     bool initialized_ = false;

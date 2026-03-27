@@ -8,5 +8,6 @@ project(bassline_junkie_interface)
 target_sources(app PRIVATE
     src/main.cpp
     src/GPIO.cpp
+    src/InputController.cpp
     src/LEDS.cpp
     src/MUX.cpp)
