@@ -2,6 +2,7 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+#include "GPIO.h"
 #include "LEDS.h"
 #include "MUX.h"
 
@@ -20,6 +21,7 @@ int main(void)
     int ret;
     uint32_t blink_count = 0U;
     size_t chase_step = 0U;
+    GPIO gpio_inputs;
     MUX mux;
 
     if (!gpio_is_ready_dt(&led)) {
@@ -39,6 +41,12 @@ int main(void)
     ret = mux.init();
     if (ret < 0) {
         LOG_ERR("Failed to initialize CD4067: %d", ret);
+        return 0;
+    }
+
+    ret = gpio_inputs.init();
+    if (ret < 0) {
+        LOG_ERR("Failed to initialize GPIO inputs: %d", ret);
         return 0;
     }
 
@@ -75,6 +83,12 @@ int main(void)
             ret = mux.log_state();
             if (ret < 0) {
                 LOG_ERR("Failed to scan CD4067 channels: %d", ret);
+                return 0;
+            }
+
+            ret = gpio_inputs.log_state();
+            if (ret < 0) {
+                LOG_ERR("Failed to read GPIO inputs: %d", ret);
                 return 0;
             }
 

@@ -1,9 +1,43 @@
 / {
     aliases {
+        enc13sw = &enc13sw;
+        enc13b = &enc13b;
+        enc13a = &enc13a;
+        enc14sw = &enc14sw;
+        enc14b = &enc14b;
+        enc14a = &enc14a;
         mux0 = &cd4067_0;
         mux1 = &cd4067_1;
         mux2 = &cd4067_2;
         mux3 = &cd4067_3;
+    };
+
+    encoder_inputs: encoder_inputs {
+        compatible = "gpio-keys";
+
+        enc13sw: enc13sw_gpio {
+            gpios = <&gpioh 1 GPIO_ACTIVE_LOW>;
+        };
+
+        enc13b: enc13b_gpio {
+            gpios = <&gpioc 2 GPIO_ACTIVE_LOW>;
+        };
+
+        enc13a: enc13a_gpio {
+            gpios = <&gpioc 3 GPIO_ACTIVE_LOW>;
+        };
+
+        enc14sw: enc14sw_gpio {
+            gpios = <&gpioc 0 GPIO_ACTIVE_LOW>;
+        };
+
+        enc14b: enc14b_gpio {
+            gpios = <&gpioc 1 GPIO_ACTIVE_LOW>;
+        };
+
+        enc14a: enc14a_gpio {
+            gpios = <&gpioh 0 GPIO_ACTIVE_LOW>;
+        };
     };
 
     cd4067_0: cd4067_mux {
