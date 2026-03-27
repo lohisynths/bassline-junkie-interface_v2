@@ -29,7 +29,7 @@ public:
      * @brief Binds the knob to existing input and LED objects.
      *
      * @param inputs Shared input controller used by the button and encoder.
-     * @param button_state_index Cached input-state index containing the button bit.
+     * @param button_mux_index Cached mux index containing the button bit.
      * @param button_pin Channel number used for the button source bit.
      * @param encoder_mux_index Cached mux index containing the encoder phases.
      * @param encoder_pin_a Channel number used for encoder phase A.
@@ -45,7 +45,7 @@ public:
      *         or @ref LEDS::set_channel_percent.
      */
     int init(InputController &inputs,
-             size_t button_state_index,
+             size_t button_mux_index,
              uint8_t button_pin,
              size_t encoder_mux_index,
              uint8_t encoder_pin_a,
