@@ -20,7 +20,7 @@
 class InputController {
 public:
     /** @brief Total number of cached input state masks. */
-    static constexpr size_t state_count = MUX::mux_count + 1U;
+    static const size_t state_count = MUX::mux_count + 1U;
 
     /** @brief Constructs an input controller facade. */
     InputController() = default;
