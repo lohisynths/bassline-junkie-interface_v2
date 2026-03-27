@@ -48,11 +48,16 @@ uint8_t Knob::get_value()
     return value_;
 }
 
-int Knob::update()
+int Knob::update(knob_msg &msg)
 {
     if (!initialized_) {
         return -EACCES;
     }
+
+    msg = {};
+
+    const bool previous_button_pressed = button_.get_state();
+    const uint8_t previous_value = value_;
 
     int ret = encoder_.update();
     if (ret < 0) {
@@ -63,6 +68,8 @@ int Knob::update()
     if (ret < 0) {
         return ret;
     }
+
+    msg.switch_changed = (button_.get_state() != previous_button_pressed);
 
     const int32_t delta = encoder_.delta();
     if (delta == 0) {
@@ -76,6 +83,11 @@ int Knob::update()
         value_ = knob_max_value;
     } else {
         value_ = (uint8_t)next_value;
+    }
+
+    msg.value_changed = (value_ != previous_value);
+    if (!msg.value_changed) {
+        return 0;
     }
 
     const size_t current_led_index = led_index_(value_);
