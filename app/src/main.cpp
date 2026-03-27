@@ -2,9 +2,9 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
-#include "Button.h"
-#include "Encoder.h"
+
 #include "InputController.h"
+#include "Knob.h"
 #include "LEDS.h"
 
 LOG_MODULE_REGISTER(app, LOG_LEVEL_INF);
@@ -20,6 +20,7 @@ static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 static constexpr size_t input_thread_stack_size = 2048U;
 static constexpr int input_thread_priority = -1;
 static constexpr int input_poll_interval_ms = 5;
+static constexpr size_t knob_led_count = 10U;
 
 K_THREAD_STACK_DEFINE(input_thread_stack, input_thread_stack_size);
 static struct k_thread input_thread_data;
@@ -29,15 +30,15 @@ static int input_thread_status = 0;
 
 static void input_thread(void *, void *, void *) {
     InputController inputs;
-    Button button;
-    Encoder encoder;
+    LEDS leds;
+    Knob knob;
 
     int ret = inputs.init();
     if (ret == 0) {
-        ret = button.init(inputs, 0U, 0U);
+        ret = leds.init();
     }
     if (ret == 0) {
-        ret = encoder.init(inputs, 0U, 1U, 2U);
+        ret = knob.init(inputs, 0U, 0U, 0U, 1U, 2U, leds, 0U, knob_led_count);
     }
 
     input_thread_status = ret;
@@ -48,8 +49,8 @@ static void input_thread(void *, void *, void *) {
         return;
     }
 
-    bool previous_button_pressed = button.get_state();
-    int32_t previous_encoder_position = 0;
+    bool previous_button_pressed = knob.get_state();
+    int32_t previous_encoder_value = 0;
 
     while (1) {
         ret = inputs.update();
@@ -58,21 +59,15 @@ static void input_thread(void *, void *, void *) {
             return;
         }
 
-        ret = encoder.update();
+        ret = knob.update();
         if (ret < 0) {
-            LOG_ERR("Failed to update encoder: %d", ret);
+            LOG_ERR("Failed to update knob: %d", ret);
             return;
         }
 
-        ret = button.update();
-        if (ret < 0) {
-            LOG_ERR("Failed to update button: %d", ret);
-            return;
-        }
-
-        const bool current_button_pressed = button.get_state();
-        const int32_t current_encoder_delta = encoder.delta();
-        const int32_t current_encoder_position = encoder.position();
+        const bool current_button_pressed = knob.get_state();
+        const int32_t current_encoder_delta = knob.get_delta();
+        const int32_t current_encoder_value = knob.get_value();
 
         if (current_button_pressed != previous_button_pressed) {
             LOG_INF("Button %s", current_button_pressed ? "pressed" : "released");
@@ -81,11 +76,11 @@ static void input_thread(void *, void *, void *) {
         previous_button_pressed = current_button_pressed;
 
         if ((current_encoder_delta != 0) ||
-            (current_encoder_position != previous_encoder_position)) {
+            (current_encoder_value != previous_encoder_value)) {
             LOG_INF("Encoder delta=%d position=%d",
                     (int)current_encoder_delta,
-                    (int)current_encoder_position);
-            previous_encoder_position = current_encoder_position;
+                    (int)current_encoder_value);
+            previous_encoder_value = current_encoder_value;
         }
 
         k_msleep(input_poll_interval_ms);
@@ -96,7 +91,6 @@ int main(void)
 {
     int ret;
     uint32_t blink_count = 0U;
-    size_t chase_step = 0U;
 
     if (!gpio_is_ready_dt(&led)) {
         LOG_ERR("LED GPIO device is not ready");
@@ -111,13 +105,6 @@ int main(void)
 
     LOG_INF("Bassline Junkie Interface");
     LOG_INF("Console TX ready on ttyACM0");
-
-    LEDS leds;
-    ret = leds.init();
-    if (ret < 0) {
-        LOG_ERR("Failed to initialize LED controllers: %d", ret);
-        return 0;
-    }
 
     k_thread_create(&input_thread_data,
                     input_thread_stack,
@@ -142,23 +129,9 @@ int main(void)
             return 0;
         }
 
-        ret = leds.clear_all();
-        if (ret < 0) {
-            LOG_ERR("Failed to clear LED channels: %d", ret);
-            return 0;
-        }
-
-        ret = leds.set_channel_percent(chase_step, 50U);
-        if (ret < 0) {
-            LOG_ERR("Failed to set LED channel: %d", ret);
-            return 0;
-        }
-
-        chase_step = (chase_step + 1U) % LEDS::led_count;
-
         blink_count++;
         if ((blink_count % 10U) == 0U) {
-            LOG_INF("Heartbeat: LED blink running, chase step %u", (unsigned int)chase_step);
+            LOG_INF("Heartbeat: LED blink running");
         }
 
         k_msleep(100);

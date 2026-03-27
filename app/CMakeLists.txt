@@ -8,6 +8,7 @@ project(bassline_junkie_interface)
 target_sources(app PRIVATE
     src/Button.cpp
     src/Encoder.cpp
+    src/Knob.cpp
     src/main.cpp
     src/GPIO.cpp
     src/InputController.cpp
