@@ -166,7 +166,7 @@ When the application is flashed and running on the board:
 - the firmware scans all 16 channels on each configured CD4067 instance
 - the firmware updates one cached input-state table containing all mux masks plus the GPIO mask
 - the firmware decodes one button from mux `0`, channel `0`
-- the input thread compares the current and previous button state and logs `Button pressed` / `Button released` on transitions
+- the input thread compares the current and previous button state and logs `Knob 0 button pressed` / `Knob 0 button released` on transitions
 - the firmware decodes one quadrature encoder from mux `0`, channel `1` as phase A and channel `2` as phase B
 - the firmware constructs one `Knob` object that owns its internal encoder and button helpers and binds them to LED channels `0` through `9`
 - the knob maintains one internal value in the range `0..127`
@@ -174,5 +174,5 @@ When the application is flashed and running on the board:
 - the LED indication does not wrap when the knob reaches the minimum or maximum value
 - the knob exposes the encoder push-button state for use elsewhere in the application
 - the input thread constructs `InputController`, `LEDSController`, and `Knob` as plain local objects on its own stack before entering the polling loop
-- the firmware logs encoder delta and the current knob value whenever a valid quadrature edge is observed
+- the firmware logs the current knob value whenever a valid quadrature edge changes that value
 - the firmware emits serial log messages on `ttyACM0`

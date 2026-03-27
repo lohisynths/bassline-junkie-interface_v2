@@ -39,7 +39,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - The current application configures the encoder on mux index `0` with phase A on channel `1` and phase B on channel `2`.
 - The `LEDSController` class verifies all configured PCA9685 devices and exposes channel-based brightness control across all PCA9685 outputs.
 - The `Knob` class owns the current encoder and button helpers, binds them to LED channels `0` through `9`, maintains one internal value in the range `0..127` from encoder deltas, projects that value onto the LED segment without wraparound, and exposes the current knob-button state through `get_state()`.
-- A dedicated input thread constructs `InputController`, `LEDSController`, and `Knob` as plain local objects, then refreshes the cached inputs, updates the knob, compares the current and previous button state to log transitions, and logs encoder delta and the current knob value when movement is detected.
+- A dedicated input thread constructs `InputController`, `LEDSController`, and `Knob` as plain local objects, then refreshes the cached inputs, updates the knob, compares the current and previous button state to log `Knob 0 button pressed` / `Knob 0 button released` transitions, and logs the current knob value when movement changes that value.
 - Status and error messages are emitted over the ST-LINK virtual serial port.
 
 ## Developer Notes
