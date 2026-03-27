@@ -79,22 +79,36 @@ int GPIO::read_pin(size_t input_index, bool *active) {
     return 0;
 }
 
-int GPIO::log_state() {
-    bool states[input_count];
-    uint8_t active_mask = 0U;
+int GPIO::read_state(uint16_t *active_mask) {
+    if (active_mask == nullptr) {
+        return -EINVAL;
+    }
+
+    *active_mask = 0U;
 
     for (size_t i = 0; i < input_count; ++i) {
-        int ret = read_pin(i, &states[i]);
+        bool active = false;
+        int ret = read_pin(i, &active);
         if (ret < 0) {
             return ret;
         }
 
-        if (states[i]) {
-            active_mask |= (uint8_t)(1U << i);
+        if (active) {
+            *active_mask |= (uint16_t)(1U << i);
         }
     }
 
-    LOG_INF("GPIO active mask: 0x%02x", active_mask);
+    return 0;
+}
+
+int GPIO::log_state() {
+    uint16_t active_mask = 0U;
+    const int ret = read_state(&active_mask);
+    if (ret < 0) {
+        return ret;
+    }
+
+    LOG_INF("GPIO active mask: 0x%04x", active_mask);
 
     return 0;
 }

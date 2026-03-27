@@ -47,10 +47,20 @@ public:
     int read_pin(size_t input_index, bool *active);
 
     /**
-     * @brief Reads all configured inputs and logs their current states.
+     * @brief Reads all configured inputs and returns the active bitmask.
+     *
+     * @param active_mask Output bitmask for all configured GPIO inputs.
      *
      * @retval 0 All inputs were read successfully.
      * @retval negative Error propagated from @ref read_pin.
+     */
+    int read_state(uint16_t *active_mask);
+
+    /**
+     * @brief Reads all configured inputs and logs their current states.
+     *
+     * @retval 0 All inputs were read successfully.
+     * @retval negative Error propagated from @ref read_state.
      */
     int log_state();
 
