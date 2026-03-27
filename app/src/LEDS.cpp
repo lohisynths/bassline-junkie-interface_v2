@@ -17,7 +17,7 @@ LOG_MODULE_REGISTER(leds, LOG_LEVEL_INF);
         .address = DT_REG_ADDR(DT_NODELABEL(node_label)),  \
     }
 
-const LEDS::pca9685_controller LEDS::pca9685_controllers[] = {
+const LEDSController::pca9685_controller LEDSController::pca9685_controllers[] = {
     PCA9685_CTRL(pca9685_40),
     PCA9685_CTRL(pca9685_41),
     PCA9685_CTRL(pca9685_42),
@@ -33,10 +33,11 @@ const LEDS::pca9685_controller LEDS::pca9685_controllers[] = {
     PCA9685_CTRL(pca9685_4c),
 };
 
-const size_t LEDS::pca9685_count = ARRAY_SIZE(LEDS::pca9685_controllers);
-const size_t LEDS::led_count = LEDS::pca9685_count * LEDS::pca9685_channel_count;
+const size_t LEDSController::pca9685_count = ARRAY_SIZE(LEDSController::pca9685_controllers);
+const size_t LEDSController::led_count =
+    LEDSController::pca9685_count * LEDSController::pca9685_channel_count;
 
-int LEDS::init() {
+int LEDSController::init() {
     initialized_ = false;
 
     const int status = report_status();
@@ -54,7 +55,7 @@ int LEDS::init() {
     return err;
 }
 
-int LEDS::clear_all() {
+int LEDSController::clear_all() {
     int err = 0;
 
     if (!initialized_) {
@@ -76,7 +77,7 @@ int LEDS::clear_all() {
     return 0;
 }
 
-int LEDS::report_status() {
+int LEDSController::report_status() {
     int err = 0;
 
     for (size_t ctrl = 0; ctrl < pca9685_count; ctrl++) {
@@ -95,7 +96,7 @@ int LEDS::report_status() {
     return err;
 }
 
-int LEDS::set_channel_percent(size_t channel, uint8_t percent) {
+int LEDSController::set_channel_percent(size_t channel, uint8_t percent) {
     if (percent > 100U) {
         LOG_ERR("Invalid PCA9685 brightness %u%%", (unsigned int)percent);
         return -EINVAL;
@@ -105,7 +106,7 @@ int LEDS::set_channel_percent(size_t channel, uint8_t percent) {
     return set_channel(channel, pulse);
 }
 
-int LEDS::set_channel(size_t channel, uint32_t pulse) {
+int LEDSController::set_channel(size_t channel, uint32_t pulse) {
     int err = 0;
 
     if (!initialized_) {

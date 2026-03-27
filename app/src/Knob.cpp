@@ -11,14 +11,14 @@ int Knob::init(InputController &inputs,
                size_t encoder_mux_index,
                uint8_t encoder_pin_a,
                uint8_t encoder_pin_b,
-               LEDS &leds,
+               LEDSController &leds,
                size_t first_led,
                size_t led_count)
 {
     initialized_ = false;
 
     if ((led_count == 0U) ||
-        ((first_led + led_count) > LEDS::led_count)) {
+        ((first_led + led_count) > LEDSController::led_count)) {
         return -EINVAL;
     }
 

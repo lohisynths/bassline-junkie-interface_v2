@@ -17,13 +17,13 @@
 /**
  * @brief Controls LED outputs exposed through multiple PCA9685 PWM controllers.
  */
-class LEDS {
+class LEDSController {
 public:
     /** @brief Total number of addressable LED channels across all controllers. */
     static const size_t led_count;
 
     /** @brief Constructs an LED controller facade. */
-    LEDS() = default;
+    LEDSController() = default;
 
     /**
      * @brief Verifies controller availability and clears all LED outputs.

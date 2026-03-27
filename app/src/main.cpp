@@ -30,7 +30,7 @@ static int input_thread_status = 0;
 
 static void input_thread(void *, void *, void *) {
     InputController inputs;
-    LEDS leds;
+    LEDSController leds;
     Knob knob;
 
     int ret = inputs.init();
