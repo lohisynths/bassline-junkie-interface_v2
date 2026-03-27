@@ -19,7 +19,7 @@
 class MUX {
 public:
     /** @brief Total number of configured CD4067 devices. */
-    static constexpr size_t mux_count = 4U;
+    static const size_t mux_count = 4U;
 
     /** @brief Constructs a CD4067 facade. */
     MUX() = default;
