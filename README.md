@@ -21,9 +21,8 @@ onto each 10-channel PCA9685 segment, maintains one clamped knob value in the
 range `0..127` per knob, lights one LED in each segment according to that
 value, and logs button transitions plus encoder movement as the input thread
 refreshes the cached state. The input thread constructs its `InputController`,
-`LEDSController`, `Button` array, and `Knob` array as plain local objects, explicitly
-logs cached input-bit transitions through `InputController::log_mux_changes()`,
-and the `Knob` owns its internal `Encoder` helper while reading its configured
+`LEDSController`, `Button` array, and `Knob` array as plain local objects, and
+the `Knob` owns its internal `Encoder` helper while reading its configured
 button bit directly. The button input is treated as active-low, so a
 raw mux bit value of `0` means pressed and `1` means released.
 
@@ -100,7 +99,7 @@ The main application sources are:
 - `app/src/Knob.h` and `app/src/Knob.cpp`: reusable knob UI that owns one encoder, reads one raw active-low button bit, and drives one contiguous LED segment
 - `app/src/main.cpp`: entrypoint, input-thread setup, single-knob wiring, and top-level runtime loop
 - `app/src/GPIO.h` and `app/src/GPIO.cpp`: discrete GPIO input initialization and bitmask reads
-- `app/src/InputController.h` and `app/src/InputController.cpp`: aggregate input reads across all mux and GPIO sources, expose `input_count`, and provide debug logging helpers for input transitions and state dumps
+- `app/src/InputController.h` and `app/src/InputController.cpp`: aggregate input reads across all mux and GPIO sources, expose `input_count`, and provide optional debug logging helpers for input transitions and state dumps
 - `app/src/LEDS.h` and `app/src/LEDS.cpp`: PCA9685 LED control through `LEDSController`
 - `app/src/MUX.h` and `app/src/MUX.cpp`: CD4067 mux aggregation and scanning
 - `app/src/utils.h` and `app/src/utils.cpp`: shared utility helpers including binary mask formatting for debug logs
@@ -182,7 +181,6 @@ When the application is flashed and running on the board:
 - the LED indication does not wrap when the knob reaches the minimum or maximum value
 - each knob exposes the encoder push-button state for use elsewhere in the application
 - the input thread constructs `InputController`, `LEDSController`, one `Button` array, and one `Knob` array as plain local objects on its own stack before entering the polling loop
-- the input thread calls `InputController::log_mux_changes()` after each input refresh to report cached input bit transitions
 - the firmware logs each current knob value whenever a valid quadrature edge changes that value
 - the main thread logs `Heartbeat: LED blink running` every 10 s
 - the firmware emits serial log messages on `ttyACM0`
