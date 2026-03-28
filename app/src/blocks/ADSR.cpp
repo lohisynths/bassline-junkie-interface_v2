@@ -2,7 +2,7 @@
 
 #include <zephyr/logging/log.h>
 
-LOG_MODULE_DECLARE(app, LOG_LEVEL_INF);
+LOG_MODULE_DECLARE(ADSR, LOG_LEVEL_INF);
 
 int ADSR::init(InputController &inputs, LEDSController &leds)
 {
