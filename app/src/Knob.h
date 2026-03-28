@@ -1,7 +1,6 @@
 #ifndef SRC_KNOB_H_
 #define SRC_KNOB_H_
 
-#include "Button.h"
 #include "Encoder.h"
 #include "InputController.h"
 #include "LEDS.h"
@@ -10,13 +9,14 @@
 #include <stdint.h>
 
 /**
- * @brief Couples one encoder, one button, and one LED segment into a knob UI.
+ * @brief Couples one encoder, one raw button input, and one LED segment into a knob UI.
  *
  * The knob borrows externally managed @ref InputController and @ref LEDSController
- * instances through @ref init. It owns its internal @ref Button and
- * @ref Encoder objects, updates one internal value in the range `[0, 127]`
- * from encoder movement, maps that value onto a contiguous LED range, and
- * exposes the current button state through @ref get_state.
+ * instances through @ref init. It owns its internal @ref Encoder object,
+ * samples one configured active-low button bit directly from the cached input
+ * state, updates one internal value in the range `[0, 127]` from encoder
+ * movement, maps that value onto a contiguous LED range, and exposes the
+ * current button state through @ref get_state.
  */
 class Knob {
 public:
@@ -65,14 +65,13 @@ public:
     /**
      * @brief Binds the knob to existing input and LED objects.
      *
-     * @param inputs Shared input controller used by the button and encoder.
+     * @param inputs Shared input controller used by the button bit reader and encoder.
      * @param config Knob-specific channel and LED segment configuration.
      * @param leds Shared LED controller used to render the knob indicator.
      *
      * @retval 0 The knob configuration is valid and the initial LED was rendered.
-     * @retval -EINVAL The LED range configuration is invalid.
-     * @retval negative Error propagated from the internal @ref Button::init,
-     *         internal @ref Encoder::init,
+     * @retval -EINVAL The button binding or LED range configuration is invalid.
+     * @retval negative Error propagated from the internal @ref Encoder::init
      *         or @ref LEDSController::set_channel_percent.
      */
     int init(InputController &inputs, const Config &config, LEDSController &leds);
@@ -120,8 +119,14 @@ private:
     /** @brief Internal encoder owned by the knob. */
     Encoder encoder_;
 
-    /** @brief Internal button owned by the knob. */
-    Button button_;
+    /** @brief Input controller borrowed from the caller for button reads. */
+    InputController *inputs_ = nullptr;
+
+    /** @brief Cached mux index containing the button bit. */
+    size_t button_mux_index_ = 0U;
+
+    /** @brief Channel number used for the button source bit. */
+    uint8_t button_pin_ = 0U;
 
     /** @brief LED controller borrowed from the caller. */
     LEDSController *leds_ = nullptr;
@@ -137,6 +142,9 @@ private:
 
     /** @brief Current clamped knob value in the range `[0, 127]`. */
     uint8_t value_ = 0U;
+
+    /** @brief Current sampled button state. */
+    bool pressed_ = false;
 
     /** @brief Previously rendered LED index inside the knob segment. */
     size_t previous_led_index_ = 0U;

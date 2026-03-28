@@ -9,29 +9,30 @@ int Knob::init(InputController &inputs, const Config &config, LEDSController &le
 {
     initialized_ = false;
 
-    if ((config.led_count == 0U) ||
+    if ((config.button_mux_index >= InputController::state_count) ||
+        (config.button_pin >= 16U) ||
+        (config.led_count == 0U) ||
         ((config.first_led + config.led_count) > LEDSController::led_count)) {
         return -EINVAL;
     }
 
-    int ret = button_.init(inputs, config.button_mux_index, config.button_pin);
+    int ret = encoder_.init(inputs,
+                            config.encoder_mux_index,
+                            config.encoder_pin_a,
+                            config.encoder_pin_b);
     if (ret < 0) {
         return ret;
     }
 
-    ret = encoder_.init(inputs,
-                        config.encoder_mux_index,
-                        config.encoder_pin_a,
-                        config.encoder_pin_b);
-    if (ret < 0) {
-        return ret;
-    }
-
+    inputs_ = &inputs;
+    button_mux_index_ = config.button_mux_index;
+    button_pin_ = config.button_pin;
     leds_ = &leds;
     first_led_ = config.first_led;
     led_count_ = config.led_count;
 
     value_ = 0U;
+    pressed_ = false;
     previous_led_index_ = led_index_(value_);
 
     initialized_ = true;
@@ -40,7 +41,7 @@ int Knob::init(InputController &inputs, const Config &config, LEDSController &le
 
 bool Knob::get_state()
 {
-    return button_.get_state();
+    return pressed_;
 }
 
 uint8_t Knob::get_value()
@@ -56,7 +57,7 @@ int Knob::update(knob_msg &msg)
 
     msg = {};
 
-    const bool previous_button_pressed = button_.get_state();
+    const bool previous_button_pressed = pressed_;
     const uint8_t previous_value = value_;
 
     int ret = encoder_.update();
@@ -64,12 +65,9 @@ int Knob::update(knob_msg &msg)
         return ret;
     }
 
-    ret = button_.update();
-    if (ret < 0) {
-        return ret;
-    }
-
-    msg.switch_changed = (button_.get_state() != previous_button_pressed);
+    const uint16_t state = inputs_->state(button_mux_index_);
+    pressed_ = ((state >> button_pin_) & 0x1U) == 0U;
+    msg.switch_changed = (pressed_ != previous_button_pressed);
 
     const int32_t delta = encoder_.delta();
     if (delta == 0) {
