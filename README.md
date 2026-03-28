@@ -20,14 +20,16 @@ segment as a reusable knob UI. The `ADSR` block class groups the current four
 standalone buttons and four knobs into one reusable control-surface unit,
 owns their configuration tables, drives their LEDs, and emits the current
 transition logs. The current runtime pattern maps one encoder onto each
-10-channel PCA9685 segment, maintains one clamped knob value in the range
-`0..127` per knob, lights one LED in each segment according to that value,
-and logs button transitions plus encoder movement as the input thread refreshes
-the cached state. The input thread constructs its `InputController`,
-`LEDSController`, and one `ADSR` object as plain local objects, and the
-`Knob` owns its internal `Encoder` helper while reading its configured button
-bit directly. The button input is treated as active-low, so a raw mux bit
-value of `0` means pressed and `1` means released.
+10-channel PCA9685 segment, exposes three latched knob-value banks selected by
+ADSR buttons `0..2`, maintains one clamped knob value in the range `0..127`
+per knob inside each bank, lights one LED in each segment according to the
+active bank value, and logs bank selection plus encoder movement as the input
+thread refreshes the cached state. Button `3` is currently unused. The input
+thread constructs its `InputController`, `LEDSController`, and one `ADSR`
+object as plain local objects, and the `Knob` owns its internal `Encoder`
+helper while reading its configured button bit directly. The button input is
+treated as active-low, so a raw mux bit value of `0` means pressed and `1`
+means released.
 
 The current CD4067 wiring described in `app/app.overlay` is:
 
@@ -97,10 +99,10 @@ and `west flash` on this machine.
 
 The main application sources are:
 
-- `app/src/blocks/ADSR.h` and `app/src/blocks/ADSR.cpp`: reusable block that owns the current standalone button set and knob set, including their config tables, LED updates, and transition logging
+- `app/src/blocks/ADSR.h` and `app/src/blocks/ADSR.cpp`: reusable block that owns the current standalone button set and knob set, including their config tables, three banked knob-value sets, selector LED updates, and transition logging
 - `app/src/Button.h` and `app/src/Button.cpp`: button decoder with `Config` binding, `button_msg` change reporting, and explicit LED control through `set_led_val()`
 - `app/src/Encoder.h` and `app/src/Encoder.cpp`: quadrature decoder bound to one cached mux state and two CD4067 channels
-- `app/src/Knob.h` and `app/src/Knob.cpp`: reusable knob UI that owns one encoder, reads one raw active-low button bit, and drives one contiguous LED segment
+- `app/src/Knob.h` and `app/src/Knob.cpp`: reusable knob UI that owns one encoder, reads one raw active-low button bit, drives one contiguous LED segment, and supports explicit value recall through `set_value()`
 - `app/src/main.cpp`: entrypoint, input-thread setup, `ADSR` block wiring, and top-level runtime loop
 - `app/src/GPIO.h` and `app/src/GPIO.cpp`: discrete GPIO input initialization and bitmask reads
 - `app/src/InputController.h` and `app/src/InputController.cpp`: aggregate input reads across all mux and GPIO sources, expose `input_count`, and provide optional debug logging helpers for input transitions and state dumps
@@ -178,15 +180,20 @@ When the application is flashed and running on the board:
 - the firmware scans all 16 channels on each configured CD4067 instance
 - the firmware updates one cached input-state table containing all mux masks plus the GPIO mask
 - the firmware constructs one `ADSR` block that owns four standalone buttons plus four knobs
-- the current `ADSR` button configurations use mux `0`, channels `12`, `13`, `14`, and `15`, with LED channels `40`, `41`, `42`, and `43`
-- the `ADSR` block updates each standalone button, sets its LED to `100%` when pressed and `0%` when released, and logs `Button N mux=0 bit=X pressed` / `released` on transitions
+- the current `ADSR` button configurations use mux `0`, channels `15`, `14`, `13`, and `12`, with LED channels `43`, `42`, `41`, and `40`
+- ADSR buttons `0`, `1`, and `2` select knob banks `0`, `1`, and `2`
+- only the currently selected bank button LED is lit at `100%`; the other selector LEDs are off
+- ADSR button `3` is currently unused and its LED remains off
 - the firmware decodes four quadrature encoders from mux `0`: channels `1/2`, `4/5`, `7/8`, and `10/11`
 - the current `ADSR` block owns four `Knob` objects that each own an internal encoder helper, read one configured active-low button bit, and bind the knob indicators to LED channels `0..9`, `10..19`, `20..29`, and `30..39`
-- each knob maintains one internal value in the range `0..127`
+- the firmware maintains three independent `0..127` value sets for the four knobs, one set per selector bank
+- bank `0` is selected on boot
+- selecting a different bank immediately recalls that bank's four knob values and updates the knob LEDs
 - one LED per knob segment is lit at a time according to that clamped value
 - the LED indication does not wrap when the knob reaches the minimum or maximum value
 - each knob exposes the encoder push-button state for use elsewhere in the application
 - the input thread constructs `InputController`, `LEDSController`, and one `ADSR` object as plain local objects on its own stack before entering the polling loop
-- the firmware logs each current knob value whenever a valid quadrature edge changes that value
+- the firmware logs `Selected knob bank N` whenever one of the selector buttons changes the active bank
+- the firmware logs each current knob value as `Bank N knob M position=V` whenever a valid quadrature edge changes that value in the active bank
 - the main thread logs `Heartbeat: LED blink running` every 10 s
 - the firmware emits serial log messages on `ttyACM0`

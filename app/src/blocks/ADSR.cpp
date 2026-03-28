@@ -1,5 +1,6 @@
 #include "ADSR.h"
 
+#include <errno.h>
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(ADSR, LOG_LEVEL_INF);
@@ -14,6 +15,11 @@ int ADSR::init(InputController &inputs, LEDSController &leds)
 
     for (size_t i = 0U; (i < knob_count_) && (ret == 0); ++i) {
         ret = knobs_[i].init(inputs, knob_configs_[i], leds);
+    }
+
+    if (ret == 0) {
+        selected_bank_ = 0U;
+        ret = select_bank_(selected_bank_);
     }
 
     return ret;
@@ -32,22 +38,22 @@ int ADSR::update()
             return ret;
         }
 
-        if (!button_msg.switch_changed) {
+        if (i >= bank_count_) {
             continue;
         }
 
-        const bool button_state = buttons_[i].get_state();
-        ret = buttons_[i].set_led_val(button_state ? 100U : 0U);
+        if (!button_msg.switch_changed || !buttons_[i].get_state() ||
+            (i == selected_bank_)) {
+            continue;
+        }
+
+        ret = select_bank_(i);
         if (ret < 0) {
-            LOG_ERR("Failed to set button %u LED: %d", (unsigned int)i, ret);
+            LOG_ERR("Failed to select knob bank %u: %d", (unsigned int)i, ret);
             return ret;
         }
 
-        LOG_INF("Button %u mux=%u bit=%u %s",
-                (unsigned int)i,
-                (unsigned int)button_configs_[i].mux_index,
-                (unsigned int)button_configs_[i].pin,
-                button_state ? "pressed" : "released");
+        LOG_INF("Selected knob bank %u", (unsigned int)i);
     }
 
     for (size_t i = 0U; i < knob_count_; ++i) {
@@ -66,10 +72,61 @@ int ADSR::update()
         }
 
         if (msg.value_changed) {
-            LOG_INF("Knob %u position=%d",
+            knob_values_[selected_bank_][i] = knobs_[i].get_value();
+            LOG_INF("Bank %u knob %u position=%d",
+                    (unsigned int)selected_bank_,
                     (unsigned int)i,
                     (int)knobs_[i].get_value());
         }
+    }
+
+    return 0;
+}
+
+int ADSR::select_bank_(size_t bank_index)
+{
+    if (bank_index >= bank_count_) {
+        return -EINVAL;
+    }
+
+    selected_bank_ = (uint8_t)bank_index;
+
+    int ret = recall_bank_to_knobs_(bank_index);
+    if (ret < 0) {
+        return ret;
+    }
+
+    return update_selector_leds_();
+}
+
+int ADSR::update_selector_leds_()
+{
+    for (size_t i = 0U; i < button_count_; ++i) {
+        const uint8_t brightness = (i == selected_bank_) ? 100U : 0U;
+        const int ret = buttons_[i].set_led_val(brightness);
+        if (ret < 0) {
+            return ret;
+        }
+    }
+
+    return 0;
+}
+
+int ADSR::recall_bank_to_knobs_(size_t bank_index)
+{
+    if (bank_index >= bank_count_) {
+        return -EINVAL;
+    }
+
+    for (size_t i = 0U; i < knob_count_; ++i) {
+        const int ret = knobs_[i].set_value(knob_values_[bank_index][i]);
+        if (ret < 0) {
+            return ret;
+        }
+
+        LOG_INF("Knob %u recalled position=%u",
+                (unsigned int)i,
+                (unsigned int)knob_values_[bank_index][i]);
     }
 
     return 0;

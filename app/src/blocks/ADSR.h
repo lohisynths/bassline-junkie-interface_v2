@@ -7,6 +7,7 @@
 #include "LEDS.h"
 
 #include <stddef.h>
+#include <stdint.h>
 
 /**
  * @brief Encapsulates the current ADSR control surface block.
@@ -39,6 +40,9 @@ public:
 private:
     /** @brief Number of LEDs reserved for each knob segment. */
     static const size_t knob_led_count_ = 10U;
+
+    /** @brief Number of latched selector banks exposed by the first three buttons. */
+    static const size_t bank_count_ = 3U;
 
     /** @brief Static configuration for the standalone buttons. */
     static constexpr Button::Config button_configs_[] = {
@@ -110,11 +114,47 @@ private:
     /** @brief Number of knobs in this block. */
     static const size_t knob_count_ = ARRAY_SIZE(knob_configs_);
 
+    /**
+     * @brief Selects one knob-value bank and recalls its values onto the four knobs.
+     *
+     * @param bank_index Bank index in the range `[0, bank_count_)`.
+     *
+     * @retval 0 The bank was selected and its values were recalled successfully.
+     * @retval -EINVAL The requested bank index is out of range.
+     * @retval negative Error propagated from LED or knob updates.
+     */
+    int select_bank_(size_t bank_index);
+
+    /**
+     * @brief Updates the selector-button LEDs to show the currently active bank.
+     *
+     * @retval 0 All selector LEDs match the selected bank.
+     * @retval negative Error propagated from @ref Button::set_led_val.
+     */
+    int update_selector_leds_();
+
+    /**
+     * @brief Loads one stored bank into the live knob objects.
+     *
+     * @param bank_index Bank index in the range `[0, bank_count_)`.
+     *
+     * @retval 0 All knob values were recalled successfully.
+     * @retval -EINVAL The requested bank index is out of range.
+     * @retval negative Error propagated from @ref Knob::set_value.
+     */
+    int recall_bank_to_knobs_(size_t bank_index);
+
     /** @brief Standalone buttons owned by the block. */
     Button buttons_[button_count_];
 
     /** @brief Knob controls owned by the block. */
     Knob knobs_[knob_count_];
+
+    /** @brief Currently selected knob-value bank. */
+    uint8_t selected_bank_ = 0U;
+
+    /** @brief Stored knob values for each selector bank. */
+    uint8_t knob_values_[bank_count_][knob_count_] = {};
 };
 
 #endif /* SRC_BLOCKS_ADSR_H_ */
