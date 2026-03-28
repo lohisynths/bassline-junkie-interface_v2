@@ -123,7 +123,6 @@ static void input_thread(void *, void *, void *) {
             LOG_ERR("Failed to read inputs: %d", ret);
             return;
         }
-        inputs.log_mux_changes();
 
         for (size_t i = 0U; i < button_count; ++i) {
             Button::button_msg button_msg;
