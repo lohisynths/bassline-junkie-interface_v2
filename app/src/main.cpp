@@ -5,6 +5,7 @@
 
 #include "blocks/ADSR.h"
 #include "blocks/FLT.h"
+#include "blocks/LED_DISP.h"
 #include "blocks/LFO.h"
 #include "blocks/MOD.h"
 #include "blocks/OSC.h"
@@ -35,6 +36,7 @@ static void input_thread(void *, void *, void *) {
     LEDSController leds;
     ADSR adsr;
     FLT flt;
+    LED_DISP led_disp;
     LFO lfo;
     MOD mod;
     OSC osc;
@@ -48,6 +50,9 @@ static void input_thread(void *, void *, void *) {
     }
     if (ret == 0) {
         ret = flt.init(inputs, leds);
+    }
+    if (ret == 0) {
+        ret = led_disp.init(inputs, leds);
     }
     if (ret == 0) {
         ret = lfo.init(inputs, leds);
@@ -95,6 +100,11 @@ static void input_thread(void *, void *, void *) {
         }
 
         ret = osc.update();
+        if (ret < 0) {
+            return;
+        }
+
+        ret = led_disp.update();
         if (ret < 0) {
             return;
         }
