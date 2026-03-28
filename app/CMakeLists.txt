@@ -10,6 +10,7 @@ target_include_directories(app PRIVATE src)
 target_sources(app PRIVATE
     src/blocks/ADSR.cpp
     src/blocks/FLT.cpp
+    src/blocks/LED_DISP.cpp
     src/blocks/LFO.cpp
     src/blocks/MOD.cpp
     src/blocks/OSC.cpp

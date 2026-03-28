@@ -24,17 +24,20 @@ banked control-surface unit. The `MOD` block class groups one knob and six
 selector buttons into a third banked control-surface unit. The `LFO` block
 groups one knob, three bank-selector buttons, and five radio buttons into a
 fourth control-surface unit. The `FLT` block groups three radio buttons and
-three standalone knobs into a fifth control-surface unit. The current runtime
+three standalone knobs into a fifth control-surface unit. The `LED_DISP`
+block class groups one standalone knob with one three-digit seven-segment LED
+display into a sixth control-surface unit. The current runtime
 pattern maps one encoder onto each LED-backed segment, exposes latched
 knob-value banks where required, maintains one clamped knob value in the range
 `0..127` per knob, lights one LED in each segment according to the active
-value when LEDs are assigned, and logs selection plus encoder movement as the
+value when LEDs are assigned, drives one active-low three-digit display from
+the dedicated display knob, and logs selection plus encoder movement as the
 input thread refreshes the cached state. The input thread constructs its
-`InputController`, `LEDSController`, `ADSR`, `FLT`, `LFO`, `MOD`, and `OSC`
-objects as plain local objects, and each `Knob` owns its internal `Encoder`
-helper while reading its configured button bit directly. The button input is
-treated as active-low, so a raw mux bit value of `0` means pressed and `1`
-means released.
+`InputController`, `LEDSController`, `ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`,
+and `OSC` objects as plain local objects, and each `Knob` owns its internal
+`Encoder` helper while reading its configured button bit directly. The button
+input is treated as active-low, so a raw mux bit value of `0` means pressed
+and `1` means released.
 
 The current CD4067 wiring described in `app/app.overlay` is:
 
@@ -109,6 +112,7 @@ The main application sources are:
 
 - `app/src/blocks/ADSR.h` and `app/src/blocks/ADSR.cpp`: reusable block that owns the current standalone button set and knob set, including their config tables, three banked knob-value sets, selector LED updates, and transition logging
 - `app/src/blocks/FLT.h` and `app/src/blocks/FLT.cpp`: reusable block that owns three radio buttons and three standalone knobs, including their config tables, radio-selection LED updates, and transition logging
+- `app/src/blocks/LED_DISP.h` and `app/src/blocks/LED_DISP.cpp`: reusable block that owns one standalone knob plus one active-low three-digit seven-segment display, including the knob config table, legacy segment pattern table, blank-leading decimal rendering, and transition logging
 - `app/src/blocks/LFO.h` and `app/src/blocks/LFO.cpp`: reusable block that owns one knob plus three bank-selector buttons and five radio buttons, including their config tables, three banked knob-value sets, per-bank radio selection, selector LED updates, and transition logging
 - `app/src/blocks/MOD.h` and `app/src/blocks/MOD.cpp`: reusable block that owns one knob plus six bank-selector buttons, including their config tables, six banked knob-value sets, selector LED updates, and transition logging
 - `app/src/blocks/OSC.h` and `app/src/blocks/OSC.cpp`: reusable block that owns five knobs plus three bank-selector buttons, including their config tables, three banked knob-value sets, selector LED updates, and transition logging
@@ -163,8 +167,8 @@ The Doxygen landing page focuses on code structure and module responsibilities.
 Use this README as the canonical source for environment setup, build, flash,
 and hardware wiring information. The generated API docs include the `Button`,
 `Encoder`, `GPIO`, `InputController`, `Knob`, `LEDSController`, `MUX`, and
-`ADSR`, `FLT`, `LFO`, `MOD`, and `OSC` classes, the shared `utils` helpers, plus the
-CD4067 driver interface.
+`ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`, and `OSC` classes, the shared `utils`
+helpers, plus the CD4067 driver interface.
 
 ## Flash
 
@@ -194,6 +198,7 @@ When the application is flashed and running on the board:
 - the firmware updates one cached input-state table containing all mux masks plus the GPIO mask
 - the firmware constructs one `ADSR` block that owns four standalone buttons plus four knobs
 - the firmware also constructs one `FLT` block that owns three radio buttons plus three standalone knobs
+- the firmware also constructs one `LED_DISP` block that owns one standalone knob plus one three-digit active-low seven-segment display
 - the firmware also constructs one `LFO` block that owns three selector buttons, five radio buttons, and one knob
 - the firmware also constructs one `MOD` block that owns six standalone selector buttons plus one knob
 - the firmware also constructs one `OSC` block that owns three standalone selector buttons plus five knobs
@@ -217,6 +222,10 @@ When the application is flashed and running on the board:
 - the current `LFO` block owns one `Knob` object that owns an internal encoder helper, reads configured active-low button bit `0` from cached input state `4`, and binds the knob indicator to LED channels `128..137`
 - the firmware maintains three independent `0..127` values for the LFO knob, one per selector bank
 - the firmware also stores one independent radio-button selection per LFO bank
+- the current `LED_DISP` knob configuration uses cached input state `4` with button bit `3`, encoder phase pair `4/5`, and no knob LED segment
+- the current `LED_DISP` block drives a three-digit seven-segment display on LED channels `176..199`, using three groups of eight consecutive channels for hundreds, tens, and ones
+- the display output is active-low, so a `0%` PWM duty lights one segment and a `100%` duty turns it off
+- the display shows the current display-knob value in the range `0..127` with blank leading digits and all decimal-point LEDs off
 - the current `MOD` button configurations use mux `2`, channels `3`, `4`, `5`, `6`, `7`, and `8`, with LED channels `122`, `123`, `124`, `125`, `126`, and `127`
 - MOD buttons `0..5` select knob banks `0..5`
 - only the currently selected MOD bank button LED is lit at `100%`; the other MOD selector LEDs are off
@@ -239,13 +248,15 @@ When the application is flashed and running on the board:
 - one LED per knob segment is lit at a time according to that clamped value
 - the LED indication does not wrap when the knob reaches the minimum or maximum value
 - each knob exposes the encoder push-button state for use elsewhere in the application
-- the input thread constructs `InputController`, `LEDSController`, one `ADSR`, one `FLT`, one `LFO`, one `MOD`, and one `OSC` object as plain local objects on its own stack before entering the polling loop
+- the input thread constructs `InputController`, `LEDSController`, one `ADSR`, one `FLT`, one `LED_DISP`, one `LFO`, one `MOD`, and one `OSC` object as plain local objects on its own stack before entering the polling loop
 - the firmware logs `Selected knob bank N` whenever one of the selector buttons changes the active bank
 - the firmware logs `Bank N button 3 latched on` / `off` whenever ADSR button `3` toggles the stored state in the active bank
 - the firmware logs each current knob value as `Bank N knob M position=V` whenever a valid quadrature edge changes that value in the active bank
 - the firmware logs `FLT radio button N selected` whenever one of the FLT radio buttons changes the active selection
 - the firmware logs the FLT knob button transitions as `FLT knob N button pressed` / `released`
 - the firmware logs each FLT knob value as `FLT knob N position=V` whenever a valid quadrature edge changes that value
+- the firmware logs the LED display knob button transitions as `LED display knob button pressed` / `released`
+- the firmware logs the LED display knob value as `LED display position=V` whenever a valid quadrature edge changes that value
 - the firmware logs `Selected LFO bank N` whenever one of the LFO selector buttons changes the active bank
 - the firmware logs `LFO bank N radio M selected` whenever one of the LFO radio buttons changes the stored selection in the active bank
 - the firmware logs the LFO knob button transitions as `LFO knob 0 button pressed` / `released`

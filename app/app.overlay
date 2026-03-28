@@ -31,7 +31,7 @@
         };
 
         enc13sw: enc13sw_gpio {
-            gpios = <&gpioh 1 GPIO_ACTIVE_LOW>;
+            gpios = <&gpiob 13 GPIO_ACTIVE_LOW>;
         };
 
         enc13b: enc13b_gpio {
