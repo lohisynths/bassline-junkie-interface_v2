@@ -18,6 +18,14 @@
 class Button {
 public:
     /**
+     * @brief Reports which button outputs changed during one @ref update call.
+     */
+    struct button_msg {
+        /** @brief Set when the sampled button state changed. */
+        bool switch_changed = false;
+    };
+
+    /**
      * @brief Binds the button to one cached mux state, one source channel, and one LED.
      *
      * The caller retains ownership of @p inputs and @p leds and must keep both
@@ -42,13 +50,13 @@ public:
     /**
      * @brief Reads the configured cached mux state and advances the button state.
      *
-     * The assigned button LED is driven to match the sampled pressed state.
+     * @param msg Per-update change flags populated from the latest sampled
+     *        button state.
      *
-     * @retval 0 The cached mux state was read and the button state was updated.
+     * @retval 0 The cached mux state was read and @p msg was filled in.
      * @retval -EACCES The button has not been initialized.
-     * @retval negative Error propagated from @ref LEDSController::set_channel_percent.
      */
-    int update();
+    int update(button_msg &msg);
 
     /**
      * @brief Returns the current sampled button state.

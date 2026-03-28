@@ -27,17 +27,20 @@ int Button::init(InputController &inputs,
     return set_led_val(button_led_off_percent);
 }
 
-int Button::update()
+int Button::update(button_msg &msg)
 {
-    if ((inputs_ == nullptr) || (leds_ == nullptr)) {
+    msg = {};
+
+    if (inputs_ == nullptr) {
         return -EACCES;
     }
 
+    const bool previous_pressed = pressed_;
     const uint16_t state = inputs_->state(mux_index_);
     pressed_ = ((state >> pin_) & 0x1U) == 0U;
+    msg.switch_changed = (pressed_ != previous_pressed);
 
-    const uint8_t led_percent = pressed_ ? button_led_on_percent : button_led_off_percent;
-    return set_led_val(led_percent);
+    return 0;
 }
 
 bool Button::get_state()
