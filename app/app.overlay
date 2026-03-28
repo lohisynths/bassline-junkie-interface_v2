@@ -1,5 +1,8 @@
 / {
     aliases {
+        enc10sw = &enc10sw;
+        enc10a = &enc10a;
+        enc10b = &enc10b;
         enc13sw = &enc13sw;
         enc13b = &enc13b;
         enc13a = &enc13a;
@@ -14,6 +17,18 @@
 
     encoder_inputs: encoder_inputs {
         compatible = "gpio-keys";
+
+        enc10sw: enc10sw_gpio {
+            gpios = <&gpiob 2 GPIO_ACTIVE_LOW>;
+        };
+
+        enc10a: enc10a_gpio {
+            gpios = <&gpiob 1 GPIO_ACTIVE_LOW>;
+        };
+
+        enc10b: enc10b_gpio {
+            gpios = <&gpiob 15 GPIO_ACTIVE_LOW>;
+        };
 
         enc13sw: enc13sw_gpio {
             gpios = <&gpioh 1 GPIO_ACTIVE_LOW>;
