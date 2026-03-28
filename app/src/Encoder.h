@@ -7,39 +7,41 @@
 #include <stdint.h>
 
 /**
- * @brief Decodes a quadrature encoder sourced from two CD4067 channels.
+ * @brief Decodes a quadrature encoder sourced from any cached input-state bits.
  *
- * The encoder is bound to one cached mux state inside an @ref InputController
- * through @ref init and then advanced by calling @ref update repeatedly after
- * the controller has refreshed its cached inputs. One reported step in
- * @ref delta or @ref position corresponds to one valid quadrature edge.
+ * The encoder is bound to one cached input-state entry inside an
+ * @ref InputController through @ref init and then advanced by calling
+ * @ref update repeatedly after the controller has refreshed its cached inputs.
+ * One reported step in @ref delta or @ref position corresponds to one valid
+ * quadrature edge.
  */
 class Encoder {
 public:
     /**
-     * @brief Binds the decoder to one cached mux state and two source channels.
+     * @brief Binds the decoder to one cached input-state entry and two source channels.
      *
      * The caller retains ownership of @p inputs and must keep it alive and
      * initialized for the lifetime of this encoder instance.
      *
-     * @param inputs Input controller holding the cached mux masks.
-     * @param mux_index Index of the cached mux state containing the encoder.
+     * @param inputs Input controller holding the cached input masks.
+     * @param mux_index Index of the cached input-state entry containing the encoder.
      * @param pin_a Channel number used for encoder phase A.
      * @param pin_b Channel number used for encoder phase B.
      *
      * @retval 0 The encoder configuration is valid.
-     * @retval -EINVAL One or more channel numbers are out of range or duplicated.
+     * @retval -EINVAL The cached state index or one or more channel numbers are
+     *         out of range, or the two channels are duplicated.
      */
     int init(InputController &inputs, size_t mux_index, uint8_t pin_a, uint8_t pin_b);
 
     /**
-     * @brief Reads the configured cached mux state and advances the decoder.
+     * @brief Reads the configured cached input state and advances the decoder.
      *
      * The most recent quarter-step movement can then be read with @ref delta.
      * If no valid edge was observed since the previous @ref update call,
      * @ref delta returns `0`.
      *
-     * @retval 0 The cached mux state was read and the decoder was updated.
+     * @retval 0 The cached input state was read and the decoder was updated.
      * @retval -EACCES The encoder has not been initialized.
      */
     int update();
@@ -70,10 +72,10 @@ private:
      */
     static int8_t transition_(uint8_t previous_ab, uint8_t current_ab);
 
-    /** @brief Borrowed input controller used to read cached mux states. */
+    /** @brief Borrowed input controller used to read cached input states. */
     InputController *inputs_ = nullptr;
 
-    /** @brief Index of the configured mux state inside @ref inputs_. */
+    /** @brief Index of the configured cached input state inside @ref inputs_. */
     size_t mux_index_ = 0U;
 
     /** @brief InputController channel number carrying encoder phase A. */

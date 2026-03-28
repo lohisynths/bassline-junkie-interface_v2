@@ -4,7 +4,7 @@
 
 int Encoder::init(InputController &inputs, size_t mux_index, uint8_t pin_a, uint8_t pin_b)
 {
-    if ((mux_index >= MUX::mux_count) || (pin_a >= 16U) || (pin_b >= 16U) ||
+    if ((mux_index >= InputController::input_count) || (pin_a >= 16U) || (pin_b >= 16U) ||
         (pin_a == pin_b)) {
         return -EINVAL;
     }
