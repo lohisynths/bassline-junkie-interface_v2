@@ -21,11 +21,14 @@ static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 static const size_t input_thread_stack_size = 2048U;
 static const int input_thread_priority = -1;
 static const int input_poll_interval_ms = 5;
-static const Button::Config button_config = {
-    .mux_index = 0U,
-    .pin = 12U,
-    .led_number = 40U,
+static const Button::Config button_configs[] = {
+    {
+        .mux_index = 0U,
+        .pin = 12U,
+        .led_number = 40U,
+    },
 };
+static const size_t button_count = ARRAY_SIZE(button_configs);
 
 static const size_t knob_led_count = 10U;
 static const Knob::Config knob_configs[] = {
@@ -50,15 +53,15 @@ static int input_thread_status = 0;
 static void input_thread(void *, void *, void *) {
     InputController inputs;
     LEDSController leds;
-    Button button;
+    Button buttons[button_count];
     Knob knobs[knob_count];
 
     int ret = inputs.init();
     if (ret == 0) {
         ret = leds.init();
     }
-    if (ret == 0) {
-        ret = button.init(inputs, button_config, leds);
+    for (size_t i = 0U; (i < button_count) && (ret == 0); ++i) {
+        ret = buttons[i].init(inputs, button_configs[i], leds);
     }
     for (size_t i = 0U; (i < knob_count) && (ret == 0); ++i) {
         ret = knobs[i].init(inputs, knob_configs[i], leds);
@@ -80,17 +83,20 @@ static void input_thread(void *, void *, void *) {
         }
         inputs.log_mux_changes();
 
-        Button::button_msg button_msg;
-        ret = button.update(button_msg);
-        if (ret < 0) {
-            LOG_ERR("Failed to update button: %d", ret);
-            return;
-        }
-        if (button_msg.switch_changed) {
-            LOG_INF("Button mux=%u bit=%u %s",
-                    (unsigned int)button_config.mux_index,
-                    (unsigned int)button_config.pin,
-                    button.get_state() ? "pressed" : "released");
+        for (size_t i = 0U; i < button_count; ++i) {
+            Button::button_msg button_msg;
+            ret = buttons[i].update(button_msg);
+            if (ret < 0) {
+                LOG_ERR("Failed to update button %u: %d", (unsigned int)i, ret);
+                return;
+            }
+            if (button_msg.switch_changed) {
+                LOG_INF("Button %u mux=%u bit=%u %s",
+                        (unsigned int)i,
+                        (unsigned int)button_configs[i].mux_index,
+                        (unsigned int)button_configs[i].pin,
+                        buttons[i].get_state() ? "pressed" : "released");
+            }
         }
 
         for (size_t i = 0U; i < knob_count; ++i) {
