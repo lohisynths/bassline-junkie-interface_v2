@@ -11,12 +11,14 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - quadrature decoding from cached CD4067 channels through the `Encoder` class
 - reusable knob composition through the `Knob` class
 - ADSR control-surface composition through the `ADSR` block class
+- OSC control-surface composition through the `OSC` block class
 - serial logging over the ST-LINK virtual COM port
 
 ## Modules
 
 - `Button`: binds to one cached input state through `Config`, samples one configured active-low channel as a button input, reports per-update state changes through `button_msg`, exposes explicit LED control through `set_led_val()`, and reports the current button state through `get_state()`
 - `ADSR`: owns the current standalone button set and knob set, stores their configuration tables plus three banked knob-value sets, initializes them against shared `InputController` and `LEDSController` objects, applies selector LED updates, and emits the current transition logs
+- `OSC`: owns three selector buttons and five knobs, stores their configuration tables plus three banked knob-value sets, initializes them against shared `InputController` and `LEDSController` objects, applies selector LED updates, and emits the current transition logs
 - `Encoder`: binds to one cached mux state, samples two configured channels as quadrature phase A/B, and reports per-update delta plus accumulated position
 - `GPIO`: wraps the configured discrete GPIO inputs and exposes per-pin and bitmask reads
 - `InputController`: owns the `MUX` and `GPIO` facades, exposes one flat cached input-state table plus `input_count`, and provides optional state-dump and input-transition debug helpers
@@ -25,7 +27,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - `MUX`: wraps the configured CD4067 devices, scans their inputs, and logs one active-channel mask per mux in hex or binary form
 - `utils`: provides shared helpers such as 16-bit mask-to-binary-string formatting used by debug logging
 - `cd4067`: out-of-tree Zephyr module providing the CD4067 GPIO multiplexer driver
-- `main.cpp`: initializes the board LED, starts an input thread that constructs `InputController`, `LEDSController`, and one `ADSR` block as plain locals, and runs the block update loop alongside the heartbeat LED
+- `main.cpp`: initializes the board LED, starts an input thread that constructs `InputController`, `LEDSController`, one `ADSR` block, and one `OSC` block as plain locals, and runs the block update loop alongside the heartbeat LED
 
 ## Runtime Overview
 
@@ -41,17 +43,24 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - The current `ADSR` button entries use mux index `0`, channels `15`, `14`, `13`, and `12`, with LED channels `43`, `42`, `41`, and `40`.
 - ADSR buttons `0`, `1`, and `2` act as latched selector buttons for knob banks `0`, `1`, and `2`.
 - ADSR button `3` is a latched toggle whose stored state is independent in each bank.
+- The `OSC` block stores its own control-surface configuration tables, owns three selector `Button` instances plus five `Knob` instances, and maintains three banked knob-value sets independently from `ADSR`.
+- The current `OSC` button entries use mux index `3`, channels `3`, `2`, and `1`, with LED channels `110`, `109`, and `108`.
+- OSC buttons `0`, `1`, and `2` act as latched selector buttons for knob banks `0`, `1`, and `2`.
 - The `Encoder` class binds to one cached mux state, uses two configured channels as quadrature phase A/B, and converts valid AB transitions into signed movement.
 - The current `ADSR` knob entries use mux index `0` with encoder phase pairs `1/2`, `4/5`, `7/8`, and `10/11`.
+- The current `OSC` knob entries use mux index `1` with encoder phase pairs `13/14`, `10/11`, `7/8`, `4/5`, and `1/2`.
 - The `LEDSController` class verifies all configured PCA9685 devices and exposes channel-based brightness control across all PCA9685 outputs.
 - Shared utility code in `utils.cpp` formats 16-bit input masks as fixed-width binary strings for debug output.
 - Each `Knob` owns its current encoder helper, reads one configured active-low button bit from the cached input table, binds the knob UI to LED channels `0..9`, `10..19`, `20..29`, or `30..39`, maintains one internal value in the range `0..127` from encoder deltas, supports immediate value recall from `ADSR`, projects that value onto the LED segment without wraparound, and exposes the current knob-button state through `get_state()`.
-- A dedicated input thread constructs `InputController`, `LEDSController`, and one `ADSR` block as plain local objects, then refreshes the cached inputs and calls the block update routine. The `ADSR` block keeps bank `0` selected on boot, lights only the active selector button LED plus the current bank's latched button-3 LED when enabled, recalls four stored knob values whenever buttons `0..2` change the active bank, recalls the active bank's latched button-3 state on bank switch, toggles that stored button-3 state on button-3 press, updates each knob, compares the current and previous knob-button state to log `Knob N button pressed` / `released` transitions, and logs knob movement as `Bank N knob M position=V` when movement changes the current value in the active bank.
+- The current `OSC` knob indicators use LED channels `96..105`, `78..87`, `68..77`, `58..67`, and `48..57`.
+- A dedicated input thread constructs `InputController`, `LEDSController`, one `ADSR` block, and one `OSC` block as plain local objects, then refreshes the cached inputs and calls both block update routines. The `ADSR` block keeps bank `0` selected on boot, lights only the active selector button LED plus the current bank's latched button-3 LED when enabled, recalls four stored knob values whenever buttons `0..2` change the active bank, recalls the active bank's latched button-3 state on bank switch, toggles that stored button-3 state on button-3 press, updates each knob, compares the current and previous knob-button state to log `Knob N button pressed` / `released` transitions, and logs knob movement as `Bank N knob M position=V` when movement changes the current value in the active bank.
+- The `OSC` block also keeps bank `0` selected on boot, lights only the active selector button LED, recalls five stored knob values whenever buttons `0..2` change the active bank, updates each knob, compares the current and previous knob-button state to log `OSC knob N button pressed` / `released` transitions, and logs knob movement as `OSC bank N knob M position=V` when movement changes the current value in the active bank.
 - Status and error messages are emitted over the ST-LINK virtual serial port.
 
 ## Developer Notes
 
 - ADSR block composition is implemented in `src/blocks/ADSR.cpp` and declared in `src/blocks/ADSR.h`.
+- OSC block composition is implemented in `src/blocks/OSC.cpp` and declared in `src/blocks/OSC.h`.
 - Button decoding is implemented in `src/Button.cpp` and declared in `src/Button.h`.
 - Quadrature decoding is implemented in `src/Encoder.cpp` and declared in `src/Encoder.h`.
 - Knob composition is implemented in `src/Knob.cpp` and declared in `src/Knob.h`.
