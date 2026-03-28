@@ -221,6 +221,6 @@ int main(void)
             LOG_INF("Heartbeat: LED blink running");
         }
 
-        k_msleep(100);
+        k_msleep(1000);
     }
 }
