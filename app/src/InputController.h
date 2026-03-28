@@ -20,7 +20,7 @@
 class InputController {
 public:
     /** @brief Total number of cached input state masks. */
-    static const size_t state_count = MUX::mux_count + 1U;
+    static const size_t input_count = MUX::mux_count + 1U;
 
     /** @brief Constructs an input controller facade. */
     InputController() = default;
@@ -84,10 +84,10 @@ private:
     MUX mux_;
 
     /** @brief Cached active masks for all mux inputs plus the GPIO input mask. */
-    uint16_t active_masks_[state_count] = {};
+    uint16_t active_masks_[input_count] = {};
 
     /** @brief Previous cached input masks used for change logging. */
-    uint16_t previous_masks_[state_count] = {};
+    uint16_t previous_masks_[input_count] = {};
 };
 
 #endif /* SRC_INPUTCONTROLLER_H_ */

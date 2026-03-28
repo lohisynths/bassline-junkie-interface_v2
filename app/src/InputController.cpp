@@ -25,7 +25,7 @@ int InputController::init() {
         return ret;
     }
 
-    for (size_t i = 0U; i < state_count; ++i) {
+    for (size_t i = 0U; i < input_count; ++i) {
         previous_masks_[i] = 1U;
     }
 
@@ -62,7 +62,7 @@ int InputController::log_state() {
 }
 
 uint16_t InputController::state(size_t state_index) const {
-    if (state_index >= state_count) {
+    if (state_index >= input_count) {
         return 0U;
     }
 
@@ -71,7 +71,7 @@ uint16_t InputController::state(size_t state_index) const {
 
 void InputController::log_mux_changes()
 {
-    for (size_t state_index = 0U; state_index < state_count; ++state_index) {
+    for (size_t state_index = 0U; state_index < input_count; ++state_index) {
         const uint16_t changed_mask = previous_masks_[state_index] ^ active_masks_[state_index];
         if (changed_mask == 0U) {
             continue;
