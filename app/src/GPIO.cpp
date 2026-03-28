@@ -23,6 +23,9 @@ LOG_MODULE_REGISTER(gpio, LOG_LEVEL_INF);
     }
 
 const GPIO::input_pin GPIO::input_pins[] = {
+    GPIO_INPUT_PIN(enc10sw, "ENC10SW"),
+    GPIO_INPUT_PIN(enc10a, "ENC10A"),
+    GPIO_INPUT_PIN(enc10b, "ENC10B"),
     GPIO_INPUT_PIN(enc13sw, "ENC13SW"),
     GPIO_INPUT_PIN(enc13b, "ENC13B"),
     GPIO_INPUT_PIN(enc13a, "ENC13A"),
