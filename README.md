@@ -17,11 +17,11 @@ quadrature encoder from two selected CD4067 channels inside that cached input
 state, and the `Knob` class owns one internal `Encoder`, samples one raw
 active-low button bit directly from the cached input state, and drives one LED
 segment as a reusable knob UI. The current runtime pattern maps one encoder
-onto the first 10 PCA9685 channels, maintains one clamped knob value in the
-range `0..127`, lights one LED in that segment according to that value, and
-logs button transitions plus encoder movement as the input thread refreshes the
-cached state. The input thread constructs its `InputController`, `LEDSController`,
-one standalone `Button`, and one `Knob` as plain local objects, explicitly
+onto each 10-channel PCA9685 segment, maintains one clamped knob value in the
+range `0..127` per knob, lights one LED in each segment according to that
+value, and logs button transitions plus encoder movement as the input thread
+refreshes the cached state. The input thread constructs its `InputController`,
+`LEDSController`, `Button` array, and `Knob` array as plain local objects, explicitly
 logs cached input-bit transitions through `InputController::log_mux_changes()`,
 and the `Knob` owns its internal `Encoder` helper while reading its configured
 button bit directly. The button input is treated as active-low, so a
@@ -172,17 +172,16 @@ When the application is flashed and running on the board:
 - the onboard LD2 LED toggles every 100 ms
 - the firmware scans all 16 channels on each configured CD4067 instance
 - the firmware updates one cached input-state table containing all mux masks plus the GPIO mask
-- the firmware constructs standalone buttons from `button_configs[]`
-- the current standalone button configuration uses mux `0`, channel `12`, and LED channel `40`
-- the input thread compares the current and previous button state and logs `Knob 0 button pressed` / `Knob 0 button released` on transitions
-- the input thread updates each standalone button, sets its LED to `100%` when pressed and `0%` when released, and logs `Button 0 mux=0 bit=12 pressed` / `released` on transitions
-- the firmware decodes one quadrature encoder from mux `0`, channel `1` as phase A and channel `2` as phase B
-- the firmware constructs one `Knob` object that owns its internal encoder helper, reads one configured active-low button bit, and binds the knob indicator to LED channels `0` through `9`
-- the knob maintains one internal value in the range `0..127`
-- one of the first 10 PCA9685 channels is lit at a time according to that clamped value
+- the firmware constructs four standalone buttons from `button_configs[]`
+- the current standalone button configurations use mux `0`, channels `12`, `13`, `14`, and `15`, with LED channels `40`, `41`, `42`, and `43`
+- the input thread updates each standalone button, sets its LED to `100%` when pressed and `0%` when released, and logs `Button N mux=0 bit=X pressed` / `released` on transitions
+- the firmware decodes four quadrature encoders from mux `0`: channels `1/2`, `4/5`, `7/8`, and `10/11`
+- the firmware constructs four `Knob` objects that each own an internal encoder helper, read one configured active-low button bit, and bind the knob indicators to LED channels `0..9`, `10..19`, `20..29`, and `30..39`
+- each knob maintains one internal value in the range `0..127`
+- one LED per knob segment is lit at a time according to that clamped value
 - the LED indication does not wrap when the knob reaches the minimum or maximum value
-- the knob exposes the encoder push-button state for use elsewhere in the application
+- each knob exposes the encoder push-button state for use elsewhere in the application
 - the input thread constructs `InputController`, `LEDSController`, one `Button` array, and one `Knob` array as plain local objects on its own stack before entering the polling loop
 - the input thread calls `InputController::log_mux_changes()` after each input refresh to report cached input bit transitions
-- the firmware logs the current knob value whenever a valid quadrature edge changes that value
+- the firmware logs each current knob value whenever a valid quadrature edge changes that value
 - the firmware emits serial log messages on `ttyACM0`
