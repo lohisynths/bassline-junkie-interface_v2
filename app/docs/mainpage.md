@@ -10,11 +10,13 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - button decoding from cached input bits through the `Button` class
 - quadrature decoding from cached CD4067 channels through the `Encoder` class
 - reusable knob composition through the `Knob` class
+- ADSR control-surface composition through the `ADSR` block class
 - serial logging over the ST-LINK virtual COM port
 
 ## Modules
 
 - `Button`: binds to one cached input state through `Config`, samples one configured active-low channel as a button input, reports per-update state changes through `button_msg`, exposes explicit LED control through `set_led_val()`, and reports the current button state through `get_state()`
+- `ADSR`: owns the current standalone button set and knob set, stores their configuration tables, initializes them against shared `InputController` and `LEDSController` objects, applies LED updates, and emits the current transition logs
 - `Encoder`: binds to one cached mux state, samples two configured channels as quadrature phase A/B, and reports per-update delta plus accumulated position
 - `GPIO`: wraps the configured discrete GPIO inputs and exposes per-pin and bitmask reads
 - `InputController`: owns the `MUX` and `GPIO` facades, exposes one flat cached input-state table plus `input_count`, and provides optional state-dump and input-transition debug helpers
@@ -23,7 +25,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - `MUX`: wraps the configured CD4067 devices, scans their inputs, and logs one active-channel mask per mux in hex or binary form
 - `utils`: provides shared helpers such as 16-bit mask-to-binary-string formatting used by debug logging
 - `cd4067`: out-of-tree Zephyr module providing the CD4067 GPIO multiplexer driver
-- `main.cpp`: initializes the board LED, starts an input thread that constructs `InputController`, `LEDSController`, `Button` and `Knob` arrays as plain locals, compares current and previous button state to log transitions, and runs four knob indicators across the first 40 LEDs
+- `main.cpp`: initializes the board LED, starts an input thread that constructs `InputController`, `LEDSController`, and one `ADSR` block as plain locals, and runs the block update loop alongside the heartbeat LED
 
 ## Runtime Overview
 
@@ -35,17 +37,19 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - The `MUX` class scans each configured CD4067 by selecting all 16 channels and sampling its `SIG` input.
 - The `InputController` class reads all mux masks plus the discrete GPIO mask into one cached array, exposes `input_count` for clients that index that table, delegates debug state logging to `MUX::log_state()` and `GPIO::log_state()`, and exposes `log_mux_changes()` as an optional helper to report which cached input bits changed between successive updates.
 - The `Button` class binds to one cached input state through `Config`, uses one configured active-low channel as a button source, exposes `button_msg` change flags through `update(msg)`, exposes `set_led_val()` for explicit LED updates, and reports the current button state through `get_state()`.
-- The current application configures four standalone buttons through `button_configs[]`; the current entries use mux index `0`, channels `12`, `13`, `14`, and `15`, with LED channels `40`, `41`, `42`, and `43`.
+- The `ADSR` block stores the current control-surface configuration tables in one place and owns the runtime `Button` and `Knob` instances for that block.
+- The current `ADSR` button entries use mux index `0`, channels `12`, `13`, `14`, and `15`, with LED channels `40`, `41`, `42`, and `43`.
 - The `Encoder` class binds to one cached mux state, uses two configured channels as quadrature phase A/B, and converts valid AB transitions into signed movement.
-- The current application configures four encoders on mux index `0` with phase pairs `1/2`, `4/5`, `7/8`, and `10/11`.
+- The current `ADSR` knob entries use mux index `0` with encoder phase pairs `1/2`, `4/5`, `7/8`, and `10/11`.
 - The `LEDSController` class verifies all configured PCA9685 devices and exposes channel-based brightness control across all PCA9685 outputs.
 - Shared utility code in `utils.cpp` formats 16-bit input masks as fixed-width binary strings for debug output.
 - Each `Knob` owns its current encoder helper, reads one configured active-low button bit from the cached input table, binds the knob UI to LED channels `0..9`, `10..19`, `20..29`, or `30..39`, maintains one internal value in the range `0..127` from encoder deltas, projects that value onto the LED segment without wraparound, and exposes the current knob-button state through `get_state()`.
-- A dedicated input thread constructs `InputController`, `LEDSController`, `Button` and `Knob` arrays as plain local objects, then refreshes the cached inputs, updates each standalone button, sets its LED according to the current button state when a transition occurs, logs its transitions, updates each knob, compares the current and previous knob-button state to log `Knob N button pressed` / `released` transitions, and logs the current knob value when movement changes that value.
+- A dedicated input thread constructs `InputController`, `LEDSController`, and one `ADSR` block as plain local objects, then refreshes the cached inputs and calls the block update routine. The `ADSR` block updates each standalone button, sets its LED according to the current button state when a transition occurs, logs its transitions, updates each knob, compares the current and previous knob-button state to log `Knob N button pressed` / `released` transitions, and logs the current knob value when movement changes that value.
 - Status and error messages are emitted over the ST-LINK virtual serial port.
 
 ## Developer Notes
 
+- ADSR block composition is implemented in `src/blocks/ADSR.cpp` and declared in `src/blocks/ADSR.h`.
 - Button decoding is implemented in `src/Button.cpp` and declared in `src/Button.h`.
 - Quadrature decoding is implemented in `src/Encoder.cpp` and declared in `src/Encoder.h`.
 - Knob composition is implemented in `src/Knob.cpp` and declared in `src/Knob.h`.
@@ -56,6 +60,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - CD4067 aggregation is implemented in `src/MUX.cpp` and declared in `src/MUX.h`.
 - Shared binary-mask formatting helpers are implemented in `src/utils.cpp` and declared in `src/utils.h`.
 - The out-of-tree CD4067 module is discovered through `../cd4067` from the app `CMakeLists.txt`.
+- The app `CMakeLists.txt` adds `src` to the target include path so nested sources can include project headers without relative `../` prefixes.
 - Hardware description for the PCA9685 devices, CD4067 instances, and discrete GPIO inputs lives in `app.overlay`.
 
 For build, flash, documentation generation, and current hardware wiring, see
