@@ -91,11 +91,18 @@ static void input_thread(void *, void *, void *) {
                 return;
             }
             if (button_msg.switch_changed) {
+                const bool button_state = buttons[i].get_state();
+                ret = buttons[i].set_led_val(button_state ? 100U : 0U);
+                if (ret < 0) {
+                    LOG_ERR("Failed to set button %u LED: %d", (unsigned int)i, ret);
+                    return;
+                }
+
                 LOG_INF("Button %u mux=%u bit=%u %s",
                         (unsigned int)i,
                         (unsigned int)button_configs[i].mux_index,
                         (unsigned int)button_configs[i].pin,
-                        buttons[i].get_state() ? "pressed" : "released");
+                        button_state ? "pressed" : "released");
             }
         }
 

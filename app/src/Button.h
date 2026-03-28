@@ -74,7 +74,6 @@ public:
      */
     bool get_state();
 
-private:
     /**
      * @brief Drives the LED assigned to this button.
      *
@@ -86,6 +85,7 @@ private:
      */
     int set_led_val(uint8_t percent);
 
+private:
     /** @brief Borrowed input controller used to read cached input states. */
     InputController *inputs_ = nullptr;
 
