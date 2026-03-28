@@ -14,7 +14,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 
 ## Modules
 
-- `Button`: binds to one cached input state, samples one configured active-low channel as a button input, and reports the current button state through `get_state()`
+- `Button`: binds to one cached input state, samples one configured active-low channel as a button input, mirrors that state onto one assigned LED channel, and reports the current button state through `get_state()`
 - `Encoder`: binds to one cached mux state, samples two configured channels as quadrature phase A/B, and reports per-update delta plus accumulated position
 - `GPIO`: wraps the configured discrete GPIO inputs and exposes per-pin and bitmask reads
 - `InputController`: owns the `MUX` and `GPIO` facades and exposes one flat cached input-state table
@@ -33,7 +33,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
   `MUX0` on `PA0`, `MUX1` on `PA1`, `MUX2` on `PA4`, and `MUX3` on `PB0`.
 - The `MUX` class scans each configured CD4067 by selecting all 16 channels and sampling its `SIG` input.
 - The `InputController` class reads all mux masks plus the discrete GPIO mask into one cached array.
-- The `Button` class binds to one cached input state, uses one configured active-low channel as a button source, and reports the current button state through `get_state()`.
+- The `Button` class binds to one cached input state, uses one configured active-low channel as a button source, drives one assigned LED to match the sampled pressed state, and reports the current button state through `get_state()`.
 - The current application configures the button on mux index `0`, channel `0`.
 - The `Encoder` class binds to one cached mux state, uses two configured channels as quadrature phase A/B, and converts valid AB transitions into signed movement.
 - The current application configures the encoder on mux index `0` with phase A on channel `1` and phase B on channel `2`.

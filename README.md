@@ -9,7 +9,8 @@ CD4067 GPIO multiplexers through the `MUX` class, which is backed by an
 out-of-tree Zephyr driver located in `cd4067/`. Discrete GPIO inputs are
 sampled through the `GPIO` class. The `InputController` class combines the mux
 and GPIO sources into one cached state table. The `Button` class decodes one
-button from a selected cached input bit, the `Encoder` class decodes a
+button from a selected cached input bit and mirrors that state onto one
+assigned LED channel, the `Encoder` class decodes a
 quadrature encoder from two selected CD4067 channels inside that cached input
 state, and the `Knob` class owns one internal `Encoder`, samples one raw
 active-low button bit directly from the cached input state, and drives one LED
@@ -91,7 +92,7 @@ and `west flash` on this machine.
 
 The main application sources are:
 
-- `app/src/Button.h` and `app/src/Button.cpp`: button decoder bound to one cached input state and one source channel
+- `app/src/Button.h` and `app/src/Button.cpp`: button decoder bound to one cached input state, one source channel, and one LED output
 - `app/src/Encoder.h` and `app/src/Encoder.cpp`: quadrature decoder bound to one cached mux state and two CD4067 channels
 - `app/src/Knob.h` and `app/src/Knob.cpp`: reusable knob UI that owns one encoder, reads one raw active-low button bit, and drives one contiguous LED segment
 - `app/src/main.cpp`: entrypoint, input-thread setup, single-knob wiring, and top-level runtime loop
