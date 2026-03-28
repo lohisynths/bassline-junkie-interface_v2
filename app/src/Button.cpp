@@ -11,7 +11,7 @@ int Button::init(InputController &inputs,
                  LEDSController &leds,
                  size_t led_number)
 {
-    if ((mux_index >= InputController::state_count) ||
+    if ((mux_index >= InputController::input_count) ||
         (pin >= 16U) ||
         (led_number >= LEDSController::led_count)) {
         return -EINVAL;

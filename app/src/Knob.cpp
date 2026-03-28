@@ -9,7 +9,7 @@ int Knob::init(InputController &inputs, const Config &config, LEDSController &le
 {
     initialized_ = false;
 
-    if ((config.button_mux_index >= InputController::state_count) ||
+    if ((config.button_mux_index >= InputController::input_count) ||
         (config.button_pin >= 16U) ||
         (config.led_count == 0U) ||
         ((config.first_led + config.led_count) > LEDSController::led_count)) {
