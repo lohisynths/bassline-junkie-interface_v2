@@ -1,5 +1,5 @@
 PROJECT_NAME           = "Bassline Junkie Interface"
-PROJECT_BRIEF          = "Zephyr firmware for status LED, discrete GPIO inputs, PCA9685 LED outputs, CD4067 mux scanning, and ADSR/FLT/LED_DISP/LFO/MOD/OSC control blocks that group config-driven buttons and knobs with banked state, change-message reporting, LED indication, and one active-low 3-digit display."
+PROJECT_BRIEF          = "Zephyr firmware with a 1000000-baud ST-LINK UART console, status LED, discrete GPIO inputs, PCA9685 LED outputs, CD4067 mux scanning, and ADSR/FLT/LED_DISP/LFO/MOD/OSC control blocks that group config-driven buttons and knobs with banked state, change-message reporting, LED indication, and one active-low 3-digit display."
 OUTPUT_DIRECTORY       = app/docs/doxygen
 CREATE_SUBDIRS         = NO
 OUTPUT_LANGUAGE        = English
