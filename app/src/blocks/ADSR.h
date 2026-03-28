@@ -44,13 +44,8 @@ private:
     static constexpr Button::Config button_configs_[] = {
         {
             .mux_index = 0U,
-            .pin = 12U,
-            .led_number = 40U,
-        },
-        {
-            .mux_index = 0U,
-            .pin = 13U,
-            .led_number = 41U,
+            .pin = 15U,
+            .led_number = 43U,
         },
         {
             .mux_index = 0U,
@@ -59,8 +54,13 @@ private:
         },
         {
             .mux_index = 0U,
-            .pin = 15U,
-            .led_number = 43U,
+            .pin = 13U,
+            .led_number = 41U,
+        },
+        {
+            .mux_index = 0U,
+            .pin = 12U,
+            .led_number = 40U,
         },
     };
 
@@ -68,20 +68,11 @@ private:
     static constexpr Knob::Config knob_configs_[] = {
         {
             .button_mux_index = 0U,
-            .button_pin = 0U,
+            .button_pin = 9U,
             .encoder_mux_index = 0U,
-            .encoder_pin_a = 1U,
-            .encoder_pin_b = 2U,
-            .first_led = 0U,
-            .led_count = knob_led_count_,
-        },
-        {
-            .button_mux_index = 0U,
-            .button_pin = 3U,
-            .encoder_mux_index = 0U,
-            .encoder_pin_a = 4U,
-            .encoder_pin_b = 5U,
-            .first_led = 10U,
+            .encoder_pin_a = 10U,
+            .encoder_pin_b = 11U,
+            .first_led = 30U,
             .led_count = knob_led_count_,
         },
         {
@@ -95,11 +86,20 @@ private:
         },
         {
             .button_mux_index = 0U,
-            .button_pin = 9U,
+            .button_pin = 3U,
             .encoder_mux_index = 0U,
-            .encoder_pin_a = 10U,
-            .encoder_pin_b = 11U,
-            .first_led = 30U,
+            .encoder_pin_a = 4U,
+            .encoder_pin_b = 5U,
+            .first_led = 10U,
+            .led_count = knob_led_count_,
+        },
+        {
+            .button_mux_index = 0U,
+            .button_pin = 0U,
+            .encoder_mux_index = 0U,
+            .encoder_pin_a = 1U,
+            .encoder_pin_b = 2U,
+            .first_led = 0U,
             .led_count = knob_led_count_,
         },
     };
