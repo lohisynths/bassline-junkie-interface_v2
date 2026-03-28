@@ -21,9 +21,11 @@ static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 static const size_t input_thread_stack_size = 2048U;
 static const int input_thread_priority = -1;
 static const int input_poll_interval_ms = 5;
-static const size_t button_mux_index = 0U;
-static const uint8_t button_pin = 12U;
-static const size_t button_led = 40U;
+static const Button::Config button_config = {
+    .mux_index = 0U,
+    .pin = 12U,
+    .led_number = 40U,
+};
 
 static const size_t knob_led_count = 10U;
 static const Knob::Config knob_configs[] = {
@@ -56,7 +58,7 @@ static void input_thread(void *, void *, void *) {
         ret = leds.init();
     }
     if (ret == 0) {
-        ret = button.init(inputs, button_mux_index, button_pin, leds, button_led);
+        ret = button.init(inputs, button_config, leds);
     }
     for (size_t i = 0U; (i < knob_count) && (ret == 0); ++i) {
         ret = knobs[i].init(inputs, knob_configs[i], leds);
@@ -86,8 +88,8 @@ static void input_thread(void *, void *, void *) {
         }
         if (button_msg.switch_changed) {
             LOG_INF("Button mux=%u bit=%u %s",
-                    (unsigned int)button_mux_index,
-                    (unsigned int)button_pin,
+                    (unsigned int)button_config.mux_index,
+                    (unsigned int)button_config.pin,
                     button.get_state() ? "pressed" : "released");
         }
 
