@@ -6,6 +6,7 @@
  */
 
 #include "MUX.h"
+#include "utils.h"
 
 #include <errno.h>
 #include <zephyr/devicetree.h>
@@ -99,6 +100,22 @@ int MUX::log_state() {
         }
 
         LOG_INF("CD4067 mux%u active mask: 0x%04x", (unsigned int)i, active_mask);
+    }
+
+    return 0;
+}
+
+int MUX::log_state_binary() {
+    for (size_t i = 0; i < mux_count; ++i) {
+        uint16_t active_mask = 0U;
+        int ret = read_state(i, &active_mask);
+        if (ret < 0) {
+            return ret;
+        }
+
+        char binary_mask[17];
+        mask_to_binary_string(active_mask, binary_mask, sizeof(binary_mask));
+        LOG_INF("CD4067 mux%u active mask: 0b%s", (unsigned int)i, binary_mask);
     }
 
     return 0;

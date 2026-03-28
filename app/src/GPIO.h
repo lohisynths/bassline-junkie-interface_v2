@@ -64,6 +64,14 @@ public:
      */
     int log_state();
 
+    /**
+     * @brief Reads all configured inputs and logs their current states in binary form.
+     *
+     * @retval 0 All inputs were read successfully.
+     * @retval negative Error propagated from @ref read_state.
+     */
+    int log_state_binary();
+
 private:
     /** @brief Describes one configured GPIO input. */
     struct input_pin {

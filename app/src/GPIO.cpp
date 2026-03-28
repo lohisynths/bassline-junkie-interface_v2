@@ -6,6 +6,7 @@
  */
 
 #include "GPIO.h"
+#include "utils.h"
 
 #include <errno.h>
 #include <zephyr/devicetree.h>
@@ -13,7 +14,7 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/util.h>
 
-LOG_MODULE_REGISTER(app_gpio, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(gpio, LOG_LEVEL_INF);
 
 #define GPIO_INPUT_PIN(node_label, signal_name)                    \
     {                                                              \
@@ -109,6 +110,20 @@ int GPIO::log_state() {
     }
 
     LOG_INF("GPIO active mask: 0x%04x", active_mask);
+
+    return 0;
+}
+
+int GPIO::log_state_binary() {
+    uint16_t active_mask = 0U;
+    const int ret = read_state(&active_mask);
+    if (ret < 0) {
+        return ret;
+    }
+
+    char binary_mask[17];
+    mask_to_binary_string(active_mask, binary_mask, sizeof(binary_mask));
+    LOG_INF("GPIO active mask: 0b%s", binary_mask);
 
     return 0;
 }

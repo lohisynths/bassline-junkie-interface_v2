@@ -13,4 +13,5 @@ target_sources(app PRIVATE
     src/GPIO.cpp
     src/InputController.cpp
     src/LEDS.cpp
-    src/MUX.cpp)
+    src/MUX.cpp
+    src/utils.cpp)
