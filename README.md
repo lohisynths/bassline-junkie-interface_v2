@@ -194,77 +194,16 @@ Verified on this machine with:
 When the application is flashed and running on the board:
 
 - the onboard LD2 LED toggles every 1 s
-- the firmware scans all 16 channels on each configured CD4067 instance
-- the firmware updates one cached input-state table containing all mux masks plus the GPIO mask
-- the firmware constructs one `ADSR` block that owns four standalone buttons plus four knobs
-- the firmware also constructs one `FLT` block that owns three radio buttons plus three standalone knobs
-- the firmware also constructs one `LED_DISP` block that owns one standalone knob plus one three-digit active-low seven-segment display
-- the firmware also constructs one `LFO` block that owns three selector buttons, five radio buttons, and one knob
-- the firmware also constructs one `MOD` block that owns six standalone selector buttons plus one knob
-- the firmware also constructs one `OSC` block that owns three standalone selector buttons plus five knobs
-- the current `ADSR` button configurations use mux `0`, channels `15`, `14`, `13`, and `12`, with LED channels `43`, `42`, `41`, and `40`
-- ADSR buttons `0`, `1`, and `2` select knob banks `0`, `1`, and `2`
-- only the currently selected bank button LED is lit at `100%`; the other selector LEDs are off
-- ADSR button `3` is a latched per-bank toggle, and its LED reflects the stored state for the active bank
-- the firmware decodes four quadrature encoders from mux `0`: channels `1/2`, `4/5`, `7/8`, and `10/11`
-- the current `ADSR` block owns four `Knob` objects that each own an internal encoder helper, read one configured active-low button bit, and bind the knob indicators to LED channels `0..9`, `10..19`, `20..29`, and `30..39`
-- the firmware maintains three independent `0..127` value sets for the four knobs, one set per selector bank
-- the firmware also stores one independent latched state for ADSR button `3` in each bank
-- the current `FLT` button configurations use mux `3`, channels `15`, `14`, and `13`, with LED channels `174`, `173`, and `172`
-- FLT buttons act as radio buttons, so only one FLT button LED is lit at a time
-- the current `FLT` knob configurations use mux `3` with button and encoder pairs `4/5/6`, `7/8/9`, and `10/11/12`
-- the current `FLT` block owns three `Knob` objects bound to LED channels `144..155`, `160..169`, and no LED segment for the third knob
-- the current `LFO` button configurations use mux `3`, channel `0`, and mux `2`, channels `15`, `14`, `13`, `12`, `11`, `10`, and `9`, with LED channels `158`, `157`, `156`, `142`, `141`, `140`, `139`, and `138`
-- LFO buttons `0`, `1`, and `2` select knob banks `0`, `1`, and `2`
-- LFO buttons `3..7` act as radio buttons, with one latched selection stored independently in each bank
-- only the currently selected LFO bank button LED is lit at `100%`, and only the currently selected radio button LED is lit for the active bank
-- the firmware decodes one LFO quadrature encoder from cached input state `4`: bits `1/2`
-- the current `LFO` block owns one `Knob` object that owns an internal encoder helper, reads configured active-low button bit `0` from cached input state `4`, and binds the knob indicator to LED channels `128..137`
-- the firmware maintains three independent `0..127` values for the LFO knob, one per selector bank
-- the firmware also stores one independent radio-button selection per LFO bank
-- the current `LED_DISP` knob configuration uses cached input state `4` with button bit `3`, encoder phase pair `4/5`, and no knob LED segment
-- the current `LED_DISP` block drives a three-digit seven-segment display on LED channels `176..199`, using three groups of eight consecutive channels for hundreds, tens, and ones
-- the display output is active-low, so a `0%` PWM duty lights one segment and a `100%` duty turns it off
-- the display shows the current display-knob value in the range `0..127` with blank leading digits and all decimal-point LEDs off
-- the current `MOD` button configurations use mux `2`, channels `3`, `4`, `5`, `6`, `7`, and `8`, with LED channels `122`, `123`, `124`, `125`, `126`, and `127`
-- MOD buttons `0..5` select knob banks `0..5`
-- only the currently selected MOD bank button LED is lit at `100%`; the other MOD selector LEDs are off
-- the firmware decodes one MOD quadrature encoder from mux `2`: channels `1/2`
-- the current `MOD` block owns one `Knob` object that owns an internal encoder helper, reads configured active-low button bit `0`, and binds the knob indicator to LED channels `112..121`
-- the firmware maintains six independent `0..127` values for the MOD knob, one per selector bank
-- the current `OSC` button configurations use mux `3`, channels `3`, `2`, and `1`, with LED channels `110`, `109`, and `108`
-- OSC buttons `0`, `1`, and `2` select knob banks `0`, `1`, and `2`
-- only the currently selected OSC bank button LED is lit at `100%`; the other OSC selector LEDs are off
-- the firmware decodes five OSC quadrature encoders from mux `1`: channels `13/14`, `10/11`, `7/8`, `4/5`, and `1/2`
-- the current `OSC` block owns five `Knob` objects that each own an internal encoder helper, read one configured active-low button bit, and bind the knob indicators to LED channels `96..105`, `78..87`, `68..77`, `58..67`, and `48..57`
-- the firmware maintains three independent `0..127` value sets for the five OSC knobs, one set per selector bank
-- bank `0` is selected on boot
-- selecting a different bank immediately recalls that bank's four knob values and updates the knob LEDs
-- selecting a different FLT radio button updates the FLT button LEDs immediately
-- selecting a different LFO bank immediately recalls that bank's one knob value and updates the LFO knob LEDs
-- selecting a different MOD bank immediately recalls that bank's one knob value and updates the MOD knob LEDs
-- selecting a different OSC bank immediately recalls that bank's five knob values and updates the OSC knob LEDs
-- selecting a different bank also recalls that bank's latched ADSR button `3` state and updates its LED
-- one LED per knob segment is lit at a time according to that clamped value
-- the LED indication does not wrap when the knob reaches the minimum or maximum value
-- each knob exposes the encoder push-button state for use elsewhere in the application
-- the input thread constructs `InputController`, `LEDSController`, one `ADSR`, one `FLT`, one `LED_DISP`, one `LFO`, one `MOD`, and one `OSC` object as plain local objects on its own stack before entering the polling loop
-- the firmware logs `Selected knob bank N` whenever one of the selector buttons changes the active bank
-- the firmware logs `Bank N button 3 latched on` / `off` whenever ADSR button `3` toggles the stored state in the active bank
-- the firmware logs each current knob value as `Bank N knob M position=V` whenever a valid quadrature edge changes that value in the active bank
-- the firmware logs `FLT radio button N selected` whenever one of the FLT radio buttons changes the active selection
-- the firmware logs the FLT knob button transitions as `FLT knob N button pressed` / `released`
-- the firmware logs each FLT knob value as `FLT knob N position=V` whenever a valid quadrature edge changes that value
-- the firmware logs the LED display knob button transitions as `LED display knob button pressed` / `released`
-- the firmware logs the LED display knob value as `LED display position=V` whenever a valid quadrature edge changes that value
-- the firmware logs `Selected LFO bank N` whenever one of the LFO selector buttons changes the active bank
-- the firmware logs `LFO bank N radio M selected` whenever one of the LFO radio buttons changes the stored selection in the active bank
-- the firmware logs the LFO knob button transitions as `LFO knob 0 button pressed` / `released`
-- the firmware logs the LFO knob value as `LFO bank N knob 0 position=V` whenever a valid quadrature edge changes that value in the active LFO bank
-- the firmware logs `Selected MOD bank N` whenever one of the MOD selector buttons changes the active bank
-- the firmware logs the MOD knob button transitions as `MOD knob 0 button pressed` / `released`
-- the firmware logs the MOD knob value as `MOD bank N knob 0 position=V` whenever a valid quadrature edge changes that value in the active MOD bank
-- the firmware logs `Selected OSC bank N` whenever one of the OSC selector buttons changes the active bank
-- the firmware logs each OSC knob value as `OSC bank N knob M position=V` whenever a valid quadrature edge changes that value in the active OSC bank
+- the firmware continuously scans the configured CD4067 muxes and discrete GPIO inputs into one cached input-state table
+- the input thread constructs the `InputController`, `LEDSController`, and the `ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`, and `OSC` control blocks before entering its polling loop
+- the control surface exposes:
+    - banked knob/button state in `ADSR`, `LFO`, `MOD`, and `OSC`
+    - radio-button selection in `FLT` and in the per-bank `LFO` radio group
+    - one active-low three-digit seven-segment display driven by `LED_DISP`
+- knob values are clamped to `0..127`, recalled when a bank changes, and shown on their assigned LED segments when present
+- selector and radio-button LEDs reflect the currently active state, and bank `0` is selected on boot
+- the `LED_DISP` block shows its knob value in the range `0..127` with blank leading digits
+- button inputs are active-low, and each knob exposes its encoder push-button state for higher-level logic
+- serial logs report bank changes, button transitions, radio selections, and knob movements while the input thread runs
 - the main thread logs `Heartbeat: LED blink running` every 10 s
 - the firmware emits serial log messages on `ttyACM0`
