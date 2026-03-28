@@ -26,26 +26,34 @@ public:
     };
 
     /**
+     * @brief Groups the button-specific binding parameters.
+     */
+    struct Config {
+        /** @brief Cached mux index containing the button bit. */
+        size_t mux_index = 0U;
+
+        /** @brief Channel number used for the button source bit. */
+        uint8_t pin = 0U;
+
+        /** @brief Global LED channel assigned to this button. */
+        size_t led_number = 0U;
+    };
+
+    /**
      * @brief Binds the button to one cached mux state, one source channel, and one LED.
      *
      * The caller retains ownership of @p inputs and @p leds and must keep both
      * alive and initialized for the lifetime of this button instance.
      *
      * @param inputs Input controller holding the cached input masks.
-     * @param mux_index Index of the cached mux state containing the button bit.
-     * @param pin Channel number used for the button source bit.
+     * @param config Button-specific channel and LED configuration.
      * @param leds LED controller used to mirror the button state.
-     * @param led_number Global LED channel assigned to this button.
      *
      * @retval 0 The button configuration is valid and the LED was cleared.
      * @retval -EINVAL The mux index, channel number, or LED channel is out of range.
      * @retval negative Error propagated from @ref LEDSController::set_channel_percent.
      */
-    int init(InputController &inputs,
-             size_t mux_index,
-             uint8_t pin,
-             LEDSController &leds,
-             size_t led_number);
+    int init(InputController &inputs, const Config &config, LEDSController &leds);
 
     /**
      * @brief Reads the configured cached mux state and advances the button state.

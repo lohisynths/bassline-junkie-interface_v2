@@ -5,23 +5,19 @@
 static const uint8_t button_led_off_percent = 0U;
 static const uint8_t button_led_on_percent = 100U;
 
-int Button::init(InputController &inputs,
-                 size_t mux_index,
-                 uint8_t pin,
-                 LEDSController &leds,
-                 size_t led_number)
+int Button::init(InputController &inputs, const Config &config, LEDSController &leds)
 {
-    if ((mux_index >= InputController::input_count) ||
-        (pin >= 16U) ||
-        (led_number >= LEDSController::led_count)) {
+    if ((config.mux_index >= InputController::input_count) ||
+        (config.pin >= 16U) ||
+        (config.led_number >= LEDSController::led_count)) {
         return -EINVAL;
     }
 
     inputs_ = &inputs;
     leds_ = &leds;
-    mux_index_ = mux_index;
-    pin_ = pin;
-    led_number_ = led_number;
+    mux_index_ = config.mux_index;
+    pin_ = config.pin;
+    led_number_ = config.led_number;
     pressed_ = false;
 
     return set_led_val(button_led_off_percent);
