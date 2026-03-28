@@ -39,57 +39,14 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 
 ## Runtime Overview
 
-- The application configures the onboard `led0` GPIO as a heartbeat indicator, toggles it once per second, and logs `Heartbeat: LED blink running` every 10 seconds.
-- The `GPIO` class configures the discrete active-low GPIO inputs, can return their combined active-state bitmask, and can log that mask in hex or binary form.
-- The `MUX` class manages four configured CD4067 instances that share the same select lines.
-- Each mux uses one dedicated `SIG` input:
-  `MUX0` on `PA0`, `MUX1` on `PA1`, `MUX2` on `PA4`, and `MUX3` on `PB0`.
-- The `MUX` class scans each configured CD4067 by selecting all 16 channels and sampling its `SIG` input.
-- The `InputController` class reads all mux masks plus the discrete GPIO mask into one cached array, exposes `input_count` for clients that index that table, delegates debug state logging to `MUX::log_state()` and `GPIO::log_state()`, and exposes `log_mux_changes()` as an optional helper to report which cached input bits changed between successive updates.
-- The `Button` class binds to one cached input state through `Config`, uses one configured active-low channel as a button source, exposes `button_msg` change flags through `update(msg)`, exposes `set_led_val()` for explicit LED updates, and reports the current button state through `get_state()`.
-- The `ADSR` block stores the current control-surface configuration tables in one place, owns the runtime `Button` and `Knob` instances for that block, and maintains three banked knob-value sets.
-- The current `ADSR` button entries use mux index `0`, channels `15`, `14`, `13`, and `12`, with LED channels `43`, `42`, `41`, and `40`.
-- ADSR buttons `0`, `1`, and `2` act as latched selector buttons for knob banks `0`, `1`, and `2`.
-- ADSR button `3` is a latched toggle whose stored state is independent in each bank.
-- The `FLT` block stores its own control-surface configuration tables, owns three radio `Button` instances plus three `Knob` instances, and does not maintain banked state.
-- The current `FLT` button entries use mux index `3`, channels `15`, `14`, and `13`, with LED channels `174`, `173`, and `172`.
-- FLT buttons act as radio buttons with one active selection reflected on the LEDs at a time.
-- The current `FLT` knob entries use mux index `3` with button/encoder bindings `4/5/6`, `7/8/9`, and `10/11/12`, and LED channels `144..155`, `160..169`, and no LED segment for the third knob.
-- The `LED_DISP` block stores its display-knob configuration and legacy seven-segment digit patterns in one place, owns one `Knob` instance, and drives one three-digit display without any banked state.
-- The current `LED_DISP` knob entry uses cached input state index `4` with button bit `3`, encoder phase pair `4/5`, and no knob LED segment.
-- The current `LED_DISP` block drives one three-digit display on LED channels `176..199`, using digit positions `0`, `1`, and `2` for hundreds, tens, and ones.
-- The `LED_DISP` block treats the display outputs as active-low, so a `0%` PWM duty lights one segment and a `100%` duty turns it off.
-- The `LED_DISP` block renders the current knob value in the range `0..127`, blanks the leading hundreds and tens digits when they are not needed, and leaves all decimal-point LEDs off.
-- The `LFO` block stores its own control-surface configuration tables, owns three selector `Button` instances, five radio `Button` instances, and one `Knob` instance, and maintains three banked knob values plus one radio-button selection per bank independently from `ADSR`, `MOD`, and `OSC`.
-- The current `LFO` button entries use mux index `3`, channel `0`, and mux index `2`, channels `15`, `14`, `13`, `12`, `11`, `10`, and `9`, with LED channels `158`, `157`, `156`, `142`, `141`, `140`, `139`, and `138`.
-- LFO buttons `0..2` act as latched selector buttons for knob banks `0..2`.
-- LFO buttons `3..7` act as radio buttons with one stored selection per bank.
-- The `MOD` block stores its own control-surface configuration tables, owns six selector `Button` instances plus one `Knob` instance, and maintains six banked knob values independently from `ADSR` and `OSC`.
-- The current `MOD` button entries use mux index `2`, channels `3`, `4`, `5`, `6`, `7`, and `8`, with LED channels `122`, `123`, `124`, `125`, `126`, and `127`.
-- MOD buttons `0..5` act as latched selector buttons for knob banks `0..5`.
-- The `OSC` block stores its own control-surface configuration tables, owns three selector `Button` instances plus five `Knob` instances, and maintains three banked knob-value sets independently from `ADSR`.
-- The current `OSC` button entries use mux index `3`, channels `3`, `2`, and `1`, with LED channels `110`, `109`, and `108`.
-- OSC buttons `0`, `1`, and `2` act as latched selector buttons for knob banks `0`, `1`, and `2`.
-- The `Encoder` class binds to one cached mux state, uses two configured channels as quadrature phase A/B, and converts valid AB transitions into signed movement.
-- The current `ADSR` knob entries use mux index `0` with encoder phase pairs `1/2`, `4/5`, `7/8`, and `10/11`.
-- The current `FLT` knob entries use mux index `3` with encoder phase pairs `5/6`, `8/9`, and `11/12`.
-- The current `LFO` knob entry uses cached input state index `4` with encoder phase pair `1/2`, button bit `0`, and LED channels `128..137`.
-- The current `MOD` knob entry uses mux index `2` with encoder phase pair `1/2`, button bit `0`, and LED channels `112..121`.
-- The current `OSC` knob entries use mux index `1` with encoder phase pairs `13/14`, `10/11`, `7/8`, `4/5`, and `1/2`.
-- The `LEDSController` class verifies all configured PCA9685 devices and exposes channel-based brightness control across all PCA9685 outputs.
-- Shared utility code in `utils.cpp` formats 16-bit input masks as fixed-width binary strings for debug output.
-- Each `Knob` owns its current encoder helper, reads one configured active-low button bit from the cached input table, binds the knob UI to LED channels `0..9`, `10..19`, `20..29`, or `30..39`, maintains one internal value in the range `0..127` from encoder deltas, supports immediate value recall from `ADSR`, projects that value onto the LED segment without wraparound, and exposes the current knob-button state through `get_state()`.
-- The current `FLT` knob indicators use LED channels `144..155`, `160..169`, and no LED segment for the third knob.
-- The current `LFO` knob indicator uses LED channels `128..137`.
-- The current `MOD` knob indicator uses LED channels `112..121`.
-- The current `OSC` knob indicators use LED channels `96..105`, `78..87`, `68..77`, `58..67`, and `48..57`.
-- A dedicated input thread constructs `InputController`, `LEDSController`, one `ADSR` block, one `FLT` block, one `LED_DISP` block, one `LFO` block, one `MOD` block, and one `OSC` block as plain local objects, then refreshes the cached inputs and calls all six block update routines. The `ADSR` block keeps bank `0` selected on boot, lights only the active selector button LED plus the current bank's latched button-3 LED when enabled, recalls four stored knob values whenever buttons `0..2` change the active bank, recalls the active bank's latched button-3 state on bank switch, toggles that stored button-3 state on button-3 press, updates each knob, compares the current and previous knob-button state to log `Knob N button pressed` / `released` transitions, and logs knob movement as `Bank N knob M position=V` when movement changes the current value in the active bank.
-- The `FLT` block also keeps radio button `0` selected on boot, lights only the active radio-button LED, updates its three knobs, compares the current and previous knob-button state to log `FLT knob N button pressed` / `released` transitions, logs radio-button selection as `FLT radio button N selected`, and logs knob movement as `FLT knob N position=V` when movement changes the current value.
-- The `LED_DISP` block also renders `0` on boot, updates its display only when the knob value changes, compares the current and previous knob-button state to log `LED display knob button pressed` / `released` transitions, and logs knob movement as `LED display position=V` when movement changes the current value.
-- The `LFO` block also keeps bank `0` selected on boot, lights only the active selector button LED plus the currently selected radio-button LED for the active bank, recalls one stored knob value whenever buttons `0..2` change the active bank, updates its knob, compares the current and previous knob-button state to log `LFO knob 0 button pressed` / `released` transitions, logs radio-button selection as `LFO bank N radio M selected`, and logs knob movement as `LFO bank N knob 0 position=V` when movement changes the current value in the active LFO bank.
-- The `MOD` block also keeps bank `0` selected on boot, lights only the active selector button LED, recalls one stored knob value whenever buttons `0..5` change the active bank, updates its knob, compares the current and previous knob-button state to log `MOD knob 0 button pressed` / `released` transitions, and logs knob movement as `MOD bank N knob 0 position=V` when movement changes the current value in the active MOD bank.
-- The `OSC` block also keeps bank `0` selected on boot, lights only the active selector button LED, recalls five stored knob values whenever buttons `0..2` change the active bank, updates each knob, compares the current and previous knob-button state to log `OSC knob N button pressed` / `released` transitions, and logs knob movement as `OSC bank N knob M position=V` when movement changes the current value in the active bank.
-- Status and error messages are emitted over the ST-LINK virtual serial port.
+- The application uses the onboard `led0` as a heartbeat and emits status logs over the ST-LINK virtual serial port.
+- A dedicated input thread builds `InputController`, `LEDSController`, and the `ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`, and `OSC` control blocks, then repeatedly refreshes inputs and updates all blocks.
+- `InputController` merges the CD4067 mux scans and discrete GPIO reads into one cached state table. `Button`, `Encoder`, and `Knob` build on that cache to provide reusable input primitives.
+- `ADSR`, `LFO`, `MOD`, and `OSC` expose banked controls. Bank switches recall stored knob state and update the related LEDs.
+- `FLT` provides a non-banked radio-button group with three knobs.
+- `LED_DISP` provides one knob plus an active-low three-digit seven-segment display that shows values in the range `0..127`.
+- `LEDSController` drives the PCA9685 outputs used for selector LEDs, knob segments, and the display.
+- Runtime logs cover heartbeat activity, button transitions, radio selections, bank changes, and knob movement.
 
 ## Developer Notes
 
