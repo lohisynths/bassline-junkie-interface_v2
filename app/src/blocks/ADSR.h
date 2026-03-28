@@ -1,10 +1,10 @@
 #ifndef SRC_BLOCKS_ADSR_H_
 #define SRC_BLOCKS_ADSR_H_
 
-#include "../Button.h"
-#include "../InputController.h"
-#include "../Knob.h"
-#include "../LEDS.h"
+#include "Button.h"
+#include "InputController.h"
+#include "Knob.h"
+#include "LEDS.h"
 
 #include <stddef.h>
 
