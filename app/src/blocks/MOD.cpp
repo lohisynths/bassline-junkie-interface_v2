@@ -78,6 +78,19 @@ int MOD::update()
     return 0;
 }
 
+bool MOD::mod_knob_pressed()
+{
+    return knobs_[0].get_state();
+}
+
+void MOD::report_link_target(const char *block_name, size_t knob_index, uint8_t bank_index)
+{
+    LOG_INF("MOD link target: %s knob %u bank %u",
+            block_name,
+            (unsigned int)knob_index,
+            (unsigned int)bank_index);
+}
+
 int MOD::select_bank_(size_t bank_index)
 {
     if (bank_index >= bank_count_) {

@@ -109,6 +109,18 @@ static void input_thread(void *, void *, void *) {
             return;
         }
 
+        if (mod.mod_knob_pressed()) {
+            size_t knob_index = 0U;
+
+            if (flt.take_newly_pressed_knob(knob_index)) {
+                mod.report_link_target("FLT", knob_index, 0);
+            }
+
+            if (osc.take_newly_pressed_knob(knob_index)) {
+                mod.report_link_target("OSC", knob_index, osc.selected_bank());
+            }
+        }
+
         k_msleep(input_poll_interval_ms);
     }
 }

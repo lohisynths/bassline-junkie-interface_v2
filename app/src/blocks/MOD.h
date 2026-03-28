@@ -36,6 +36,20 @@ public:
      */
     int update();
 
+    /**
+     * @brief Returns the current pressed state of the MOD knob button.
+     */
+    bool mod_knob_pressed();
+
+    /**
+     * @brief Logs one identified cross-block target with bank context.
+     *
+     * @param block_name Name of the block that owns the pressed knob.
+     * @param knob_index Zero-based knob index inside that block.
+     * @param bank_index Active bank index for the owning block.
+     */
+    void report_link_target(const char *block_name, size_t knob_index, uint8_t bank_index);
+
 private:
     /** @brief Number of LEDs reserved for the knob segment. */
     static const size_t knob_led_count_ = 10U;
