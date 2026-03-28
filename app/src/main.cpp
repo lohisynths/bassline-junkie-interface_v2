@@ -3,6 +3,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
+#include "Button.h"
 #include "InputController.h"
 #include "Knob.h"
 #include "LEDS.h"
@@ -20,7 +21,10 @@ static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 static const size_t input_thread_stack_size = 2048U;
 static const int input_thread_priority = -1;
 static const int input_poll_interval_ms = 5;
-static const int input_log_interval_ms = 1000;
+static const size_t button_mux_index = 0U;
+static const uint8_t button_pin = 12U;
+static const size_t button_led = 40U;
+
 static const size_t knob_led_count = 10U;
 static const Knob::Config knob_configs[] = {
     {
@@ -44,11 +48,15 @@ static int input_thread_status = 0;
 static void input_thread(void *, void *, void *) {
     InputController inputs;
     LEDSController leds;
+    Button button;
     Knob knobs[knob_count];
 
     int ret = inputs.init();
     if (ret == 0) {
         ret = leds.init();
+    }
+    if (ret == 0) {
+        ret = button.init(inputs, button_mux_index, button_pin, leds, button_led);
     }
     for (size_t i = 0U; (i < knob_count) && (ret == 0); ++i) {
         ret = knobs[i].init(inputs, knob_configs[i], leds);
@@ -69,6 +77,19 @@ static void input_thread(void *, void *, void *) {
             return;
         }
         inputs.log_mux_changes();
+
+        Button::button_msg button_msg;
+        ret = button.update(button_msg);
+        if (ret < 0) {
+            LOG_ERR("Failed to update button: %d", ret);
+            return;
+        }
+        if (button_msg.switch_changed) {
+            LOG_INF("Button mux=%u bit=%u %s",
+                    (unsigned int)button_mux_index,
+                    (unsigned int)button_pin,
+                    button.get_state() ? "pressed" : "released");
+        }
 
         for (size_t i = 0U; i < knob_count; ++i) {
             Knob::knob_msg msg;
