@@ -27,6 +27,21 @@ static const Button::Config button_configs[] = {
         .pin = 12U,
         .led_number = 40U,
     },
+    {
+        .mux_index = 0U,
+        .pin = 13U,
+        .led_number = 41U,
+    },
+    {
+        .mux_index = 0U,
+        .pin = 14U,
+        .led_number = 42U,
+    },
+    {
+        .mux_index = 0U,
+        .pin = 15U,
+        .led_number = 43U,
+    },
 };
 static const size_t button_count = ARRAY_SIZE(button_configs);
 
@@ -39,6 +54,33 @@ static const Knob::Config knob_configs[] = {
         .encoder_pin_a = 1U,
         .encoder_pin_b = 2U,
         .first_led = 0U,
+        .led_count = knob_led_count,
+    },
+    {
+        .button_mux_index = 0U,
+        .button_pin = 3U,
+        .encoder_mux_index = 0U,
+        .encoder_pin_a = 4U,
+        .encoder_pin_b = 5U,
+        .first_led = 10U,
+        .led_count = knob_led_count,
+    },
+    {
+        .button_mux_index = 0U,
+        .button_pin = 6U,
+        .encoder_mux_index = 0U,
+        .encoder_pin_a = 7U,
+        .encoder_pin_b = 8U,
+        .first_led = 20U,
+        .led_count = knob_led_count,
+    },
+    {
+        .button_mux_index = 0U,
+        .button_pin = 9U,
+        .encoder_mux_index = 0U,
+        .encoder_pin_a = 10U,
+        .encoder_pin_b = 11U,
+        .first_led = 30U,
         .led_count = knob_led_count,
     },
 };
