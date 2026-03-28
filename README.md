@@ -169,7 +169,7 @@ Verified on this machine with:
 
 When the application is flashed and running on the board:
 
-- the onboard LD2 LED toggles every 100 ms
+- the onboard LD2 LED toggles every 1 s
 - the firmware scans all 16 channels on each configured CD4067 instance
 - the firmware updates one cached input-state table containing all mux masks plus the GPIO mask
 - the firmware constructs four standalone buttons from `button_configs[]`
@@ -184,4 +184,5 @@ When the application is flashed and running on the board:
 - the input thread constructs `InputController`, `LEDSController`, one `Button` array, and one `Knob` array as plain local objects on its own stack before entering the polling loop
 - the input thread calls `InputController::log_mux_changes()` after each input refresh to report cached input bit transitions
 - the firmware logs each current knob value whenever a valid quadrature edge changes that value
+- the main thread logs `Heartbeat: LED blink running` every 10 s
 - the firmware emits serial log messages on `ttyACM0`

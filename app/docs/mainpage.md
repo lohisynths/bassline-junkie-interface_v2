@@ -27,7 +27,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 
 ## Runtime Overview
 
-- The application configures the onboard `led0` GPIO as a heartbeat indicator.
+- The application configures the onboard `led0` GPIO as a heartbeat indicator, toggles it once per second, and logs `Heartbeat: LED blink running` every 10 seconds.
 - The `GPIO` class configures the discrete active-low GPIO inputs, can return their combined active-state bitmask, and can log that mask in hex or binary form.
 - The `MUX` class manages four configured CD4067 instances that share the same select lines.
 - Each mux uses one dedicated `SIG` input:
