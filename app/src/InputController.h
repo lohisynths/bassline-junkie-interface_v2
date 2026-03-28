@@ -44,6 +44,16 @@ public:
     int update();
 
     /**
+     * @brief Logs the current mux and GPIO input states.
+     *
+     * @retval 0 All input states were logged successfully.
+     * @retval -EACCES The input controller has not been initialized.
+     * @retval negative Error propagated from @ref MUX::log_state or
+     *         @ref GPIO::log_state.
+     */
+    int log_state();
+
+    /**
      * @brief Returns one cached active mask.
      *
      * @param state_index Index in the cached input state table.

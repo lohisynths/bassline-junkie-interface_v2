@@ -20,6 +20,7 @@ static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 static const size_t input_thread_stack_size = 2048U;
 static const int input_thread_priority = -1;
 static const int input_poll_interval_ms = 5;
+static const int input_log_interval_ms = 1000;
 static const size_t knob_led_count = 10U;
 static const Knob::Config knob_configs[] = {
     {
@@ -44,6 +45,7 @@ static void input_thread(void *, void *, void *) {
     InputController inputs;
     LEDSController leds;
     Knob knobs[knob_count];
+    int elapsed_log_ms = 0;
 
     int ret = inputs.init();
     if (ret == 0) {
@@ -88,6 +90,17 @@ static void input_thread(void *, void *, void *) {
                         (unsigned int)i,
                         (int)knobs[i].get_value());
             }
+        }
+
+        elapsed_log_ms += input_poll_interval_ms;
+        if (elapsed_log_ms >= input_log_interval_ms) {
+            ret = inputs.log_state();
+            if (ret < 0) {
+                LOG_ERR("Failed to log input states: %d", ret);
+                return;
+            }
+
+            elapsed_log_ms = 0;
         }
 
         k_msleep(input_poll_interval_ms);

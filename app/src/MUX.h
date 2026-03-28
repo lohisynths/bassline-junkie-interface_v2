@@ -54,6 +54,15 @@ public:
      */
     int log_state();
 
+    /**
+     * @brief Scans all CD4067 channels and logs the active bitmask in binary form.
+     *
+     * @retval 0 The scan completed successfully.
+     * @retval -EACCES The multiplexer has not been initialized.
+     * @retval negative Driver-specific error returned by the CD4067 driver.
+     */
+    int log_state_binary();
+
 private:
     /** @brief Describes one configured CD4067 instance. */
     struct mux_device {

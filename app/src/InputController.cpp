@@ -41,6 +41,19 @@ int InputController::update() {
     return gpio_.read_state(&active_masks_[gpio_mux_index_]);
 }
 
+int InputController::log_state() {
+    if (!initialized_) {
+        return -EACCES;
+    }
+
+    int ret = mux_.log_state_binary();
+    if (ret < 0) {
+        return ret;
+    }
+
+    return gpio_.log_state_binary();
+}
+
 uint16_t InputController::state(size_t state_index) const {
     if (state_index >= state_count) {
         return 0U;
