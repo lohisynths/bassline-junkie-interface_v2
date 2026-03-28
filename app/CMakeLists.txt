@@ -9,6 +9,7 @@ target_include_directories(app PRIVATE src)
 
 target_sources(app PRIVATE
     src/blocks/ADSR.cpp
+    src/blocks/MOD.cpp
     src/blocks/OSC.cpp
     src/Button.cpp
     src/Encoder.cpp

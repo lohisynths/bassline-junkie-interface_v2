@@ -4,6 +4,7 @@
 #include <zephyr/logging/log.h>
 
 #include "blocks/ADSR.h"
+#include "blocks/MOD.h"
 #include "blocks/OSC.h"
 #include "InputController.h"
 #include "LEDS.h"
@@ -31,6 +32,7 @@ static void input_thread(void *, void *, void *) {
     InputController inputs;
     LEDSController leds;
     ADSR adsr;
+    MOD mod;
     OSC osc;
 
     int ret = inputs.init();
@@ -39,6 +41,9 @@ static void input_thread(void *, void *, void *) {
     }
     if (ret == 0) {
         ret = adsr.init(inputs, leds);
+    }
+    if (ret == 0) {
+        ret = mod.init(inputs, leds);
     }
     if (ret == 0) {
         ret = osc.init(inputs, leds);
@@ -60,6 +65,11 @@ static void input_thread(void *, void *, void *) {
         }
 
         ret = adsr.update();
+        if (ret < 0) {
+            return;
+        }
+
+        ret = mod.update();
         if (ret < 0) {
             return;
         }
