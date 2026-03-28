@@ -27,6 +27,7 @@ int FLT::init(InputController &inputs, LEDSController &leds)
 int FLT::update()
 {
     int ret = 0;
+    has_newly_pressed_knob_ = false;
 
     for (size_t i = 0U; i < button_count_; ++i) {
         Button::button_msg button_msg;
@@ -65,6 +66,11 @@ int FLT::update()
         }
 
         if (knob_msg.switch_changed) {
+            if (knobs_[i].get_state() && !has_newly_pressed_knob_) {
+                has_newly_pressed_knob_ = true;
+                newly_pressed_knob_index_ = (uint8_t)i;
+            }
+
             LOG_INF("FLT knob %u button %s",
                     (unsigned int)i,
                     knobs_[i].get_state() ? "pressed" : "released");
@@ -78,6 +84,17 @@ int FLT::update()
     }
 
     return 0;
+}
+
+bool FLT::take_newly_pressed_knob(size_t &knob_index)
+{
+    if (!has_newly_pressed_knob_) {
+        return false;
+    }
+
+    knob_index = newly_pressed_knob_index_;
+    has_newly_pressed_knob_ = false;
+    return true;
 }
 
 int FLT::update_selector_leds_()

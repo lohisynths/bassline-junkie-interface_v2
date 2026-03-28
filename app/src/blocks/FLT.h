@@ -37,6 +37,16 @@ public:
      */
     int update();
 
+    /**
+     * @brief Returns the first knob pressed during the most recent update.
+     *
+     * @param knob_index Receives the zero-based knob index when one is pending.
+     *
+     * @retval true A knob press event was returned and consumed.
+     * @retval false No knob press event is pending.
+     */
+    bool take_newly_pressed_knob(size_t &knob_index);
+
 private:
     /** @brief Number of LEDs reserved for standard knob segments in this block. */
     static const size_t knob_led_count_ = 10U;
@@ -113,6 +123,12 @@ private:
 
     /** @brief Currently selected radio button. */
     uint8_t selected_button_ = 0U;
+
+    /** @brief Set when one knob button was newly pressed during the latest update. */
+    bool has_newly_pressed_knob_ = false;
+
+    /** @brief Stores the first newly pressed knob index from the latest update. */
+    uint8_t newly_pressed_knob_index_ = 0U;
 };
 
 #endif /* SRC_BLOCKS_FLT_H_ */
