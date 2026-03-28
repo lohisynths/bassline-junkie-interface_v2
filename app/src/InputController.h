@@ -54,6 +54,11 @@ public:
     int log_state();
 
     /**
+     * @brief Logs mux-bit transitions between the previous and current mux snapshots.
+     */
+    void log_mux_changes();
+
+    /**
      * @brief Returns one cached active mask.
      *
      * @param state_index Index in the cached input state table.
@@ -80,6 +85,9 @@ private:
 
     /** @brief Cached active masks for all mux inputs plus the GPIO input mask. */
     uint16_t active_masks_[state_count] = {};
+
+    /** @brief Previous cached mux masks used for change logging. */
+    uint16_t previous_mux_masks_[mux_count_] = {};
 };
 
 #endif /* SRC_INPUTCONTROLLER_H_ */

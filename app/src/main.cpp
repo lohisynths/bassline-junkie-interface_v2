@@ -45,7 +45,6 @@ static void input_thread(void *, void *, void *) {
     InputController inputs;
     LEDSController leds;
     Knob knobs[knob_count];
-    int elapsed_log_ms = 0;
 
     int ret = inputs.init();
     if (ret == 0) {
@@ -69,6 +68,7 @@ static void input_thread(void *, void *, void *) {
             LOG_ERR("Failed to read inputs: %d", ret);
             return;
         }
+        inputs.log_mux_changes();
 
         for (size_t i = 0U; i < knob_count; ++i) {
             Knob::knob_msg msg;
@@ -90,17 +90,6 @@ static void input_thread(void *, void *, void *) {
                         (unsigned int)i,
                         (int)knobs[i].get_value());
             }
-        }
-
-        elapsed_log_ms += input_poll_interval_ms;
-        if (elapsed_log_ms >= input_log_interval_ms) {
-            ret = inputs.log_state();
-            if (ret < 0) {
-                LOG_ERR("Failed to log input states: %d", ret);
-                return;
-            }
-
-            elapsed_log_ms = 0;
         }
 
         k_msleep(input_poll_interval_ms);
