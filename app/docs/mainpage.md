@@ -16,7 +16,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - LFO control-surface composition through the `LFO` block class
 - MOD control-surface composition through the `MOD` block class
 - OSC control-surface composition through the `OSC` block class
-- serial logging over the ST-LINK virtual COM port
+- serial logging over the ST-LINK virtual COM port at `1000000` baud
 
 ## Modules
 
@@ -39,7 +39,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 
 ## Runtime Overview
 
-- The application uses the onboard `led0` as a heartbeat and emits status logs over the ST-LINK virtual serial port.
+- The application uses the onboard `led0` as a heartbeat and emits status logs over the ST-LINK virtual serial port at `1000000` baud.
 - A dedicated input thread builds `InputController`, `LEDSController`, and the `ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`, and `OSC` control blocks, then repeatedly refreshes inputs and updates all blocks.
 - `InputController` merges the CD4067 mux scans and discrete GPIO reads into one cached state table. `Button`, `Encoder`, and `Knob` build on that cache to provide reusable input primitives.
 - `ADSR`, `LFO`, `MOD`, and `OSC` expose banked controls. Bank switches recall stored knob state and update the related LEDs.

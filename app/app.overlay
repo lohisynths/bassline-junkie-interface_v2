@@ -190,3 +190,7 @@
         #pwm-cells = <3>;
     };
 };
+
+&usart2 {
+    current-speed = <1000000>;
+};

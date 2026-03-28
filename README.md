@@ -3,7 +3,7 @@
 Zephyr firmware for the ST Nucleo-F411RE board.
 
 The application blinks the onboard LD2 LED through the standard Zephyr `led0`
-alias, logs status over the ST-LINK virtual serial port, and drives multiple
+alias, logs status over the ST-LINK virtual serial port at `1000000` baud, and drives multiple
 PCA9685 PWM controllers through the `LEDSController` class. It also samples multiple
 CD4067 GPIO multiplexers through the `MUX` class, which is backed by an
 out-of-tree Zephyr driver located in `cd4067/`. Discrete GPIO inputs are
@@ -206,4 +206,4 @@ When the application is flashed and running on the board:
 - button inputs are active-low, and each knob exposes its encoder push-button state for higher-level logic
 - serial logs report bank changes, button transitions, radio selections, and knob movements while the input thread runs
 - the main thread logs `Heartbeat: LED blink running` every 10 s
-- the firmware emits serial log messages on `ttyACM0`
+- the firmware emits serial log messages on `ttyACM0` at `1000000` baud
