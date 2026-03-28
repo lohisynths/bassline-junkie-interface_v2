@@ -183,17 +183,20 @@ When the application is flashed and running on the board:
 - the current `ADSR` button configurations use mux `0`, channels `15`, `14`, `13`, and `12`, with LED channels `43`, `42`, `41`, and `40`
 - ADSR buttons `0`, `1`, and `2` select knob banks `0`, `1`, and `2`
 - only the currently selected bank button LED is lit at `100%`; the other selector LEDs are off
-- ADSR button `3` is currently unused and its LED remains off
+- ADSR button `3` is a latched per-bank toggle, and its LED reflects the stored state for the active bank
 - the firmware decodes four quadrature encoders from mux `0`: channels `1/2`, `4/5`, `7/8`, and `10/11`
 - the current `ADSR` block owns four `Knob` objects that each own an internal encoder helper, read one configured active-low button bit, and bind the knob indicators to LED channels `0..9`, `10..19`, `20..29`, and `30..39`
 - the firmware maintains three independent `0..127` value sets for the four knobs, one set per selector bank
+- the firmware also stores one independent latched state for ADSR button `3` in each bank
 - bank `0` is selected on boot
 - selecting a different bank immediately recalls that bank's four knob values and updates the knob LEDs
+- selecting a different bank also recalls that bank's latched ADSR button `3` state and updates its LED
 - one LED per knob segment is lit at a time according to that clamped value
 - the LED indication does not wrap when the knob reaches the minimum or maximum value
 - each knob exposes the encoder push-button state for use elsewhere in the application
 - the input thread constructs `InputController`, `LEDSController`, and one `ADSR` object as plain local objects on its own stack before entering the polling loop
 - the firmware logs `Selected knob bank N` whenever one of the selector buttons changes the active bank
+- the firmware logs `Bank N button 3 latched on` / `off` whenever ADSR button `3` toggles the stored state in the active bank
 - the firmware logs each current knob value as `Bank N knob M position=V` whenever a valid quadrature edge changes that value in the active bank
 - the main thread logs `Heartbeat: LED blink running` every 10 s
 - the firmware emits serial log messages on `ttyACM0`
