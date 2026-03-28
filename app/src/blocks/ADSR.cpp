@@ -38,22 +38,38 @@ int ADSR::update()
             return ret;
         }
 
-        if (i >= bank_count_) {
+        if ((i < bank_count_) &&
+            button_msg.switch_changed &&
+            buttons_[i].get_state() &&
+            (i != selected_bank_)) {
+            ret = select_bank_(i);
+            if (ret < 0) {
+                LOG_ERR("Failed to select knob bank %u: %d", (unsigned int)i, ret);
+                return ret;
+            }
+
+            LOG_INF("Selected knob bank %u", (unsigned int)i);
             continue;
         }
 
-        if (!button_msg.switch_changed || !buttons_[i].get_state() ||
-            (i == selected_bank_)) {
+        if ((i != (button_count_ - 1U)) ||
+            !button_msg.switch_changed ||
+            !buttons_[i].get_state()) {
             continue;
         }
 
-        ret = select_bank_(i);
+        button3_values_[selected_bank_] = !button3_values_[selected_bank_];
+        ret = update_selector_leds_();
         if (ret < 0) {
-            LOG_ERR("Failed to select knob bank %u: %d", (unsigned int)i, ret);
+            LOG_ERR("Failed to update button 3 latch for bank %u: %d",
+                    (unsigned int)selected_bank_,
+                    ret);
             return ret;
         }
 
-        LOG_INF("Selected knob bank %u", (unsigned int)i);
+        LOG_INF("Bank %u button 3 latched %s",
+                (unsigned int)selected_bank_,
+                button3_values_[selected_bank_] ? "on" : "off");
     }
 
     for (size_t i = 0U; i < knob_count_; ++i) {
@@ -102,7 +118,13 @@ int ADSR::select_bank_(size_t bank_index)
 int ADSR::update_selector_leds_()
 {
     for (size_t i = 0U; i < button_count_; ++i) {
-        const uint8_t brightness = (i == selected_bank_) ? 100U : 0U;
+        uint8_t brightness = 0U;
+        if (i < bank_count_) {
+            brightness = (i == selected_bank_) ? 100U : 0U;
+        } else if (button3_values_[selected_bank_]) {
+            brightness = 100U;
+        }
+
         const int ret = buttons_[i].set_led_val(brightness);
         if (ret < 0) {
             return ret;

@@ -40,13 +40,13 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - The `ADSR` block stores the current control-surface configuration tables in one place, owns the runtime `Button` and `Knob` instances for that block, and maintains three banked knob-value sets.
 - The current `ADSR` button entries use mux index `0`, channels `15`, `14`, `13`, and `12`, with LED channels `43`, `42`, `41`, and `40`.
 - ADSR buttons `0`, `1`, and `2` act as latched selector buttons for knob banks `0`, `1`, and `2`.
-- ADSR button `3` is currently unused.
+- ADSR button `3` is a latched toggle whose stored state is independent in each bank.
 - The `Encoder` class binds to one cached mux state, uses two configured channels as quadrature phase A/B, and converts valid AB transitions into signed movement.
 - The current `ADSR` knob entries use mux index `0` with encoder phase pairs `1/2`, `4/5`, `7/8`, and `10/11`.
 - The `LEDSController` class verifies all configured PCA9685 devices and exposes channel-based brightness control across all PCA9685 outputs.
 - Shared utility code in `utils.cpp` formats 16-bit input masks as fixed-width binary strings for debug output.
 - Each `Knob` owns its current encoder helper, reads one configured active-low button bit from the cached input table, binds the knob UI to LED channels `0..9`, `10..19`, `20..29`, or `30..39`, maintains one internal value in the range `0..127` from encoder deltas, supports immediate value recall from `ADSR`, projects that value onto the LED segment without wraparound, and exposes the current knob-button state through `get_state()`.
-- A dedicated input thread constructs `InputController`, `LEDSController`, and one `ADSR` block as plain local objects, then refreshes the cached inputs and calls the block update routine. The `ADSR` block keeps bank `0` selected on boot, lights only the active selector button LED, recalls four stored knob values whenever buttons `0..2` change the active bank, updates each knob, compares the current and previous knob-button state to log `Knob N button pressed` / `released` transitions, and logs knob movement as `Bank N knob M position=V` when movement changes the current value in the active bank.
+- A dedicated input thread constructs `InputController`, `LEDSController`, and one `ADSR` block as plain local objects, then refreshes the cached inputs and calls the block update routine. The `ADSR` block keeps bank `0` selected on boot, lights only the active selector button LED plus the current bank's latched button-3 LED when enabled, recalls four stored knob values whenever buttons `0..2` change the active bank, recalls the active bank's latched button-3 state on bank switch, toggles that stored button-3 state on button-3 press, updates each knob, compares the current and previous knob-button state to log `Knob N button pressed` / `released` transitions, and logs knob movement as `Bank N knob M position=V` when movement changes the current value in the active bank.
 - Status and error messages are emitted over the ST-LINK virtual serial port.
 
 ## Developer Notes

@@ -155,6 +155,9 @@ private:
 
     /** @brief Stored knob values for each selector bank. */
     uint8_t knob_values_[bank_count_][knob_count_] = {};
+
+    /** @brief Latched button-3 state stored independently for each bank. */
+    bool button3_values_[bank_count_] = {};
 };
 
 #endif /* SRC_BLOCKS_ADSR_H_ */
