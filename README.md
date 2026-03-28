@@ -19,7 +19,8 @@ onto the first 10 PCA9685 channels, maintains one clamped knob value in the
 range `0..127`, lights one LED in that segment according to that value, and
 logs button transitions plus encoder movement as the input thread refreshes the
 cached state. The input thread constructs its `InputController`, `LEDSController`, and
-`Knob` instances as plain local objects, and the `Knob` owns its internal
+`Knob` instances as plain local objects, logs mux and GPIO states once per
+second through `InputController::log_state()`, and the `Knob` owns its internal
 `Encoder` helper while reading its configured button bit directly. The button
 input is treated as active-low, so a
 raw mux bit value of `0` means pressed and `1` means released.
@@ -100,6 +101,7 @@ The main application sources are:
 - `app/src/InputController.h` and `app/src/InputController.cpp`: aggregate input reads across all mux and GPIO sources
 - `app/src/LEDS.h` and `app/src/LEDS.cpp`: PCA9685 LED control through `LEDSController`
 - `app/src/MUX.h` and `app/src/MUX.cpp`: CD4067 mux aggregation and scanning
+- `app/src/utils.h` and `app/src/utils.cpp`: shared utility helpers including binary mask formatting for debug logs
 
 ## Build
 
@@ -139,8 +141,8 @@ app/docs/doxygen/html/index.html
 The Doxygen landing page focuses on code structure and module responsibilities.
 Use this README as the canonical source for environment setup, build, flash,
 and hardware wiring information. The generated API docs include the `Button`,
-`Encoder`, `GPIO`, `InputController`, `Knob`, `LEDSController`, and `MUX` classes plus
-the CD4067 driver interface.
+`Encoder`, `GPIO`, `InputController`, `Knob`, `LEDSController`, and `MUX`
+classes, the shared `utils` helpers, plus the CD4067 driver interface.
 
 ## Flash
 
@@ -177,5 +179,6 @@ When the application is flashed and running on the board:
 - the LED indication does not wrap when the knob reaches the minimum or maximum value
 - the knob exposes the encoder push-button state for use elsewhere in the application
 - the input thread constructs `InputController`, `LEDSController`, and `Knob` as plain local objects on its own stack before entering the polling loop
+- the input thread logs mux and GPIO state snapshots once per second through `InputController::log_state()`
 - the firmware logs the current knob value whenever a valid quadrature edge changes that value
 - the firmware emits serial log messages on `ttyACM0`
