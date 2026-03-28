@@ -10,7 +10,8 @@ out-of-tree Zephyr driver located in `cd4067/`. Discrete GPIO inputs are
 sampled through the `GPIO` class. The `InputController` class combines the mux
 and GPIO sources into one cached state table. The `Button` class decodes one
 button from a selected cached input bit, exposes per-update change flags
-through `button_msg`, and binds one assigned LED channel at initialization, the
+through `button_msg`, uses a `Config` binding for its input bit and LED
+channel, and exposes explicit LED control through `set_led_val()`, the
 `Encoder` class decodes a
 quadrature encoder from two selected CD4067 channels inside that cached input
 state, and the `Knob` class owns one internal `Encoder`, samples one raw
@@ -94,7 +95,7 @@ and `west flash` on this machine.
 
 The main application sources are:
 
-- `app/src/Button.h` and `app/src/Button.cpp`: button decoder bound to one cached input state, one source channel, and one LED binding, with `button_msg` change reporting
+- `app/src/Button.h` and `app/src/Button.cpp`: button decoder with `Config` binding, `button_msg` change reporting, and explicit LED control through `set_led_val()`
 - `app/src/Encoder.h` and `app/src/Encoder.cpp`: quadrature decoder bound to one cached mux state and two CD4067 channels
 - `app/src/Knob.h` and `app/src/Knob.cpp`: reusable knob UI that owns one encoder, reads one raw active-low button bit, and drives one contiguous LED segment
 - `app/src/main.cpp`: entrypoint, input-thread setup, single-knob wiring, and top-level runtime loop
@@ -171,17 +172,17 @@ When the application is flashed and running on the board:
 - the onboard LD2 LED toggles every 100 ms
 - the firmware scans all 16 channels on each configured CD4067 instance
 - the firmware updates one cached input-state table containing all mux masks plus the GPIO mask
-- the firmware decodes one standalone button from mux `0`, channel `12`
-- the standalone button is initialized with LED channel `40`
+- the firmware constructs standalone buttons from `button_configs[]`
+- the current standalone button configuration uses mux `0`, channel `12`, and LED channel `40`
 - the input thread compares the current and previous button state and logs `Knob 0 button pressed` / `Knob 0 button released` on transitions
-- the input thread updates the standalone button and logs `Button mux=0 bit=12 pressed` / `released` on transitions
+- the input thread updates each standalone button, sets its LED to `100%` when pressed and `0%` when released, and logs `Button 0 mux=0 bit=12 pressed` / `released` on transitions
 - the firmware decodes one quadrature encoder from mux `0`, channel `1` as phase A and channel `2` as phase B
 - the firmware constructs one `Knob` object that owns its internal encoder helper, reads one configured active-low button bit, and binds the knob indicator to LED channels `0` through `9`
 - the knob maintains one internal value in the range `0..127`
 - one of the first 10 PCA9685 channels is lit at a time according to that clamped value
 - the LED indication does not wrap when the knob reaches the minimum or maximum value
 - the knob exposes the encoder push-button state for use elsewhere in the application
-- the input thread constructs `InputController`, `LEDSController`, and `Knob` as plain local objects on its own stack before entering the polling loop
+- the input thread constructs `InputController`, `LEDSController`, one `Button` array, and one `Knob` array as plain local objects on its own stack before entering the polling loop
 - the input thread calls `InputController::log_mux_changes()` after each input refresh to report cached input bit transitions
 - the firmware logs the current knob value whenever a valid quadrature edge changes that value
 - the firmware emits serial log messages on `ttyACM0`
