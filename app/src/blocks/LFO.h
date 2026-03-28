@@ -1,5 +1,5 @@
-#ifndef SRC_BLOCKS_MOD_H_
-#define SRC_BLOCKS_MOD_H_
+#ifndef SRC_BLOCKS_LFO_H_
+#define SRC_BLOCKS_LFO_H_
 
 #include "Button.h"
 #include "InputController.h"
@@ -10,15 +10,16 @@
 #include <stdint.h>
 
 /**
- * @brief Encapsulates the MOD control surface block.
+ * @brief Encapsulates the LFO control surface block.
  *
- * The block owns one knob and six selector buttons. The selector buttons pick
- * one of six banks, and each bank stores one value for that knob.
+ * The block owns one knob, three bank-selector buttons, and five radio
+ * buttons. The selector buttons choose one of three banks, each bank stores
+ * one knob value, and each bank also stores one active radio-button choice.
  */
-class MOD {
+class LFO {
 public:
     /**
-     * @brief Initializes all buttons and the knob in the MOD block.
+     * @brief Initializes all buttons and the knob in the LFO block.
      *
      * @param inputs Shared input controller used by all block controls.
      * @param leds Shared LED controller used by all block controls.
@@ -40,57 +41,73 @@ private:
     /** @brief Number of LEDs reserved for the knob segment. */
     static const size_t knob_led_count_ = 10U;
 
-    /** @brief Number of selector banks exposed by the buttons. */
-    static const size_t bank_count_ = 6U;
+    /** @brief Number of selector banks exposed by the first three buttons. */
+    static const size_t bank_count_ = 3U;
 
-    /** @brief Static configuration for the selector buttons. */
+    /** @brief Number of radio buttons after the bank selectors. */
+    static const size_t radio_button_count_ = 5U;
+
+    /** @brief Index of the first radio button in @ref button_configs_. */
+    static const size_t radio_button_offset_ = 3U;
+
+    /** @brief Static configuration for the LFO buttons. */
     static constexpr Button::Config button_configs_[] = {
         {
-            .mux_index = 2U,
-            .pin = 8U,
-            .led_number = 127U,
+            .mux_index = 3U,
+            .pin = 0U,
+            .led_number = 158U,
         },
         {
             .mux_index = 2U,
-            .pin = 7U,
-            .led_number = 126U,
+            .pin = 15U,
+            .led_number = 157U,
         },
         {
             .mux_index = 2U,
-            .pin = 6U,
-            .led_number = 125U,
+            .pin = 14U,
+            .led_number = 156U,
         },
         {
             .mux_index = 2U,
-            .pin = 5U,
-            .led_number = 124U,
+            .pin = 13U,
+            .led_number = 142U,
         },
         {
             .mux_index = 2U,
-            .pin = 4U,
-            .led_number = 123U,
+            .pin = 12U,
+            .led_number = 141U,
         },
         {
             .mux_index = 2U,
-            .pin = 3U,
-            .led_number = 122U,
+            .pin = 11U,
+            .led_number = 140U,
+        },
+        {
+            .mux_index = 2U,
+            .pin = 10U,
+            .led_number = 139U,
+        },
+        {
+            .mux_index = 2U,
+            .pin = 9U,
+            .led_number = 138U,
         },
     };
 
-    /** @brief Static configuration for the MOD knob control. */
+    /** @brief Static configuration for the LFO knob control. */
     static constexpr Knob::Config knob_configs_[] = {
         {
-            .button_mux_index = 2U,
+            .button_mux_index = 4U,
             .button_pin = 0U,
-            .encoder_mux_index = 2U,
+            .encoder_mux_index = 4U,
             .encoder_pin_a = 1U,
             .encoder_pin_b = 2U,
-            .first_led = 112U,
+            .first_led = 128U,
             .led_count = knob_led_count_,
         },
     };
 
-    /** @brief Number of selector buttons in this block. */
+    /** @brief Number of buttons in this block. */
     static const size_t button_count_ = ARRAY_SIZE(button_configs_);
 
     /** @brief Number of knobs in this block. */
@@ -108,9 +125,9 @@ private:
     int select_bank_(size_t bank_index);
 
     /**
-     * @brief Updates the selector-button LEDs to show the currently active bank.
+     * @brief Updates the selector and radio-button LEDs to match the active bank state.
      *
-     * @retval 0 All selector LEDs match the selected bank.
+     * @retval 0 All button LEDs match the current bank and radio selection.
      * @retval negative Error propagated from @ref Button::set_led_val.
      */
     int update_selector_leds_();
@@ -126,17 +143,20 @@ private:
      */
     int recall_bank_to_knobs_(size_t bank_index);
 
-    /** @brief Selector buttons owned by the block. */
+    /** @brief Buttons owned by the block. */
     Button buttons_[button_count_];
 
     /** @brief Knob control owned by the block. */
     Knob knobs_[knob_count_];
 
-    /** @brief Currently selected knob-value bank. */
+    /** @brief Currently selected bank. */
     uint8_t selected_bank_ = 0U;
 
     /** @brief Stored knob values for each selector bank. */
     uint8_t knob_values_[bank_count_][knob_count_] = {};
+
+    /** @brief Active radio-button selection stored independently for each bank. */
+    uint8_t radio_selection_[bank_count_] = {};
 };
 
-#endif /* SRC_BLOCKS_MOD_H_ */
+#endif /* SRC_BLOCKS_LFO_H_ */
