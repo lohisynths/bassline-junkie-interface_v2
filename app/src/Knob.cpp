@@ -49,6 +49,21 @@ uint8_t Knob::get_value()
     return value_;
 }
 
+int Knob::set_value(uint8_t value)
+{
+    if (!initialized_) {
+        return -EACCES;
+    }
+
+    if (value > knob_max_value) {
+        value_ = knob_max_value;
+    } else {
+        value_ = value;
+    }
+
+    return render_current_value_();
+}
+
 int Knob::update(knob_msg &msg)
 {
     if (!initialized_) {
@@ -88,12 +103,17 @@ int Knob::update(knob_msg &msg)
         return 0;
     }
 
+    return render_current_value_();
+}
+
+int Knob::render_current_value_()
+{
     const size_t current_led_index = led_index_(value_);
     if (current_led_index == previous_led_index_) {
         return 0;
     }
 
-    ret = leds_->set_channel_percent(first_led_ + previous_led_index_, 0U);
+    int ret = leds_->set_channel_percent(first_led_ + previous_led_index_, 0U);
     if (ret < 0) {
         return ret;
     }

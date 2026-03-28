@@ -91,6 +91,17 @@ public:
     uint8_t get_value();
 
     /**
+     * @brief Replaces the current knob value and redraws the LED indicator.
+     *
+     * @param value Requested knob value, clamped to the range `[0, 127]`.
+     *
+     * @retval 0 The stored value and LED indicator were updated successfully.
+     * @retval -EACCES The knob has not been initialized.
+     * @retval negative Error propagated from @ref LEDSController::set_channel_percent.
+     */
+    int set_value(uint8_t value);
+
+    /**
      * @brief Refreshes the knob value and LED indicator from the encoder state.
      *
      * The internal value is advanced by the encoder delta, clamped to the range
@@ -107,6 +118,14 @@ public:
     int update(knob_msg &msg);
 
 private:
+    /**
+     * @brief Renders the current knob value on the configured LED segment.
+     *
+     * @retval 0 The LED segment matches the current knob value.
+     * @retval negative Error propagated from @ref LEDSController::set_channel_percent.
+     */
+    int render_current_value_();
+
     /**
      * @brief Maps one knob value to an LED index inside the knob segment.
      *
