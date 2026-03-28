@@ -4,6 +4,7 @@
 #include <zephyr/logging/log.h>
 
 #include "blocks/ADSR.h"
+#include "blocks/FLT.h"
 #include "blocks/LFO.h"
 #include "blocks/MOD.h"
 #include "blocks/OSC.h"
@@ -20,7 +21,7 @@ LOG_MODULE_REGISTER(app, LOG_LEVEL_INF);
 
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 
-static const size_t input_thread_stack_size = 2048U;
+static const size_t input_thread_stack_size = 4096U;
 static const int input_thread_priority = -1;
 static const int input_poll_interval_ms = 5;
 K_THREAD_STACK_DEFINE(input_thread_stack, input_thread_stack_size);
@@ -33,6 +34,7 @@ static void input_thread(void *, void *, void *) {
     InputController inputs;
     LEDSController leds;
     ADSR adsr;
+    FLT flt;
     LFO lfo;
     MOD mod;
     OSC osc;
@@ -43,6 +45,9 @@ static void input_thread(void *, void *, void *) {
     }
     if (ret == 0) {
         ret = adsr.init(inputs, leds);
+    }
+    if (ret == 0) {
+        ret = flt.init(inputs, leds);
     }
     if (ret == 0) {
         ret = lfo.init(inputs, leds);
@@ -70,6 +75,11 @@ static void input_thread(void *, void *, void *) {
         }
 
         ret = adsr.update();
+        if (ret < 0) {
+            return;
+        }
+
+        ret = flt.update();
         if (ret < 0) {
             return;
         }
