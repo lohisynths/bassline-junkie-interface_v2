@@ -17,13 +17,13 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - `Button`: binds to one cached input state, samples one configured active-low channel as a button input, mirrors that state onto one assigned LED channel, and reports the current button state through `get_state()`
 - `Encoder`: binds to one cached mux state, samples two configured channels as quadrature phase A/B, and reports per-update delta plus accumulated position
 - `GPIO`: wraps the configured discrete GPIO inputs and exposes per-pin and bitmask reads
-- `InputController`: owns the `MUX` and `GPIO` facades, exposes one flat cached input-state table, and can log the current mux and GPIO states for debugging
+- `InputController`: owns the `MUX` and `GPIO` facades, exposes one flat cached input-state table, can log current mux and GPIO states for debugging, and can report mux-bit transitions between successive updates
 - `Knob`: owns one internal `Encoder`, reads one configured active-low button bit directly from cached input state, binds the knob UI to one contiguous LED range, maintains one `0..127` value from encoder movement, renders that value on the LED segment, and exposes the knob button state
 - `LEDSController`: wraps the configured PCA9685 controllers and exposes channel-based LED control
 - `MUX`: wraps the configured CD4067 devices, scans their inputs, and logs one active-channel mask per mux in hex or binary form
 - `utils`: provides shared helpers such as 16-bit mask-to-binary-string formatting used by debug logging
 - `cd4067`: out-of-tree Zephyr module providing the CD4067 GPIO multiplexer driver
-- `main.cpp`: initializes the board LED, starts an input thread that constructs `InputController`, `LEDSController`, and `Knob` as plain locals, compares current and previous button state to log transitions, logs input snapshots once per second, and runs one knob indicator on the first 10 LEDs
+- `main.cpp`: initializes the board LED, starts an input thread that constructs `InputController`, `LEDSController`, and `Knob` as plain locals, compares current and previous button state to log transitions, logs mux-bit transitions after each input refresh, and runs one knob indicator on the first 10 LEDs
 
 ## Runtime Overview
 
@@ -33,7 +33,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - Each mux uses one dedicated `SIG` input:
   `MUX0` on `PA0`, `MUX1` on `PA1`, `MUX2` on `PA4`, and `MUX3` on `PB0`.
 - The `MUX` class scans each configured CD4067 by selecting all 16 channels and sampling its `SIG` input.
-- The `InputController` class reads all mux masks plus the discrete GPIO mask into one cached array and delegates debug state logging to `MUX::log_state()` and `GPIO::log_state()`.
+- The `InputController` class reads all mux masks plus the discrete GPIO mask into one cached array, delegates debug state logging to `MUX::log_state()` and `GPIO::log_state()`, and exposes `log_mux_changes()` to report which mux bits changed between successive updates.
 - The `Button` class binds to one cached input state, uses one configured active-low channel as a button source, drives one assigned LED to match the sampled pressed state, and reports the current button state through `get_state()`.
 - The current application configures the button on mux index `0`, channel `0`.
 - The `Encoder` class binds to one cached mux state, uses two configured channels as quadrature phase A/B, and converts valid AB transitions into signed movement.
@@ -41,7 +41,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - The `LEDSController` class verifies all configured PCA9685 devices and exposes channel-based brightness control across all PCA9685 outputs.
 - Shared utility code in `utils.cpp` formats 16-bit input masks as fixed-width binary strings for debug output.
 - The `Knob` class owns the current encoder helper, reads one configured active-low button bit from the cached input table, binds the knob UI to LED channels `0` through `9`, maintains one internal value in the range `0..127` from encoder deltas, projects that value onto the LED segment without wraparound, and exposes the current knob-button state through `get_state()`.
-- A dedicated input thread constructs `InputController`, `LEDSController`, and `Knob` as plain local objects, then refreshes the cached inputs, updates the knob, compares the current and previous button state to log `Knob 0 button pressed` / `Knob 0 button released` transitions, logs current mux and GPIO snapshots once per second, and logs the current knob value when movement changes that value.
+- A dedicated input thread constructs `InputController`, `LEDSController`, and `Knob` as plain local objects, then refreshes the cached inputs, calls `log_mux_changes()` to report mux transitions, updates the knob, compares the current and previous button state to log `Knob 0 button pressed` / `Knob 0 button released` transitions, and logs the current knob value when movement changes that value.
 - Status and error messages are emitted over the ST-LINK virtual serial port.
 
 ## Developer Notes
