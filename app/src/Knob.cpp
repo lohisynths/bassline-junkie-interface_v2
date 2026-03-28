@@ -11,7 +11,6 @@ int Knob::init(InputController &inputs, const Config &config, LEDSController &le
 
     if ((config.button_mux_index >= InputController::input_count) ||
         (config.button_pin >= 16U) ||
-        (config.led_count == 0U) ||
         ((config.first_led + config.led_count) > LEDSController::led_count)) {
         return -EINVAL;
     }
@@ -36,6 +35,10 @@ int Knob::init(InputController &inputs, const Config &config, LEDSController &le
     previous_led_index_ = led_index_(value_);
 
     initialized_ = true;
+    if (led_count_ == 0U) {
+        return 0;
+    }
+
     return leds_->set_channel_percent(first_led_ + previous_led_index_, knob_brightness_percent);
 }
 
@@ -108,6 +111,10 @@ int Knob::update(knob_msg &msg)
 
 int Knob::render_current_value_()
 {
+    if (led_count_ == 0U) {
+        return 0;
+    }
+
     const size_t current_led_index = led_index_(value_);
     if (current_led_index == previous_led_index_) {
         return 0;
@@ -130,6 +137,10 @@ int Knob::render_current_value_()
 
 size_t Knob::led_index_(uint8_t value)
 {
+    if (led_count_ == 0U) {
+        return 0U;
+    }
+
     const size_t index = ((size_t)value * led_count_) / (size_t)(knob_max_value + 1U);
     return (led_count_ - 1U) - index;
 }
