@@ -86,8 +86,8 @@ private:
     /** @brief Cached active masks for all mux inputs plus the GPIO input mask. */
     uint16_t active_masks_[state_count] = {};
 
-    /** @brief Previous cached mux masks used for change logging. */
-    uint16_t previous_mux_masks_[mux_count_] = {};
+    /** @brief Previous cached input masks used for change logging. */
+    uint16_t previous_masks_[state_count] = {};
 };
 
 #endif /* SRC_INPUTCONTROLLER_H_ */

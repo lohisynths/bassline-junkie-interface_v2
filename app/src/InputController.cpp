@@ -25,8 +25,8 @@ int InputController::init() {
         return ret;
     }
 
-    for (size_t i = 0U; i < mux_count_; ++i) {
-        previous_mux_masks_[i] = 1U;
+    for (size_t i = 0U; i < state_count; ++i) {
+        previous_masks_[i] = 1U;
     }
 
     initialized_ = true;
@@ -71,8 +71,8 @@ uint16_t InputController::state(size_t state_index) const {
 
 void InputController::log_mux_changes()
 {
-    for (size_t mux_index = 0U; mux_index < mux_count_; ++mux_index) {
-        const uint16_t changed_mask = previous_mux_masks_[mux_index] ^ active_masks_[mux_index];
+    for (size_t state_index = 0U; state_index < state_count; ++state_index) {
+        const uint16_t changed_mask = previous_masks_[state_index] ^ active_masks_[state_index];
         if (changed_mask == 0U) {
             continue;
         }
@@ -83,13 +83,13 @@ void InputController::log_mux_changes()
                 continue;
             }
 
-            const bool active = (active_masks_[mux_index] & bit_mask) != 0U;
-            LOG_INF("MUX%u bit %u changed to %u",
-                    (unsigned int)mux_index,
+            const bool active = (active_masks_[state_index] & bit_mask) != 0U;
+            LOG_INF("MUX %u bit %u changed to %u",
+                    (unsigned int)state_index,
                     (unsigned int)bit,
                     active ? 1U : 0U);
         }
 
-        previous_mux_masks_[mux_index] = active_masks_[mux_index];
+        previous_masks_[state_index] = active_masks_[state_index];
     }
 }
