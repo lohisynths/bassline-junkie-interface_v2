@@ -16,15 +16,18 @@ channel, and exposes explicit LED control through `set_led_val()`, the
 quadrature encoder from two selected CD4067 channels inside that cached input
 state, and the `Knob` class owns one internal `Encoder`, samples one raw
 active-low button bit directly from the cached input state, and drives one LED
-segment as a reusable knob UI. The current runtime pattern maps one encoder
-onto each 10-channel PCA9685 segment, maintains one clamped knob value in the
-range `0..127` per knob, lights one LED in each segment according to that
-value, and logs button transitions plus encoder movement as the input thread
-refreshes the cached state. The input thread constructs its `InputController`,
-`LEDSController`, `Button` array, and `Knob` array as plain local objects, and
-the `Knob` owns its internal `Encoder` helper while reading its configured
-button bit directly. The button input is treated as active-low, so a
-raw mux bit value of `0` means pressed and `1` means released.
+segment as a reusable knob UI. The `ADSR` block class groups the current four
+standalone buttons and four knobs into one reusable control-surface unit,
+owns their configuration tables, drives their LEDs, and emits the current
+transition logs. The current runtime pattern maps one encoder onto each
+10-channel PCA9685 segment, maintains one clamped knob value in the range
+`0..127` per knob, lights one LED in each segment according to that value,
+and logs button transitions plus encoder movement as the input thread refreshes
+the cached state. The input thread constructs its `InputController`,
+`LEDSController`, and one `ADSR` object as plain local objects, and the
+`Knob` owns its internal `Encoder` helper while reading its configured button
+bit directly. The button input is treated as active-low, so a raw mux bit
+value of `0` means pressed and `1` means released.
 
 The current CD4067 wiring described in `app/app.overlay` is:
 
@@ -94,10 +97,11 @@ and `west flash` on this machine.
 
 The main application sources are:
 
+- `app/src/blocks/ADSR.h` and `app/src/blocks/ADSR.cpp`: reusable block that owns the current standalone button set and knob set, including their config tables, LED updates, and transition logging
 - `app/src/Button.h` and `app/src/Button.cpp`: button decoder with `Config` binding, `button_msg` change reporting, and explicit LED control through `set_led_val()`
 - `app/src/Encoder.h` and `app/src/Encoder.cpp`: quadrature decoder bound to one cached mux state and two CD4067 channels
 - `app/src/Knob.h` and `app/src/Knob.cpp`: reusable knob UI that owns one encoder, reads one raw active-low button bit, and drives one contiguous LED segment
-- `app/src/main.cpp`: entrypoint, input-thread setup, single-knob wiring, and top-level runtime loop
+- `app/src/main.cpp`: entrypoint, input-thread setup, `ADSR` block wiring, and top-level runtime loop
 - `app/src/GPIO.h` and `app/src/GPIO.cpp`: discrete GPIO input initialization and bitmask reads
 - `app/src/InputController.h` and `app/src/InputController.cpp`: aggregate input reads across all mux and GPIO sources, expose `input_count`, and provide optional debug logging helpers for input transitions and state dumps
 - `app/src/LEDS.h` and `app/src/LEDS.cpp`: PCA9685 LED control through `LEDSController`
@@ -117,7 +121,9 @@ not leak into the next build.
 The `-d build/app` option keeps the generated files under `build/app/`.
 The final `app` argument tells `west` to use the application located in the
 `app/` directory. The app `CMakeLists.txt` registers `../cd4067` as an
-out-of-tree Zephyr module automatically.
+out-of-tree Zephyr module automatically and adds `app/src` to the target
+include path so nested sources such as `app/src/blocks/ADSR.h` can include
+project headers without `../` prefixes.
 
 Successful builds produce artifacts under `build/app/zephyr/`, including
 `zephyr.elf`, `zephyr.hex`, and `zephyr.bin`.
@@ -142,8 +148,8 @@ app/docs/doxygen/html/index.html
 The Doxygen landing page focuses on code structure and module responsibilities.
 Use this README as the canonical source for environment setup, build, flash,
 and hardware wiring information. The generated API docs include the `Button`,
-`Encoder`, `GPIO`, `InputController`, `Knob`, `LEDSController`, and `MUX`
-classes, the shared `utils` helpers, plus the CD4067 driver interface.
+`Encoder`, `GPIO`, `InputController`, `Knob`, `LEDSController`, `MUX`, and
+`ADSR` classes, the shared `utils` helpers, plus the CD4067 driver interface.
 
 ## Flash
 
@@ -171,16 +177,16 @@ When the application is flashed and running on the board:
 - the onboard LD2 LED toggles every 1 s
 - the firmware scans all 16 channels on each configured CD4067 instance
 - the firmware updates one cached input-state table containing all mux masks plus the GPIO mask
-- the firmware constructs four standalone buttons from `button_configs[]`
-- the current standalone button configurations use mux `0`, channels `12`, `13`, `14`, and `15`, with LED channels `40`, `41`, `42`, and `43`
-- the input thread updates each standalone button, sets its LED to `100%` when pressed and `0%` when released, and logs `Button N mux=0 bit=X pressed` / `released` on transitions
+- the firmware constructs one `ADSR` block that owns four standalone buttons plus four knobs
+- the current `ADSR` button configurations use mux `0`, channels `12`, `13`, `14`, and `15`, with LED channels `40`, `41`, `42`, and `43`
+- the `ADSR` block updates each standalone button, sets its LED to `100%` when pressed and `0%` when released, and logs `Button N mux=0 bit=X pressed` / `released` on transitions
 - the firmware decodes four quadrature encoders from mux `0`: channels `1/2`, `4/5`, `7/8`, and `10/11`
-- the firmware constructs four `Knob` objects that each own an internal encoder helper, read one configured active-low button bit, and bind the knob indicators to LED channels `0..9`, `10..19`, `20..29`, and `30..39`
+- the current `ADSR` block owns four `Knob` objects that each own an internal encoder helper, read one configured active-low button bit, and bind the knob indicators to LED channels `0..9`, `10..19`, `20..29`, and `30..39`
 - each knob maintains one internal value in the range `0..127`
 - one LED per knob segment is lit at a time according to that clamped value
 - the LED indication does not wrap when the knob reaches the minimum or maximum value
 - each knob exposes the encoder push-button state for use elsewhere in the application
-- the input thread constructs `InputController`, `LEDSController`, one `Button` array, and one `Knob` array as plain local objects on its own stack before entering the polling loop
+- the input thread constructs `InputController`, `LEDSController`, and one `ADSR` object as plain local objects on its own stack before entering the polling loop
 - the firmware logs each current knob value whenever a valid quadrature edge changes that value
 - the main thread logs `Heartbeat: LED blink running` every 10 s
 - the firmware emits serial log messages on `ttyACM0`
