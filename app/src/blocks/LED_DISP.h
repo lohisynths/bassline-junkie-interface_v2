@@ -27,7 +27,7 @@ class PresetStore;
 class LED_DISP {
 public:
     /**
-     * @brief Initializes the preset selector and auto-loads preset 0.
+     * @brief Initializes the preset selector and restores the last active preset.
      *
      * @param inputs Shared input controller used by the knob.
      * @param leds Shared LED controller used by the display.
@@ -38,7 +38,7 @@ public:
      * @param mod MOD block whose durable state participates in presets.
      * @param osc OSC block whose durable state participates in presets.
      *
-     * @retval 0 The selector was initialized and preset 0 was applied.
+     * @retval 0 The selector was initialized and the startup preset was applied.
      * @retval negative Error propagated from @ref Knob::init or display updates.
      */
     int init(InputController &inputs,
