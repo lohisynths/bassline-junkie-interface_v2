@@ -1,5 +1,5 @@
 PROJECT_NAME           = "Bassline Junkie Interface"
-PROJECT_BRIEF          = "Zephyr firmware with a 1000000-baud ST-LINK UART console, status LED, discrete GPIO inputs, PCA9685 LED outputs, CD4067 mux scanning, and ADSR/FLT/LED_DISP/LFO/MOD/OSC control blocks that group config-driven buttons and knobs with banked state, change-message reporting, LED indication, and one active-low 3-digit display."
+PROJECT_BRIEF          = "Zephyr firmware with a 1000000-baud ST-LINK UART console, status LED, discrete GPIO inputs, PCA9685 LED outputs, CD4067 mux scanning, flash-backed 128-slot presets, and ADSR/FLT/LED_DISP/LFO/MOD/OSC control blocks that group config-driven buttons and knobs with banked state, timeout-triggered preset save/load behavior, LED indication, and one active-low 3-digit display."
 OUTPUT_DIRECTORY       = app/docs/doxygen
 CREATE_SUBDIRS         = NO
 OUTPUT_LANGUAGE        = English
@@ -7,6 +7,9 @@ USE_MDFILE_AS_MAINPAGE = app/docs/mainpage.md
 
 INPUT                  = README.md \
                          app/docs/mainpage.md \
+                         app/src/PresetSnapshot.h \
+                         app/src/PresetStore.h \
+                         app/src/PresetStore.cpp \
                          app/src/blocks/ADSR.h \
                          app/src/blocks/ADSR.cpp \
                          app/src/blocks/FLT.h \
@@ -36,8 +39,10 @@ INPUT                  = README.md \
                          app/src/utils.h \
                          app/src/utils.cpp \
                          app/src/main.cpp \
+                         app/app.overlay \
                          cd4067/include/zephyr/drivers/mux/cd4067.h
 FILE_PATTERNS          = *.md \
+                         *.overlay \
                          *.h \
                          *.cpp
 RECURSIVE              = NO
