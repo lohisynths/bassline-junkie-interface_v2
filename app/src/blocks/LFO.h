@@ -5,6 +5,7 @@
 #include "InputController.h"
 #include "Knob.h"
 #include "LEDS.h"
+#include "MIDI.h"
 #include "PresetSnapshot.h"
 
 #include <stddef.h>
@@ -24,11 +25,12 @@ public:
      *
      * @param inputs Shared input controller used by all block controls.
      * @param leds Shared LED controller used by all block controls.
+     * @param midi Optional MIDI transport used for LFO Control Change messages.
      *
      * @retval 0 All controls were initialized successfully.
      * @retval negative Error propagated from @ref Button::init or @ref Knob::init.
      */
-    int init(InputController &inputs, LEDSController &leds);
+    int init(InputController &inputs, LEDSController &leds, MIDI *midi = nullptr);
 
     /**
      * @brief Captures the current durable LFO block state.
@@ -54,6 +56,9 @@ public:
 private:
     /** @brief Number of LEDs reserved for the knob segment. */
     static const size_t knob_led_count_ = 10U;
+
+    /** @brief First MIDI CC number reserved for the LFO block. */
+    static const uint8_t midi_cc_base_ = 32U;
 
     /** @brief Number of selector banks exposed by the first three buttons. */
     static const size_t bank_count_ = 3U;
@@ -157,6 +162,23 @@ private:
      */
     int recall_bank_to_knobs_(size_t bank_index);
 
+    /**
+     * @brief Sends the current bank radio selection as one MIDI Control Change message.
+     *
+     * Only the first four LFO radio buttons participate in the MIDI mapping.
+     */
+    void send_radio_midi_cc_(size_t bank_index, uint8_t radio_index);
+
+    /**
+     * @brief Sends the current bank knob value as one MIDI Control Change message.
+     */
+    void send_knob_midi_cc_(size_t bank_index, uint8_t value);
+
+    /**
+     * @brief Sends the full stored LFO parameter state over MIDI.
+     */
+    void send_all_midi_cc_();
+
     /** @brief Buttons owned by the block. */
     Button buttons_[button_count_];
 
@@ -171,6 +193,9 @@ private:
 
     /** @brief Active radio-button selection stored independently for each bank. */
     uint8_t radio_selection_[bank_count_] = {};
+
+    /** @brief Optional MIDI transport used for LFO Control Change messages. */
+    MIDI *midi_ = nullptr;
 };
 
 #endif /* SRC_BLOCKS_LFO_H_ */

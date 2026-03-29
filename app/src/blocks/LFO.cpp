@@ -23,9 +23,11 @@ uint8_t clamp_index_(uint8_t index, size_t count)
 
 } // namespace
 
-int LFO::init(InputController &inputs, LEDSController &leds)
+int LFO::init(InputController &inputs, LEDSController &leds, MIDI *midi)
 {
     int ret = 0;
+
+    midi_ = (midi != nullptr && midi->is_initialized()) ? midi : nullptr;
 
     for (size_t i = 0U; (i < button_count_) && (ret == 0); ++i) {
         ret = buttons_[i].init(inputs, button_configs_[i], leds);
@@ -38,6 +40,9 @@ int LFO::init(InputController &inputs, LEDSController &leds)
     if (ret == 0) {
         selected_bank_ = 0U;
         ret = select_bank_(selected_bank_);
+        if (ret == 0) {
+            send_all_midi_cc_();
+        }
     }
 
     return ret;
@@ -71,7 +76,13 @@ int LFO::apply_state(const LFOState &state)
         return ret;
     }
 
-    return update_selector_leds_();
+    ret = update_selector_leds_();
+    if (ret < 0) {
+        return ret;
+    }
+
+    send_all_midi_cc_();
+    return 0;
 }
 
 int LFO::update()
@@ -127,6 +138,7 @@ int LFO::update()
         LOG_INF("LFO bank %u radio %u selected",
                 (unsigned int)selected_bank_,
                 (unsigned int)radio_index);
+        send_radio_midi_cc_(selected_bank_, (uint8_t)radio_index);
     }
 
     for (size_t i = 0U; i < knob_count_; ++i) {
@@ -150,6 +162,7 @@ int LFO::update()
                     (unsigned int)selected_bank_,
                     (unsigned int)i,
                     (int)knobs_[i].get_value());
+            send_knob_midi_cc_(selected_bank_, knobs_[i].get_value());
         }
     }
 
@@ -211,4 +224,48 @@ int LFO::recall_bank_to_knobs_(size_t bank_index)
     }
 
     return 0;
+}
+
+void LFO::send_radio_midi_cc_(size_t bank_index, uint8_t radio_index)
+{
+    if ((midi_ == nullptr) || (bank_index >= bank_count_) || (radio_index >= 4U)) {
+        return;
+    }
+
+    const uint8_t cc_number = (uint8_t)(midi_cc_base_ + (bank_index * 2U));
+    const int ret = midi_->send_cc(cc_number, radio_index, 0U);
+    if (ret < 0) {
+        LOG_ERR("Failed to send LFO MIDI CC %u for bank %u radio %u: %d",
+                (unsigned int)cc_number,
+                (unsigned int)bank_index,
+                (unsigned int)radio_index,
+                ret);
+    }
+}
+
+void LFO::send_knob_midi_cc_(size_t bank_index, uint8_t value)
+{
+    if ((midi_ == nullptr) || (bank_index >= bank_count_)) {
+        return;
+    }
+
+    const uint8_t cc_number = (uint8_t)(midi_cc_base_ + (bank_index * 2U) + 1U);
+    const int ret = midi_->send_cc(cc_number, value, 0U);
+    if (ret < 0) {
+        LOG_ERR("Failed to send LFO MIDI CC %u for bank %u knob: %d",
+                (unsigned int)cc_number,
+                (unsigned int)bank_index,
+                ret);
+    }
+}
+
+void LFO::send_all_midi_cc_()
+{
+    for (size_t bank = 0U; bank < bank_count_; ++bank) {
+        if (radio_selection_[bank] < 4U) {
+            send_radio_midi_cc_(bank, radio_selection_[bank]);
+        }
+
+        send_knob_midi_cc_(bank, knob_values_[bank][0]);
+    }
 }

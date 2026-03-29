@@ -236,6 +236,8 @@ When the application is flashed and running on the board:
 - loading a preset also emits the full ADSR MIDI snapshot on channel `0`, sending all ADSR CC numbers `14..28` from the loaded banked values
 - FLT knob `0` and knob `1` emit MIDI Control Change messages on channel `0` using CC `29` and `30`, while the FLT radio selection emits CC `31` with values `0`, `63`, or `127`; FLT knob `2` is intentionally ignored by MIDI
 - loading a preset also emits the FLT MIDI snapshot on channel `0`, resending CC `29`, `30`, and `31`
+- LFO banked radio selection emits MIDI Control Change messages on channel `0` using CC `32`, `34`, and `36` with values `0..3` for the first four LFO radio buttons, while the banked LFO knob emits CC `33`, `35`, and `37`; the fifth LFO radio button is intentionally ignored by MIDI
+- loading a preset also emits the LFO MIDI snapshot on channel `0`, resending CC `32..37`
 - knob values are clamped to `0..127`, recalled when a bank changes, and shown on their assigned LED segments when present
 - selector and radio-button LEDs reflect the currently active state, and bank `0` is selected on boot
 - the `LED_DISP` block shows the currently selected preset number in the range `0..127` with blank leading digits
