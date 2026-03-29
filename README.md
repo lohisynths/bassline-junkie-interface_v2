@@ -232,6 +232,8 @@ When the application is flashed and running on the board:
     - 128 flash-backed presets selected on the `LED_DISP` encoder
 - OSC knob changes emit MIDI Control Change messages on channel `0`, with CC numbers `0..4` for bank `0`, `5..9` for bank `1`, and `10..14` for bank `2`
 - loading a preset also emits the full OSC MIDI snapshot on channel `0`, sending all CC numbers `0..14` from the loaded banked values
+- ADSR knob changes emit MIDI Control Change messages on channel `0`, with knob CCs `14..17`, `19..22`, and `24..27` across banks `0..2`, while the latched button uses CC `18`, `23`, and `28` with values `0` or `127`
+- loading a preset also emits the full ADSR MIDI snapshot on channel `0`, sending all ADSR CC numbers `14..28` from the loaded banked values
 - knob values are clamped to `0..127`, recalled when a bank changes, and shown on their assigned LED segments when present
 - selector and radio-button LEDs reflect the currently active state, and bank `0` is selected on boot
 - the `LED_DISP` block shows the currently selected preset number in the range `0..127` with blank leading digits

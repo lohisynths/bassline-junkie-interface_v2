@@ -14,9 +14,11 @@ uint8_t clamp_knob_value_(uint8_t value)
 
 } // namespace
 
-int ADSR::init(InputController &inputs, LEDSController &leds)
+int ADSR::init(InputController &inputs, LEDSController &leds, MIDI *midi)
 {
     int ret = 0;
+
+    midi_ = (midi != nullptr && midi->is_initialized()) ? midi : nullptr;
 
     for (size_t i = 0U; (i < button_count_) && (ret == 0); ++i) {
         ret = buttons_[i].init(inputs, button_configs_[i], leds);
@@ -62,7 +64,13 @@ int ADSR::apply_state(const ADSRState &state)
         return ret;
     }
 
-    return update_selector_leds_();
+    ret = update_selector_leds_();
+    if (ret < 0) {
+        return ret;
+    }
+
+    send_all_midi_cc_();
+    return 0;
 }
 
 int ADSR::update()
@@ -110,6 +118,8 @@ int ADSR::update()
         LOG_INF("Bank %u button 3 latched %s",
                 (unsigned int)selected_bank_,
                 button3_values_[selected_bank_] ? "on" : "off");
+
+        send_button3_midi_cc_(selected_bank_, button3_values_[selected_bank_]);
     }
 
     for (size_t i = 0U; i < knob_count_; ++i) {
@@ -133,6 +143,8 @@ int ADSR::update()
                     (unsigned int)selected_bank_,
                     (unsigned int)i,
                     (int)knobs_[i].get_value());
+
+            send_knob_midi_cc_(selected_bank_, i, knobs_[i].get_value());
         }
     }
 
@@ -192,4 +204,49 @@ int ADSR::recall_bank_to_knobs_(size_t bank_index)
     }
 
     return 0;
+}
+
+void ADSR::send_knob_midi_cc_(size_t bank_index, size_t knob_index, uint8_t value)
+{
+    if ((midi_ == nullptr) || (bank_index >= bank_count_) || (knob_index >= knob_count_)) {
+        return;
+    }
+
+    const uint8_t cc_number = (uint8_t)(midi_cc_base_ + (bank_index * 5U) + knob_index);
+    const int ret = midi_->send_cc(cc_number, value, 0U);
+    if (ret < 0) {
+        LOG_ERR("Failed to send ADSR MIDI CC %u for bank %u knob %u: %d",
+                (unsigned int)cc_number,
+                (unsigned int)bank_index,
+                (unsigned int)knob_index,
+                ret);
+    }
+}
+
+void ADSR::send_button3_midi_cc_(size_t bank_index, bool enabled)
+{
+    if ((midi_ == nullptr) || (bank_index >= bank_count_)) {
+        return;
+    }
+
+    const uint8_t cc_number = (uint8_t)(midi_cc_base_ + (bank_index * 5U) + knob_count_);
+    const uint8_t value = enabled ? 127U : 0U;
+    const int ret = midi_->send_cc(cc_number, value, 0U);
+    if (ret < 0) {
+        LOG_ERR("Failed to send ADSR MIDI CC %u for bank %u button 3: %d",
+                (unsigned int)cc_number,
+                (unsigned int)bank_index,
+                ret);
+    }
+}
+
+void ADSR::send_all_midi_cc_()
+{
+    for (size_t bank = 0U; bank < bank_count_; ++bank) {
+        for (size_t knob = 0U; knob < knob_count_; ++knob) {
+            send_knob_midi_cc_(bank, knob, knob_values_[bank][knob]);
+        }
+
+        send_button3_midi_cc_(bank, button3_values_[bank]);
+    }
 }
