@@ -63,7 +63,13 @@ int OSC::apply_state(const OSCState &state)
         return ret;
     }
 
-    return update_selector_leds_();
+    ret = update_selector_leds_();
+    if (ret < 0) {
+        return ret;
+    }
+
+    send_all_midi_cc_();
+    return 0;
 }
 
 int OSC::update()
@@ -120,17 +126,7 @@ int OSC::update()
                     (unsigned int)i,
                     (int)knobs_[i].get_value());
 
-            if (midi_ != nullptr) {
-                const uint8_t cc_number = (uint8_t)((selected_bank_ * knob_count_) + i);
-                const int midi_ret = midi_->send_cc(cc_number, knobs_[i].get_value(), 0U);
-                if (midi_ret < 0) {
-                    LOG_ERR("Failed to send OSC MIDI CC %u for bank %u knob %u: %d",
-                            (unsigned int)cc_number,
-                            (unsigned int)selected_bank_,
-                            (unsigned int)i,
-                            midi_ret);
-                }
-            }
+            send_midi_cc_(selected_bank_, i, knobs_[i].get_value());
         }
     }
 
@@ -199,4 +195,30 @@ int OSC::recall_bank_to_knobs_(size_t bank_index)
     }
 
     return 0;
+}
+
+void OSC::send_midi_cc_(size_t bank_index, size_t knob_index, uint8_t value)
+{
+    if ((midi_ == nullptr) || (bank_index >= bank_count_) || (knob_index >= knob_count_)) {
+        return;
+    }
+
+    const uint8_t cc_number = (uint8_t)((bank_index * knob_count_) + knob_index);
+    const int ret = midi_->send_cc(cc_number, value, 0U);
+    if (ret < 0) {
+        LOG_ERR("Failed to send OSC MIDI CC %u for bank %u knob %u: %d",
+                (unsigned int)cc_number,
+                (unsigned int)bank_index,
+                (unsigned int)knob_index,
+                ret);
+    }
+}
+
+void OSC::send_all_midi_cc_()
+{
+    for (size_t bank = 0U; bank < bank_count_; ++bank) {
+        for (size_t knob = 0U; knob < knob_count_; ++knob) {
+            send_midi_cc_(bank, knob, knob_values_[bank][knob]);
+        }
+    }
 }
