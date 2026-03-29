@@ -83,6 +83,9 @@ private:
     /** @brief Duration of the blanking blink before the active preset is restored. */
     static const int64_t revert_blink_ms_ = 200;
 
+    /** @brief Duration of the save confirmation blink after a hold-triggered save. */
+    static const int64_t save_feedback_blink_ms_ = 200;
+
     /** @brief Static knob binding for the display encoder and push button. */
     static constexpr Knob::Config knob_config_ = {
         .button_mux_index = 4U,
@@ -215,6 +218,15 @@ private:
 
     /** @brief Timestamp when the timeout blink started. */
     int64_t revert_blink_started_at_ms_ = 0;
+
+    /** @brief Tracks whether the current button hold already triggered a save. */
+    bool save_triggered_during_hold_ = false;
+
+    /** @brief Tracks whether the post-save blink is currently blanking the display. */
+    bool save_feedback_blink_active_ = false;
+
+    /** @brief Timestamp when the post-save blink started. */
+    int64_t save_feedback_blink_started_at_ms_ = 0;
 };
 
 #endif /* SRC_BLOCKS_LED_DISP_H_ */
