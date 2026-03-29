@@ -5,6 +5,7 @@
 #include "InputController.h"
 #include "Knob.h"
 #include "LEDS.h"
+#include "MIDI.h"
 #include "PresetSnapshot.h"
 
 #include <stddef.h>
@@ -24,11 +25,12 @@ public:
      *
      * @param inputs Shared input controller used by all block controls.
      * @param leds Shared LED controller used by all block controls.
+     * @param midi Optional MIDI transport used for FLT Control Change messages.
      *
      * @retval 0 All controls were initialized successfully.
      * @retval negative Error propagated from @ref Button::init or @ref Knob::init.
      */
-    int init(InputController &inputs, LEDSController &leds);
+    int init(InputController &inputs, LEDSController &leds, MIDI *midi = nullptr);
 
     /**
      * @brief Captures the current durable FLT block state.
@@ -64,6 +66,9 @@ public:
 private:
     /** @brief Number of LEDs reserved for standard knob segments in this block. */
     static const size_t knob_led_count_ = 10U;
+
+    /** @brief First MIDI CC number reserved for the FLT block. */
+    static const uint8_t midi_cc_base_ = 29U;
 
     /** @brief Static configuration for the standalone buttons. */
     static constexpr Button::Config button_configs_[] = {
@@ -129,6 +134,26 @@ private:
      */
     int update_selector_leds_();
 
+    /**
+     * @brief Sends one FLT knob value as a MIDI Control Change message.
+     *
+     * Knob index `2` is intentionally ignored by the MIDI mapping.
+     *
+     * @param knob_index FLT knob index.
+     * @param value MIDI controller value in the range `[0, 127]`.
+     */
+    void send_knob_midi_cc_(size_t knob_index, uint8_t value);
+
+    /**
+     * @brief Sends the current FLT radio selection as one MIDI Control Change message.
+     */
+    void send_radio_midi_cc_();
+
+    /**
+     * @brief Sends the full stored FLT parameter state over MIDI.
+     */
+    void send_all_midi_cc_();
+
     /** @brief Buttons owned by the block. */
     Button buttons_[button_count_];
 
@@ -137,6 +162,9 @@ private:
 
     /** @brief Currently selected radio button. */
     uint8_t selected_button_ = 0U;
+
+    /** @brief Optional MIDI transport used for FLT Control Change messages. */
+    MIDI *midi_ = nullptr;
 
     /** @brief Set when one knob button was newly pressed during the latest update. */
     bool has_newly_pressed_knob_ = false;

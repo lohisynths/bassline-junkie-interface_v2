@@ -22,9 +22,11 @@ uint8_t clamp_index_(uint8_t index, size_t count)
 
 } // namespace
 
-int FLT::init(InputController &inputs, LEDSController &leds)
+int FLT::init(InputController &inputs, LEDSController &leds, MIDI *midi)
 {
     int ret = 0;
+
+    midi_ = (midi != nullptr && midi->is_initialized()) ? midi : nullptr;
 
     for (size_t i = 0U; (i < button_count_) && (ret == 0); ++i) {
         ret = buttons_[i].init(inputs, button_configs_[i], leds);
@@ -37,6 +39,9 @@ int FLT::init(InputController &inputs, LEDSController &leds)
     if (ret == 0) {
         selected_button_ = 0U;
         ret = update_selector_leds_();
+        if (ret == 0) {
+            send_all_midi_cc_();
+        }
     }
 
     return ret;
@@ -70,6 +75,7 @@ int FLT::apply_state(const FLTState &state)
         }
     }
 
+    send_all_midi_cc_();
     return 0;
 }
 
@@ -103,6 +109,7 @@ int FLT::update()
         }
 
         LOG_INF("FLT radio button %u selected", (unsigned int)i);
+        send_radio_midi_cc_();
     }
 
     for (size_t i = 0U; i < knob_count_; ++i) {
@@ -129,6 +136,7 @@ int FLT::update()
             LOG_INF("FLT knob %u position=%d",
                     (unsigned int)i,
                     (int)knobs_[i].get_value());
+            send_knob_midi_cc_(i, knobs_[i].get_value());
         }
     }
 
@@ -156,4 +164,47 @@ int FLT::update_selector_leds_()
     }
 
     return 0;
+}
+
+void FLT::send_knob_midi_cc_(size_t knob_index, uint8_t value)
+{
+    if ((midi_ == nullptr) || (knob_index >= 2U)) {
+        return;
+    }
+
+    const uint8_t cc_number = (uint8_t)(midi_cc_base_ + knob_index);
+    const int ret = midi_->send_cc(cc_number, value, 0U);
+    if (ret < 0) {
+        LOG_ERR("Failed to send FLT MIDI CC %u for knob %u: %d",
+                (unsigned int)cc_number,
+                (unsigned int)knob_index,
+                ret);
+    }
+}
+
+void FLT::send_radio_midi_cc_()
+{
+    if ((midi_ == nullptr) || (selected_button_ >= button_count_)) {
+        return;
+    }
+
+    static const uint8_t radio_values[] = {0U, 63U, 127U};
+    const int ret = midi_->send_cc((uint8_t)(midi_cc_base_ + 2U),
+                                   radio_values[selected_button_],
+                                   0U);
+    if (ret < 0) {
+        LOG_ERR("Failed to send FLT MIDI CC %u for radio %u: %d",
+                (unsigned int)(midi_cc_base_ + 2U),
+                (unsigned int)selected_button_,
+                ret);
+    }
+}
+
+void FLT::send_all_midi_cc_()
+{
+    for (size_t knob = 0U; knob < 2U; ++knob) {
+        send_knob_midi_cc_(knob, knobs_[knob].get_value());
+    }
+
+    send_radio_midi_cc_();
 }

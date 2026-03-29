@@ -54,7 +54,7 @@ static void input_thread(void *p1, void *, void *) {
         ret = adsr.init(inputs, leds, midi);
     }
     if (ret == 0) {
-        ret = flt.init(inputs, leds);
+        ret = flt.init(inputs, leds, midi);
     }
     if (ret == 0) {
         ret = lfo.init(inputs, leds);
