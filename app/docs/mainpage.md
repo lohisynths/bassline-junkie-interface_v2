@@ -53,7 +53,9 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - `InputController` merges the CD4067 mux scans and discrete GPIO reads into one cached state table. `Button`, `Encoder`, and `Knob` build on that cache to provide reusable input primitives.
 - `ADSR`, `LFO`, `MOD`, and `OSC` expose banked controls. Bank switches recall stored knob state and update the related LEDs.
 - ADSR knob value changes emit MIDI Control Change messages on channel `0`, and the banked ADSR latch emits `0` or `127`.
+- FLT knob `0`, FLT knob `1`, and the FLT radio selection emit MIDI Control Change messages on channel `0`; FLT knob `2` is ignored by MIDI.
 - OSC knob value changes also emit MIDI Control Change messages on channel `0`, using CC `0..14` across the three OSC banks.
+- Preset loads also resend the FLT MIDI Control Change snapshot.
 - Preset loads also resend the full ADSR MIDI Control Change snapshot, including all three ADSR banks.
 - Preset loads also resend the full OSC MIDI Control Change snapshot, including all three OSC banks.
 - `FLT` provides a non-banked radio-button group with three knobs.
