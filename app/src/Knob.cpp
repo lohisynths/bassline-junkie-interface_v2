@@ -11,6 +11,7 @@ int Knob::init(InputController &inputs, const Config &config, LEDSController &le
 
     if ((config.button_mux_index >= InputController::input_count) ||
         (config.button_pin >= 16U) ||
+        (config.encoder_step_divider == 0U) ||
         ((config.first_led + config.led_count) > LEDSController::led_count)) {
         return -EINVAL;
     }
@@ -29,10 +30,12 @@ int Knob::init(InputController &inputs, const Config &config, LEDSController &le
     leds_ = &leds;
     first_led_ = config.first_led;
     led_count_ = config.led_count;
+    encoder_step_divider_ = config.encoder_step_divider;
 
     value_ = 0U;
     pressed_ = false;
     previous_led_index_ = led_index_(value_);
+    pending_encoder_steps_ = 0;
 
     initialized_ = true;
     if (led_count_ == 0U) {
@@ -64,6 +67,8 @@ int Knob::set_value(uint8_t value)
         value_ = value;
     }
 
+    pending_encoder_steps_ = 0;
+
     return render_current_value_();
 }
 
@@ -87,7 +92,19 @@ int Knob::update(knob_msg &msg)
     pressed_ = ((state >> button_pin_) & 0x1U) == 0U;
     msg.switch_changed = (pressed_ != previous_button_pressed);
 
-    const int32_t delta = encoder_.delta();
+    pending_encoder_steps_ += encoder_.delta();
+
+    int32_t delta = 0;
+    while (pending_encoder_steps_ >= (int32_t)encoder_step_divider_) {
+        pending_encoder_steps_ -= (int32_t)encoder_step_divider_;
+        ++delta;
+    }
+
+    while (pending_encoder_steps_ <= -(int32_t)encoder_step_divider_) {
+        pending_encoder_steps_ += (int32_t)encoder_step_divider_;
+        --delta;
+    }
+
     if (delta == 0) {
         return 0;
     }
