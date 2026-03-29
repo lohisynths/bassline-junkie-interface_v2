@@ -14,7 +14,8 @@
  * @brief Encapsulates the MOD control surface block.
  *
  * The block owns one knob and six selector buttons. The selector buttons pick
- * one of six banks, and each bank stores one value for that knob.
+ * one of six top-level groups, and each group stores one value for seventeen
+ * virtual link-target banks chosen through @ref report_link_target.
  */
 class MOD {
 public:
@@ -56,7 +57,7 @@ public:
     bool mod_knob_pressed() const;
 
     /**
-     * @brief Logs one identified cross-block target with bank context.
+     * @brief Selects one MOD link target inside the active group.
      *
      * @param block_name Name of the block that owns the pressed knob.
      * @param knob_index Zero-based knob index inside that block.
@@ -68,8 +69,14 @@ private:
     /** @brief Number of LEDs reserved for the knob segment. */
     static const size_t knob_led_count_ = 10U;
 
-    /** @brief Number of selector banks exposed by the buttons. */
-    static const size_t bank_count_ = 6U;
+    /** @brief Number of selector groups exposed by the buttons. */
+    static const size_t selector_group_count_ = 6U;
+
+    /** @brief Number of virtual link targets stored per selector group. */
+    static const size_t targets_per_group_ = 17U;
+
+    /** @brief Total number of stored virtual MOD banks. */
+    static const size_t virtual_bank_count_ = selector_group_count_ * targets_per_group_;
 
     /** @brief Static configuration for the selector buttons. */
     static constexpr Button::Config button_configs_[] = {
@@ -125,34 +132,65 @@ private:
     static const size_t knob_count_ = ARRAY_SIZE(knob_configs_);
 
     /**
-     * @brief Selects one knob-value bank and recalls its values onto the knob.
+     * @brief Selects one top-level MOD group and recalls its remembered target.
      *
-     * @param bank_index Bank index in the range `[0, bank_count_)`.
+     * @param group_index Group index in the range `[0, selector_group_count_)`.
      *
-     * @retval 0 The bank was selected and its values were recalled successfully.
-     * @retval -EINVAL The requested bank index is out of range.
+     * @retval 0 The group was selected and its remembered target was recalled successfully.
+     * @retval -EINVAL The requested group index is out of range.
      * @retval negative Error propagated from LED or knob updates.
      */
-    int select_bank_(size_t bank_index);
+    int select_group_(size_t group_index);
 
     /**
-     * @brief Updates the selector-button LEDs to show the currently active bank.
+     * @brief Updates the selector-button LEDs to show the currently active group.
      *
-     * @retval 0 All selector LEDs match the selected bank.
+     * @retval 0 All selector LEDs match the selected group.
      * @retval negative Error propagated from @ref Button::set_led_val.
      */
     int update_selector_leds_();
 
     /**
-     * @brief Loads one stored bank into the live knob object.
+     * @brief Loads one stored virtual bank into the live knob object.
      *
-     * @param bank_index Bank index in the range `[0, bank_count_)`.
+     * @param virtual_bank_index Virtual bank index in the range `[0, virtual_bank_count_)`.
      *
      * @retval 0 The knob value was recalled successfully.
-     * @retval -EINVAL The requested bank index is out of range.
+     * @retval -EINVAL The requested virtual bank index is out of range.
      * @retval negative Error propagated from @ref Knob::set_value.
      */
-    int recall_bank_to_knobs_(size_t bank_index);
+    int recall_virtual_bank_to_knobs_(size_t virtual_bank_index);
+
+    /**
+     * @brief Maps one reported link target onto a per-group target offset.
+     *
+     * @param block_name Name of the source block.
+     * @param knob_index Zero-based knob index inside the source block.
+     * @param bank_index Active bank index of the source block.
+     * @param target_offset Receives the resolved target offset in `[0, targets_per_group_)`.
+     *
+     * @retval true The source maps onto one valid MOD target offset.
+     * @retval false The source is unsupported and should be ignored.
+     */
+    bool target_offset_for_link_(const char *block_name,
+                                 size_t knob_index,
+                                 uint8_t bank_index,
+                                 uint8_t &target_offset) const;
+
+    /**
+     * @brief Converts one group/target pair into the stored virtual-bank index.
+     *
+     * @param group_index Top-level MOD group index.
+     * @param target_offset Per-group target offset.
+     *
+     * @return Virtual bank index in `[0, virtual_bank_count_)`.
+     */
+    size_t virtual_bank_index_(size_t group_index, uint8_t target_offset) const;
+
+    /**
+     * @brief Returns the currently visible virtual bank index.
+     */
+    size_t current_virtual_bank_index_() const;
 
     /** @brief Selector buttons owned by the block. */
     Button buttons_[button_count_];
@@ -160,11 +198,14 @@ private:
     /** @brief Knob control owned by the block. */
     Knob knobs_[knob_count_];
 
-    /** @brief Currently selected knob-value bank. */
-    uint8_t selected_bank_ = 0U;
+    /** @brief Currently selected top-level MOD group. */
+    uint8_t selected_group_ = 0U;
 
-    /** @brief Stored knob values for each selector bank. */
-    uint8_t knob_values_[bank_count_][knob_count_] = {};
+    /** @brief Remembers the last linked target offset for each selector group. */
+    uint8_t selected_target_offset_[selector_group_count_] = {};
+
+    /** @brief Stored knob values for each virtual bank. */
+    uint8_t knob_values_[virtual_bank_count_][knob_count_] = {};
 };
 
 #endif /* SRC_BLOCKS_MOD_H_ */

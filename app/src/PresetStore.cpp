@@ -13,8 +13,7 @@ LOG_MODULE_REGISTER(PresetStore, LOG_LEVEL_INF);
 namespace {
 
 constexpr uint32_t preset_magic = 0x31525042U;
-constexpr uint16_t preset_format_version_legacy = 3U;
-constexpr uint16_t preset_format_version = 4U;
+constexpr uint16_t preset_format_version = 5U;
 constexpr size_t valid_mask_size = PresetStore::preset_count / 8U;
 constexpr size_t write_scratch_size = 256U;
 
@@ -61,14 +60,6 @@ bool validate_record_(const PresetRecord &record)
 {
     if (record.magic != preset_magic) {
         return false;
-    }
-
-    if (record.format_version == preset_format_version_legacy) {
-        if (record.record_type >= PresetStore::preset_count) {
-            return false;
-        }
-
-        return record_crc_(record) == record.crc32;
     }
 
     if (record.format_version != preset_format_version) {
@@ -264,12 +255,6 @@ int PresetStore::init()
             LOG_WRN("Preset log contains invalid data, compacting on next save");
             initialized_ = true;
             return 0;
-        }
-
-        if (record.format_version == preset_format_version_legacy) {
-            preset_cache.presets[record.record_type] = record.snapshot;
-            set_slot_valid_(record.record_type);
-            continue;
         }
 
         const RecordType record_type = (RecordType)record.record_type;

@@ -21,7 +21,9 @@ buttons and four knobs into one reusable control-surface unit, owns their
 configuration tables, drives their LEDs, and emits transition logs. The `OSC`
 block class groups five knobs and three selector buttons into a second
 banked control-surface unit. The `MOD` block class groups one knob and six
-selector buttons into a third banked control-surface unit. The `LFO` block
+selector buttons into a third control-surface unit whose selector buttons pick
+one of six top-level groups and whose held-link routing picks one of seventeen
+virtual target banks inside the active group. The `LFO` block
 groups one knob, three bank-selector buttons, and five radio buttons into a
 fourth control-surface unit. The `FLT` block groups three radio buttons and
 three standalone knobs into a fifth control-surface unit. The `LED_DISP`
@@ -134,12 +136,12 @@ The main application sources are:
 - `app/src/blocks/FLT.h` and `app/src/blocks/FLT.cpp`: reusable block that owns three radio buttons and three standalone knobs, including their config tables, radio-selection LED updates, and transition logging
 - `app/src/blocks/LED_DISP.h` and `app/src/blocks/LED_DISP.cpp`: reusable block that owns the preset-selector knob plus one active-low three-digit seven-segment display, including the knob config table, timeout-triggered preset save/load gesture handling, temporary blink feedback, browse timeout restore, full-surface snapshot capture/application, blank-leading decimal rendering, and transition logging
 - `app/src/blocks/LFO.h` and `app/src/blocks/LFO.cpp`: reusable block that owns one knob plus three bank-selector buttons and five radio buttons, including their config tables, three banked knob-value sets, per-bank radio selection, selector LED updates, and transition logging
-- `app/src/blocks/MOD.h` and `app/src/blocks/MOD.cpp`: reusable block that owns one knob plus six bank-selector buttons, including their config tables, six banked knob-value sets, selector LED updates, and transition logging
+- `app/src/blocks/MOD.h` and `app/src/blocks/MOD.cpp`: reusable block that owns one knob plus six bank-selector buttons, including their config tables, six selector groups with seventeen virtual target banks each, remembered per-group link targets, selector LED updates, and transition logging
 - `app/src/blocks/OSC.h` and `app/src/blocks/OSC.cpp`: reusable block that owns five knobs plus three bank-selector buttons, including their config tables, three banked knob-value sets, selector LED updates, and transition logging
 - `app/src/Button.h` and `app/src/Button.cpp`: button decoder with `Config` binding, `button_msg` change reporting, and explicit LED control through `set_led_val()`
 - `app/src/Encoder.h` and `app/src/Encoder.cpp`: quadrature decoder bound to one cached mux state and two CD4067 channels
 - `app/src/Knob.h` and `app/src/Knob.cpp`: reusable knob UI that owns one encoder, reads one raw active-low button bit, drives one contiguous LED segment, supports explicit value recall through `set_value()`, and can divide raw encoder edges before exposing one visible value step
-- `app/src/PresetSnapshot.h`: durable preset schema for the `ADSR`, `FLT`, `LFO`, `MOD`, and `OSC` blocks
+- `app/src/PresetSnapshot.h`: durable preset schema for the `ADSR`, `FLT`, `LFO`, `MOD`, and `OSC` blocks, including the expanded MOD virtual-bank state
 - `app/src/PresetStore.h` and `app/src/PresetStore.cpp`: flash-backed preset storage helper that validates one versioned preset log with CRC32, exposes 128 slots, returns default state for unsaved slots, and appends one flash record on each save
 - `app/src/UART.h` and `app/src/UART.cpp`: polling-based wrapper around the app-owned `USART1` transport on `PA9`/`PA10`, including buffer writes plus non-blocking reads
 - `app/src/MIDI.h` and `app/src/MIDI.cpp`: MIDI channel-message helper layered on top of `UART`, including Note On, Note Off, and Control Change message encoding
@@ -227,6 +229,7 @@ When the application is flashed and running on the board:
 - the input thread constructs the `InputController`, `LEDSController`, and the `ADSR`, `FLT`, `LFO`, `MOD`, `OSC`, `PresetStore`, and `LED_DISP` control blocks before entering its polling loop
 - the control surface exposes:
     - banked knob/button state in `ADSR`, `LFO`, `MOD`, and `OSC`
+    - six MOD selector groups with seventeen virtual link-target banks per group
     - radio-button selection in `FLT` and in the per-bank `LFO` radio group
     - one active-low three-digit seven-segment display driven by `LED_DISP`
     - 128 flash-backed presets selected on the `LED_DISP` encoder
@@ -238,6 +241,8 @@ When the application is flashed and running on the board:
 - loading a preset also emits the FLT MIDI snapshot on channel `0`, resending CC `29`, `30`, and `31`
 - LFO banked radio selection emits MIDI Control Change messages on channel `0` using CC `32`, `34`, and `36` with values `0..3` for the first four LFO radio buttons, while the banked LFO knob emits CC `33`, `35`, and `37`; the fifth LFO radio button is intentionally ignored by MIDI
 - loading a preset also emits the LFO MIDI snapshot on channel `0`, resending CC `32..37`
+- while the MOD knob is held, `OSC` bank/knob pairs map to MOD target offsets `0..14`, `FLT` knob `0` maps to `15`, `FLT` knob `1` maps to `16`, and `FLT` knob `2` is ignored
+- each MOD selector group remembers its last linked target offset, recalls that virtual bank when the group changes, and stores one MOD knob value for each virtual bank `((group * 17) + target_offset)`
 - knob values are clamped to `0..127`, recalled when a bank changes, and shown on their assigned LED segments when present
 - selector and radio-button LEDs reflect the currently active state, and bank `0` is selected on boot
 - the `LED_DISP` block shows the currently selected preset number in the range `0..127` with blank leading digits
@@ -246,6 +251,7 @@ When the application is flashed and running on the board:
 - after a hold-triggered save, the display blinks briefly as confirmation
 - browsing to another preset without loading or saving for `5000 ms` causes the display to blink, then snap back to the active preset number
 - presets restore bank contents but keep the currently selected bank in `ADSR`, `LFO`, `MOD`, and `OSC`
+- preset saves now use format version `5`, which treats older preset records as incompatible and writes the expanded MOD virtual-bank layout on the next save
 - loading an unsaved preset slot applies the default all-zero surface state until the slot is explicitly saved
 - button inputs are active-low, and each knob exposes its encoder push-button state for higher-level logic
 - serial logs report bank changes, button transitions, radio selections, knob movements, and preset save/load actions while the input thread runs

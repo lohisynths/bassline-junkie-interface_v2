@@ -40,10 +40,13 @@ struct LFOState {
  * @brief Captures the durable UI state for one MOD block preset.
  */
 struct MODState {
-    static constexpr size_t bank_count = 6U;
+    static constexpr size_t selector_group_count = 6U;
+    static constexpr size_t target_count_per_group = 17U;
+    static constexpr size_t bank_count = selector_group_count * target_count_per_group;
     static constexpr size_t knob_count = 1U;
 
     uint8_t knob_values[bank_count][knob_count] = {};
+    uint8_t selected_target_offset[selector_group_count] = {};
 };
 
 /**
