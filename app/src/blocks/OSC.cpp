@@ -1,5 +1,7 @@
 #include "OSC.h"
 
+#include "MOD.h"
+
 #include <errno.h>
 #include <zephyr/logging/log.h>
 
@@ -147,6 +149,34 @@ bool OSC::take_newly_pressed_knob(size_t &knob_index)
 uint8_t OSC::selected_bank() const
 {
     return selected_bank_;
+}
+
+int OSC::show_mod_preview(const MOD &mod)
+{
+    const uint8_t group_index = mod.preview_group_index();
+
+    for (size_t knob_index = 0U; knob_index < knob_count_; ++knob_index) {
+        const uint8_t target_offset = (uint8_t)((selected_bank_ * knob_count_) + knob_index);
+        const int ret = knobs_[knob_index].show_preview_value(
+            mod.preview_value_for_target_offset(group_index, target_offset));
+        if (ret < 0) {
+            return ret;
+        }
+    }
+
+    return 0;
+}
+
+int OSC::restore_leds_after_preview()
+{
+    for (size_t knob_index = 0U; knob_index < knob_count_; ++knob_index) {
+        const int ret = knobs_[knob_index].restore_displayed_value();
+        if (ret < 0) {
+            return ret;
+        }
+    }
+
+    return 0;
 }
 
 int OSC::select_bank_(size_t bank_index)

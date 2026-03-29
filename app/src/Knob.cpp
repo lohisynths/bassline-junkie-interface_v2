@@ -34,15 +34,11 @@ int Knob::init(InputController &inputs, const Config &config, LEDSController &le
 
     value_ = 0U;
     pressed_ = false;
-    previous_led_index_ = led_index_(value_);
+    displayed_led_index_ = led_count_;
     pending_encoder_steps_ = 0;
 
     initialized_ = true;
-    if (led_count_ == 0U) {
-        return 0;
-    }
-
-    return leds_->set_channel_percent(first_led_ + previous_led_index_, knob_brightness_percent);
+    return render_current_value_();
 }
 
 bool Knob::get_state() const
@@ -126,28 +122,69 @@ int Knob::update(knob_msg &msg)
     return render_current_value_();
 }
 
+int Knob::show_preview_value(uint8_t value)
+{
+    if (!initialized_) {
+        return -EACCES;
+    }
+
+    if (led_count_ == 0U) {
+        return 0;
+    }
+
+    if (value > knob_max_value) {
+        value = knob_max_value;
+    }
+
+    return render_led_index_(led_index_(value));
+}
+
+int Knob::restore_displayed_value()
+{
+    if (!initialized_) {
+        return -EACCES;
+    }
+
+    return render_current_value_();
+}
+
 int Knob::render_current_value_()
 {
     if (led_count_ == 0U) {
         return 0;
     }
 
-    const size_t current_led_index = led_index_(value_);
-    if (current_led_index == previous_led_index_) {
+    return render_led_index_(led_index_(value_));
+}
+
+int Knob::render_led_index_(size_t led_index)
+{
+    if (led_count_ == 0U) {
         return 0;
     }
 
-    int ret = leds_->set_channel_percent(first_led_ + previous_led_index_, 0U);
+    if (led_index >= led_count_) {
+        return -EINVAL;
+    }
+
+    if (led_index == displayed_led_index_) {
+        return 0;
+    }
+
+    int ret = 0;
+    if (displayed_led_index_ < led_count_) {
+        ret = leds_->set_channel_percent(first_led_ + displayed_led_index_, 0U);
+        if (ret < 0) {
+            return ret;
+        }
+    }
+
+    ret = leds_->set_channel_percent(first_led_ + led_index, knob_brightness_percent);
     if (ret < 0) {
         return ret;
     }
 
-    ret = leds_->set_channel_percent(first_led_ + current_led_index, knob_brightness_percent);
-    if (ret < 0) {
-        return ret;
-    }
-
-    previous_led_index_ = current_led_index;
+    displayed_led_index_ = led_index;
 
     return 0;
 }

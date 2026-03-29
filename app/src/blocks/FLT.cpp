@@ -1,5 +1,7 @@
 #include "FLT.h"
 
+#include "MOD.h"
+
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(FLT, LOG_LEVEL_INF);
@@ -152,6 +154,34 @@ bool FLT::take_newly_pressed_knob(size_t &knob_index)
     knob_index = newly_pressed_knob_index_;
     has_newly_pressed_knob_ = false;
     return true;
+}
+
+int FLT::show_mod_preview(const MOD &mod)
+{
+    const uint8_t group_index = mod.preview_group_index();
+
+    for (size_t knob_index = 0U; knob_index < 2U; ++knob_index) {
+        const uint8_t target_offset = (uint8_t)(15U + knob_index);
+        const int ret = knobs_[knob_index].show_preview_value(
+            mod.preview_value_for_target_offset(group_index, target_offset));
+        if (ret < 0) {
+            return ret;
+        }
+    }
+
+    return 0;
+}
+
+int FLT::restore_leds_after_preview()
+{
+    for (size_t knob_index = 0U; knob_index < 2U; ++knob_index) {
+        const int ret = knobs_[knob_index].restore_displayed_value();
+        if (ret < 0) {
+            return ret;
+        }
+    }
+
+    return 0;
 }
 
 int FLT::update_selector_leds_()

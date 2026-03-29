@@ -120,6 +120,29 @@ public:
      */
     int update(knob_msg &msg);
 
+    /**
+     * @brief Temporarily renders one preview value on the knob LED segment.
+     *
+     * This updates only the LED display. The logical knob value, encoder state,
+     * and pending encoder steps are unchanged.
+     *
+     * @param value Preview value to project onto the configured LED range.
+     *
+     * @retval 0 The preview LED was updated successfully.
+     * @retval -EACCES The knob has not been initialized.
+     * @retval negative Error propagated from @ref LEDSController::set_channel_percent.
+     */
+    int show_preview_value(uint8_t value);
+
+    /**
+     * @brief Restores the LED segment to the knob's real stored value.
+     *
+     * @retval 0 The LED segment matches the stored knob value.
+     * @retval -EACCES The knob has not been initialized.
+     * @retval negative Error propagated from @ref LEDSController::set_channel_percent.
+     */
+    int restore_displayed_value();
+
 private:
     /**
      * @brief Renders the current knob value on the configured LED segment.
@@ -128,6 +151,16 @@ private:
      * @retval negative Error propagated from @ref LEDSController::set_channel_percent.
      */
     int render_current_value_();
+
+    /**
+     * @brief Renders one specific LED index on the configured segment.
+     *
+     * @param led_index LED index in the range `[0, led_count_)`.
+     *
+     * @retval 0 The LED segment now shows @p led_index.
+     * @retval negative Error propagated from @ref LEDSController::set_channel_percent.
+     */
+    int render_led_index_(size_t led_index);
 
     /**
      * @brief Maps one knob value to an LED index inside the knob segment.
@@ -171,8 +204,8 @@ private:
     /** @brief Current sampled button state. */
     bool pressed_ = false;
 
-    /** @brief Previously rendered LED index inside the knob segment. */
-    size_t previous_led_index_ = 0U;
+    /** @brief Currently rendered LED index inside the knob segment. */
+    size_t displayed_led_index_ = 0U;
 
     /** @brief Accumulated raw encoder steps waiting to cross one visible step. */
     int32_t pending_encoder_steps_ = 0;

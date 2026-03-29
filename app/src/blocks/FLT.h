@@ -11,6 +11,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+class MOD;
+
 /**
  * @brief Encapsulates the FLT control surface block.
  *
@@ -62,6 +64,22 @@ public:
      * @retval false No knob press event is pending.
      */
     bool take_newly_pressed_knob(size_t &knob_index);
+
+    /**
+     * @brief Temporarily renders MOD preview values on the FLT knob LEDs.
+     *
+     * @retval 0 The preview LEDs were updated successfully.
+     * @retval negative Error propagated from @ref Knob::show_preview_value.
+     */
+    int show_mod_preview(const MOD &mod);
+
+    /**
+     * @brief Restores the FLT knob LEDs to their real stored values.
+     *
+     * @retval 0 The FLT knob LEDs were restored successfully.
+     * @retval negative Error propagated from @ref Knob::restore_displayed_value.
+     */
+    int restore_leds_after_preview();
 
 private:
     /** @brief Number of LEDs reserved for standard knob segments in this block. */

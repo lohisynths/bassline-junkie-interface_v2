@@ -11,6 +11,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+class MOD;
+
 /**
  * @brief Encapsulates the OSC control surface block.
  *
@@ -66,6 +68,22 @@ public:
      * @brief Returns the currently selected bank.
      */
     uint8_t selected_bank() const;
+
+    /**
+     * @brief Temporarily renders MOD preview values on the OSC knob LEDs.
+     *
+     * @retval 0 The preview LEDs were updated successfully.
+     * @retval negative Error propagated from @ref Knob::show_preview_value.
+     */
+    int show_mod_preview(const MOD &mod);
+
+    /**
+     * @brief Restores the OSC knob LEDs to their real stored values.
+     *
+     * @retval 0 The OSC knob LEDs were restored successfully.
+     * @retval negative Error propagated from @ref Knob::restore_displayed_value.
+     */
+    int restore_leds_after_preview();
 
 private:
     /** @brief Number of LEDs reserved for each knob segment. */
