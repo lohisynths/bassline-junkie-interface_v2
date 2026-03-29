@@ -18,6 +18,7 @@ target_sources(app PRIVATE
     src/Encoder.cpp
     src/Knob.cpp
     src/main.cpp
+    src/MIDI.cpp
     src/PresetStore.cpp
     src/GPIO.cpp
     src/InputController.cpp
