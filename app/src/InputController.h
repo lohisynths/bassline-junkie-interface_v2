@@ -59,11 +59,11 @@ public:
     void log_mux_changes();
 
     /**
-     * @brief Returns one cached active mask.
+     * @brief Returns one cached raw input-state mask.
      *
      * @param state_index Index in the cached input state table.
      *
-     * @return Cached 16-bit active mask, or `0` if @p state_index is invalid.
+     * @return Cached 16-bit raw state mask, or `0` if @p state_index is invalid.
      */
     uint16_t state(size_t state_index) const;
 
@@ -83,7 +83,7 @@ private:
     /** @brief CD4067 input facade. */
     MUX mux_;
 
-    /** @brief Cached active masks for all mux inputs plus the GPIO input mask. */
+    /** @brief Cached raw masks for all mux inputs plus the GPIO input mask. */
     uint16_t active_masks_[input_count] = {};
 
     /** @brief Previous cached input masks used for change logging. */
