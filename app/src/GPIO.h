@@ -37,7 +37,7 @@ public:
      * @brief Reads one configured input.
      *
      * @param input_index Index in the configured GPIO table.
-     * @param active Output level after applying devicetree active-low/high flags.
+     * @param active Output raw physical pin level, where `true` means high.
      *
      * @retval 0 The input was read successfully.
      * @retval -EACCES The GPIO subsystem has not been initialized.
@@ -47,9 +47,10 @@ public:
     int read_pin(size_t input_index, bool *active);
 
     /**
-     * @brief Reads all configured inputs and returns the active bitmask.
+     * @brief Reads all configured inputs and returns one raw-high bitmask.
      *
-     * @param active_mask Output bitmask for all configured GPIO inputs.
+     * @param active_mask Output bitmask for all configured GPIO inputs, where
+     *        each set bit represents one raw high level.
      *
      * @retval 0 All inputs were read successfully.
      * @retval negative Error propagated from @ref read_pin.

@@ -73,7 +73,8 @@ int GPIO::read_pin(size_t input_index, bool *active) {
         return -EACCES;
     }
 
-    const int value = gpio_pin_get_dt(&input_pins[input_index].spec);
+    const gpio_dt_spec &spec = input_pins[input_index].spec;
+    const int value = gpio_pin_get_raw(spec.port, spec.pin);
     if (value < 0) {
         LOG_ERR("Failed to read %s: %d", input_pins[input_index].name, value);
         return value;
@@ -112,7 +113,7 @@ int GPIO::log_state() {
         return ret;
     }
 
-    LOG_INF("GPIO active mask: 0x%04x", active_mask);
+    LOG_INF("GPIO raw mask: 0x%04x", active_mask);
 
     return 0;
 }
@@ -126,7 +127,7 @@ int GPIO::log_state_binary() {
 
     char binary_mask[17];
     mask_to_binary_string(active_mask, binary_mask, sizeof(binary_mask));
-    LOG_INF("GPIO active mask: 0b%s", binary_mask);
+    LOG_INF("GPIO raw mask: 0b%s", binary_mask);
 
     return 0;
 }
