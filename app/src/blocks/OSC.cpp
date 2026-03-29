@@ -14,9 +14,11 @@ uint8_t clamp_knob_value_(uint8_t value)
 
 } // namespace
 
-int OSC::init(InputController &inputs, LEDSController &leds)
+int OSC::init(InputController &inputs, LEDSController &leds, MIDI *midi)
 {
     int ret = 0;
+
+    midi_ = (midi != nullptr && midi->is_initialized()) ? midi : nullptr;
 
     for (size_t i = 0U; (i < button_count_) && (ret == 0); ++i) {
         ret = buttons_[i].init(inputs, button_configs_[i], leds);
@@ -117,6 +119,18 @@ int OSC::update()
                     (unsigned int)selected_bank_,
                     (unsigned int)i,
                     (int)knobs_[i].get_value());
+
+            if (midi_ != nullptr) {
+                const uint8_t cc_number = (uint8_t)((selected_bank_ * knob_count_) + i);
+                const int midi_ret = midi_->send_cc(cc_number, knobs_[i].get_value(), 0U);
+                if (midi_ret < 0) {
+                    LOG_ERR("Failed to send OSC MIDI CC %u for bank %u knob %u: %d",
+                            (unsigned int)cc_number,
+                            (unsigned int)selected_bank_,
+                            (unsigned int)i,
+                            midi_ret);
+                }
+            }
         }
     }
 
