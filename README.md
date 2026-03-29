@@ -35,8 +35,10 @@ onto each LED-backed segment, exposes latched knob-value banks where required,
 maintains one clamped knob value in the range `0..127` per knob, lights one
 LED in each segment according to the active value when LEDs are assigned,
 drives one active-low three-digit display from the dedicated preset knob,
-auto-loads preset `0` on boot, and uses the preset knob push button for short-
-press load plus long-press save. The input thread constructs its
+auto-loads preset `0` on boot, uses a reduced-resolution preset encoder to
+avoid accidental slot changes while pressing, and uses the preset knob push
+button for short-press load plus timeout-triggered long-press save. The input
+thread constructs its
 `InputController`, `LEDSController`, `ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`,
 `OSC`, and `PresetStore` objects as plain local objects, and each `Knob` owns
 its internal `Encoder` helper while reading its configured button bit
@@ -116,15 +118,15 @@ The main application sources are:
 
 - `app/src/blocks/ADSR.h` and `app/src/blocks/ADSR.cpp`: reusable block that owns the current standalone button set and knob set, including their config tables, three banked knob-value sets, selector LED updates, and transition logging
 - `app/src/blocks/FLT.h` and `app/src/blocks/FLT.cpp`: reusable block that owns three radio buttons and three standalone knobs, including their config tables, radio-selection LED updates, and transition logging
-- `app/src/blocks/LED_DISP.h` and `app/src/blocks/LED_DISP.cpp`: reusable block that owns the preset-selector knob plus one active-low three-digit seven-segment display, including the knob config table, preset save/load gesture handling, full-surface snapshot capture/application, blank-leading decimal rendering, and transition logging
+- `app/src/blocks/LED_DISP.h` and `app/src/blocks/LED_DISP.cpp`: reusable block that owns the preset-selector knob plus one active-low three-digit seven-segment display, including the knob config table, timeout-triggered preset save/load gesture handling, temporary blink feedback, browse timeout restore, full-surface snapshot capture/application, blank-leading decimal rendering, and transition logging
 - `app/src/blocks/LFO.h` and `app/src/blocks/LFO.cpp`: reusable block that owns one knob plus three bank-selector buttons and five radio buttons, including their config tables, three banked knob-value sets, per-bank radio selection, selector LED updates, and transition logging
 - `app/src/blocks/MOD.h` and `app/src/blocks/MOD.cpp`: reusable block that owns one knob plus six bank-selector buttons, including their config tables, six banked knob-value sets, selector LED updates, and transition logging
 - `app/src/blocks/OSC.h` and `app/src/blocks/OSC.cpp`: reusable block that owns five knobs plus three bank-selector buttons, including their config tables, three banked knob-value sets, selector LED updates, and transition logging
 - `app/src/Button.h` and `app/src/Button.cpp`: button decoder with `Config` binding, `button_msg` change reporting, and explicit LED control through `set_led_val()`
 - `app/src/Encoder.h` and `app/src/Encoder.cpp`: quadrature decoder bound to one cached mux state and two CD4067 channels
-- `app/src/Knob.h` and `app/src/Knob.cpp`: reusable knob UI that owns one encoder, reads one raw active-low button bit, drives one contiguous LED segment, and supports explicit value recall through `set_value()`
+- `app/src/Knob.h` and `app/src/Knob.cpp`: reusable knob UI that owns one encoder, reads one raw active-low button bit, drives one contiguous LED segment, supports explicit value recall through `set_value()`, and can divide raw encoder edges before exposing one visible value step
 - `app/src/PresetSnapshot.h`: durable preset schema for the `ADSR`, `FLT`, `LFO`, `MOD`, and `OSC` blocks
-- `app/src/PresetStore.h` and `app/src/PresetStore.cpp`: flash-backed preset storage helper that validates one versioned image with CRC32, exposes 128 slots, and rewrites the dedicated preset partition on save
+- `app/src/PresetStore.h` and `app/src/PresetStore.cpp`: flash-backed preset storage helper that validates one versioned preset log with CRC32, exposes 128 slots, returns default state for unsaved slots, and appends one flash record on each save
 - `app/src/main.cpp`: entrypoint, input-thread setup, `ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`, `OSC`, and `PresetStore` wiring, and top-level runtime loop
 - `app/src/GPIO.h` and `app/src/GPIO.cpp`: discrete GPIO input initialization and bitmask reads
 - `app/src/InputController.h` and `app/src/InputController.cpp`: aggregate input reads across all mux and GPIO sources, expose `input_count`, and provide optional debug logging helpers for input transitions and state dumps
@@ -175,7 +177,7 @@ app/docs/doxygen/html/index.html
 The Doxygen landing page focuses on code structure and module responsibilities.
 Use this README as the canonical source for environment setup, build, flash,
 and hardware wiring information. The generated API docs include the `Button`,
-`Encoder`, `GPIO`, `InputController`, `Knob`, `LEDSController`, `MUX`, and
+`Encoder`, `GPIO`, `InputController`, `Knob`, `LEDSController`, `MUX`,
 `PresetStore`, `ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`, and `OSC` classes,
 the shared `PresetSnapshot` schema, the shared `utils` helpers, plus the
 CD4067 driver interface.
@@ -214,7 +216,10 @@ When the application is flashed and running on the board:
 - knob values are clamped to `0..127`, recalled when a bank changes, and shown on their assigned LED segments when present
 - selector and radio-button LEDs reflect the currently active state, and bank `0` is selected on boot
 - the `LED_DISP` block shows the currently selected preset number in the range `0..127` with blank leading digits
-- preset `0` is auto-loaded on boot, short display-knob presses load the selected preset, and long display-knob presses save the current full-surface state
+- the preset encoder uses a coarser step size than the other knobs so pressing it is less likely to move the displayed preset number
+- preset `0` is auto-loaded on boot, short display-knob presses load the selected preset on release, and holding the display knob for `1000 ms` saves immediately on timeout
+- after a hold-triggered save, the display blinks briefly as confirmation
+- browsing to another preset without loading or saving for `5000 ms` causes the display to blink, then snap back to the active preset number
 - presets restore bank contents but keep the currently selected bank in `ADSR`, `LFO`, `MOD`, and `OSC`
 - loading an unsaved preset slot applies the default all-zero surface state until the slot is explicitly saved
 - button inputs are active-low, and each knob exposes its encoder push-button state for higher-level logic

@@ -59,6 +59,13 @@ public:
     int update();
 
 private:
+    /** @brief Tags the temporary blink action currently in progress. */
+    enum class BlinkAction : uint8_t {
+        none = 0U,
+        save_feedback,
+        restore_active_preset,
+    };
+
     /** @brief First global LED channel reserved for the 3-digit display. */
     static const size_t display_first_led_ = 11U * 16U;
 
@@ -178,7 +185,28 @@ private:
     /**
      * @brief Starts or clears the browse timeout depending on the selected preset.
      */
-    void refresh_browse_timeout_();
+    void refresh_browse_deadline_(int64_t now_ms);
+
+    /**
+     * @brief Cancels any active temporary display blink.
+     */
+    void cancel_blink_();
+
+    /**
+     * @brief Starts one temporary display blink for the requested action.
+     *
+     * @retval 0 The display was blanked and the blink action was armed.
+     * @retval negative Error propagated from @ref render_blank_.
+     */
+    int start_blink_(BlinkAction action, int64_t now_ms);
+
+    /**
+     * @brief Finishes the current temporary blink once its timeout expires.
+     *
+     * @retval 0 The pending blink action was completed successfully.
+     * @retval negative Error propagated from display writes or preset selection restore.
+     */
+    int finish_blink_();
 
     /** @brief Display knob owned by the block. */
     Knob knob_;
@@ -210,23 +238,17 @@ private:
     /** @brief Preset currently considered active after the last load or save. */
     uint8_t active_preset_ = 0U;
 
-    /** @brief Timestamp of the last browse movement away from the active preset. */
-    int64_t browse_started_at_ms_ = 0;
-
-    /** @brief Tracks whether the timeout blink is currently blanking the display. */
-    bool revert_blink_active_ = false;
-
-    /** @brief Timestamp when the timeout blink started. */
-    int64_t revert_blink_started_at_ms_ = 0;
+    /** @brief Deadline when browsing should snap back to the active preset. */
+    int64_t browse_deadline_at_ms_ = 0;
 
     /** @brief Tracks whether the current button hold already triggered a save. */
     bool save_triggered_during_hold_ = false;
 
-    /** @brief Tracks whether the post-save blink is currently blanking the display. */
-    bool save_feedback_blink_active_ = false;
+    /** @brief Current temporary blink action, if any. */
+    BlinkAction blink_action_ = BlinkAction::none;
 
-    /** @brief Timestamp when the post-save blink started. */
-    int64_t save_feedback_blink_started_at_ms_ = 0;
+    /** @brief Timestamp when the current temporary blink started. */
+    int64_t blink_started_at_ms_ = 0;
 };
 
 #endif /* SRC_BLOCKS_LED_DISP_H_ */

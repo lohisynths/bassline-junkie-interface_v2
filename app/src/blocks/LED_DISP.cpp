@@ -31,12 +31,10 @@ int LED_DISP::init(InputController &inputs,
     osc_ = nullptr;
     press_started_at_ms_ = 0;
     active_preset_ = 0U;
-    browse_started_at_ms_ = 0;
-    revert_blink_active_ = false;
-    revert_blink_started_at_ms_ = 0;
+    browse_deadline_at_ms_ = 0;
     save_triggered_during_hold_ = false;
-    save_feedback_blink_active_ = false;
-    save_feedback_blink_started_at_ms_ = 0;
+    blink_action_ = BlinkAction::none;
+    blink_started_at_ms_ = 0;
 
     int ret = knob_.init(inputs, knob_config_, leds);
     if (ret < 0) {
@@ -71,17 +69,8 @@ int LED_DISP::update()
     }
 
     if (knob_msg.value_changed) {
-        if (revert_blink_active_) {
-            revert_blink_active_ = false;
-            revert_blink_started_at_ms_ = 0;
-        }
-
-        if (save_feedback_blink_active_) {
-            save_feedback_blink_active_ = false;
-            save_feedback_blink_started_at_ms_ = 0;
-        }
-
-        refresh_browse_timeout_();
+        cancel_blink_();
+        refresh_browse_deadline_(now_ms);
 
         ret = render_value_();
         if (ret < 0) {
@@ -97,10 +86,8 @@ int LED_DISP::update()
                 knob_.get_state() ? "pressed" : "released");
 
         if (knob_.get_state()) {
-            if (revert_blink_active_) {
-                revert_blink_active_ = false;
-                revert_blink_started_at_ms_ = 0;
-
+            if (blink_action_ != BlinkAction::none) {
+                cancel_blink_();
                 ret = render_value_();
                 if (ret < 0) {
                     LOG_ERR("Failed to restore preset display during button press: %d", ret);
@@ -140,10 +127,7 @@ int LED_DISP::update()
             }
 
             save_triggered_during_hold_ = true;
-            save_feedback_blink_active_ = true;
-            save_feedback_blink_started_at_ms_ = now_ms;
-
-            ret = render_blank_();
+            ret = start_blink_(BlinkAction::save_feedback, now_ms);
             if (ret < 0) {
                 LOG_ERR("Failed to start save feedback blink: %d", ret);
                 return ret;
@@ -151,14 +135,14 @@ int LED_DISP::update()
         }
     }
 
-    if (save_feedback_blink_active_) {
-        if ((now_ms - save_feedback_blink_started_at_ms_) >= save_feedback_blink_ms_) {
-            save_feedback_blink_active_ = false;
-            save_feedback_blink_started_at_ms_ = 0;
-
-            ret = render_value_();
+    if (blink_action_ != BlinkAction::none) {
+        const int64_t blink_duration_ms =
+            (blink_action_ == BlinkAction::save_feedback) ? save_feedback_blink_ms_
+                                                          : revert_blink_ms_;
+        if ((now_ms - blink_started_at_ms_) >= blink_duration_ms) {
+            ret = finish_blink_();
             if (ret < 0) {
-                LOG_ERR("Failed to restore display after save blink: %d", ret);
+                LOG_ERR("Failed to finish LED display blink: %d", ret);
                 return ret;
             }
         }
@@ -166,37 +150,10 @@ int LED_DISP::update()
         return 0;
     }
 
-    if (revert_blink_active_) {
-        if ((now_ms - revert_blink_started_at_ms_) >= revert_blink_ms_) {
-            revert_blink_active_ = false;
-            revert_blink_started_at_ms_ = 0;
-            browse_started_at_ms_ = 0;
-
-            ret = knob_.set_value(active_preset_);
-            if (ret < 0) {
-                LOG_ERR("Failed to restore active preset %d: %d", (int)active_preset_, ret);
-                return ret;
-            }
-
-            ret = render_value_();
-            if (ret < 0) {
-                LOG_ERR("Failed to redraw restored preset %d: %d", (int)active_preset_, ret);
-                return ret;
-            }
-
-            LOG_INF("Restored active preset %d after browse timeout", (int)active_preset_);
-        }
-
-        return 0;
-    }
-
-    if ((browse_started_at_ms_ != 0) &&
+    if ((browse_deadline_at_ms_ != 0) &&
         !knob_.get_state() &&
-        ((now_ms - browse_started_at_ms_) >= browse_timeout_ms_)) {
-        revert_blink_active_ = true;
-        revert_blink_started_at_ms_ = now_ms;
-
-        ret = render_blank_();
+        (now_ms >= browse_deadline_at_ms_)) {
+        ret = start_blink_(BlinkAction::restore_active_preset, now_ms);
         if (ret < 0) {
             LOG_ERR("Failed to blink preset display before restore: %d", ret);
             return ret;
@@ -333,11 +290,8 @@ int LED_DISP::load_selected_preset_()
     }
 
     active_preset_ = knob_.get_value();
-    browse_started_at_ms_ = 0;
-    revert_blink_active_ = false;
-    revert_blink_started_at_ms_ = 0;
-    save_feedback_blink_active_ = false;
-    save_feedback_blink_started_at_ms_ = 0;
+    browse_deadline_at_ms_ = 0;
+    cancel_blink_();
 
     LOG_INF("%s preset %d",
             slot_was_saved ? "Loaded" : "Loaded default state for empty",
@@ -361,22 +315,57 @@ int LED_DISP::save_selected_preset_()
     }
 
     active_preset_ = knob_.get_value();
-    browse_started_at_ms_ = 0;
-    revert_blink_active_ = false;
-    revert_blink_started_at_ms_ = 0;
-    save_feedback_blink_active_ = false;
-    save_feedback_blink_started_at_ms_ = 0;
+    browse_deadline_at_ms_ = 0;
+    cancel_blink_();
 
     LOG_INF("Saved preset %d", (int)knob_.get_value());
     return render_value_();
 }
 
-void LED_DISP::refresh_browse_timeout_()
+void LED_DISP::refresh_browse_deadline_(int64_t now_ms)
 {
     if (knob_.get_value() == active_preset_) {
-        browse_started_at_ms_ = 0;
+        browse_deadline_at_ms_ = 0;
         return;
     }
 
-    browse_started_at_ms_ = k_uptime_get();
+    browse_deadline_at_ms_ = now_ms + browse_timeout_ms_;
+}
+
+void LED_DISP::cancel_blink_()
+{
+    blink_action_ = BlinkAction::none;
+    blink_started_at_ms_ = 0;
+}
+
+int LED_DISP::start_blink_(BlinkAction action, int64_t now_ms)
+{
+    blink_action_ = action;
+    blink_started_at_ms_ = now_ms;
+    return render_blank_();
+}
+
+int LED_DISP::finish_blink_()
+{
+    const BlinkAction action = blink_action_;
+    cancel_blink_();
+
+    if (action == BlinkAction::restore_active_preset) {
+        browse_deadline_at_ms_ = 0;
+
+        int ret = knob_.set_value(active_preset_);
+        if (ret < 0) {
+            return ret;
+        }
+
+        ret = render_value_();
+        if (ret < 0) {
+            return ret;
+        }
+
+        LOG_INF("Restored active preset %d after browse timeout", (int)active_preset_);
+        return 0;
+    }
+
+    return render_value_();
 }

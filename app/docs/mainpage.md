@@ -24,18 +24,18 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - `Button`: binds to one cached input state through `Config`, samples one configured active-low channel as a button input, reports per-update state changes through `button_msg`, exposes explicit LED control through `set_led_val()`, and reports the current button state through `get_state()`
 - `ADSR`: owns the current standalone button set and knob set, stores their configuration tables plus three banked knob-value sets, initializes them against shared `InputController` and `LEDSController` objects, applies selector LED updates, and emits the current transition logs
 - `FLT`: owns three radio buttons and three knobs, stores their configuration tables, initializes them against shared `InputController` and `LEDSController` objects, applies radio-button LED updates, and emits the current transition logs
-- `LED_DISP`: owns one knob plus one three-digit active-low seven-segment display, stores the preset-selector knob configuration plus the legacy digit segment patterns, initializes itself against shared `InputController`, `LEDSController`, `PresetStore`, and block objects, renders blank-leading preset numbers on the display, and handles short-press load plus long-press save gestures
+- `LED_DISP`: owns one knob plus one three-digit active-low seven-segment display, stores the preset-selector knob configuration plus the legacy digit segment patterns, initializes itself against shared `InputController`, `LEDSController`, `PresetStore`, and block objects, renders blank-leading preset numbers on the display, uses a reduced-resolution encoder step for preset browsing, saves on hold timeout, and handles temporary blink feedback for save confirmation and browse-timeout restore
 - `LFO`: owns three selector buttons, five radio buttons, and one knob, stores their configuration tables plus three banked knob-value sets and per-bank radio-button selections, initializes them against shared `InputController` and `LEDSController` objects, applies selector LED updates, and emits the current transition logs
 - `MOD`: owns six selector buttons and one knob, stores their configuration tables plus six banked knob-value sets, initializes them against shared `InputController` and `LEDSController` objects, applies selector LED updates, and emits the current transition logs
 - `OSC`: owns three selector buttons and five knobs, stores their configuration tables plus three banked knob-value sets, initializes them against shared `InputController` and `LEDSController` objects, applies selector LED updates, and emits the current transition logs
 - `Encoder`: binds to one cached mux state, samples two configured channels as quadrature phase A/B, and reports per-update delta plus accumulated position
 - `GPIO`: wraps the configured discrete GPIO inputs and exposes per-pin and bitmask reads
 - `InputController`: owns the `MUX` and `GPIO` facades, exposes one flat cached input-state table plus `input_count`, and provides optional state-dump and input-transition debug helpers
-- `Knob`: owns one internal `Encoder`, reads one configured active-low button bit directly from cached input state, binds the knob UI to one contiguous LED range, maintains one `0..127` value from encoder movement, supports explicit value recall through `set_value()`, renders that value on the LED segment, and exposes the knob button state
+- `Knob`: owns one internal `Encoder`, reads one configured active-low button bit directly from cached input state, binds the knob UI to one contiguous LED range, maintains one `0..127` value from encoder movement, supports explicit value recall through `set_value()`, can divide raw encoder edges before exposing one visible step, renders that value on the LED segment, and exposes the knob button state
 - `LEDSController`: wraps the configured PCA9685 controllers and exposes channel-based LED control
 - `MUX`: wraps the configured CD4067 devices, scans their inputs, and logs one active-channel mask per mux in hex or binary form
 - `PresetSnapshot`: provides the durable schema for the `ADSR`, `FLT`, `LFO`, `MOD`, and `OSC` block states stored in one preset slot while leaving bank selectors live
-- `PresetStore`: owns the flash-backed 128-slot preset image, validates it with CRC32, returns default state for unsaved slots, and rewrites the dedicated preset partition on save
+- `PresetStore`: owns the flash-backed 128-slot preset log, validates it with CRC32, returns default state for unsaved slots, and appends one flash record on save
 - `utils`: provides shared helpers such as 16-bit mask-to-binary-string formatting used by debug logging
 - `cd4067`: out-of-tree Zephyr module providing the CD4067 GPIO multiplexer driver
 - `main.cpp`: initializes the board LED, starts an input thread that constructs `InputController`, `LEDSController`, one `ADSR` block, one `FLT` block, one `LFO` block, one `MOD` block, one `OSC` block, one `PresetStore`, and one `LED_DISP` block as plain locals, and runs the block update loop alongside the heartbeat LED
@@ -47,9 +47,12 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - `InputController` merges the CD4067 mux scans and discrete GPIO reads into one cached state table. `Button`, `Encoder`, and `Knob` build on that cache to provide reusable input primitives.
 - `ADSR`, `LFO`, `MOD`, and `OSC` expose banked controls. Bank switches recall stored knob state and update the related LEDs.
 - `FLT` provides a non-banked radio-button group with three knobs.
-- `PresetStore` reserves one flash partition for 128 preset slots and returns the all-zero default surface when a slot has never been saved.
+- `PresetStore` reserves one flash partition for 128 preset slots, stores saves as an append-only log, and returns the all-zero default surface when a slot has never been saved.
 - `LED_DISP` provides one knob plus an active-low three-digit seven-segment display that shows the selected preset number in the range `0..127`.
-- Preset `0` is auto-loaded on boot. Short display-knob presses load the selected preset, and long display-knob presses save the current full-surface state into that slot.
+- The preset encoder uses a coarser step size than the other knobs so casual button presses are less likely to move the selected slot.
+- Preset `0` is auto-loaded on boot. Short display-knob presses load the selected preset on release, and holding the display knob for `1000 ms` saves the current full-surface state immediately on timeout.
+- After a hold-triggered save, `LED_DISP` blinks briefly as confirmation.
+- Browsing away from the active preset without pressing load or save for `5000 ms` makes the display blink, then restore the active preset number.
 - Preset loads restore bank contents but do not force a different selected bank in `ADSR`, `LFO`, `MOD`, or `OSC`.
 - `LEDSController` drives the PCA9685 outputs used for selector LEDs, knob segments, and the display.
 - Runtime logs cover heartbeat activity, button transitions, radio selections, bank changes, knob movement, and preset save/load actions.
