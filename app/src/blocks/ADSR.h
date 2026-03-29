@@ -5,6 +5,7 @@
 #include "InputController.h"
 #include "Knob.h"
 #include "LEDS.h"
+#include "MIDI.h"
 #include "PresetSnapshot.h"
 
 #include <stddef.h>
@@ -24,11 +25,12 @@ public:
      *
      * @param inputs Shared input controller used by all block controls.
      * @param leds Shared LED controller used by all block controls.
+     * @param midi Optional MIDI transport used for ADSR Control Change messages.
      *
      * @retval 0 All controls were initialized successfully.
      * @retval negative Error propagated from @ref Button::init or @ref Knob::init.
      */
-    int init(InputController &inputs, LEDSController &leds);
+    int init(InputController &inputs, LEDSController &leds, MIDI *midi = nullptr);
 
     /**
      * @brief Captures the current durable ADSR block state.
@@ -57,6 +59,9 @@ private:
 
     /** @brief Number of latched selector banks exposed by the first three buttons. */
     static const size_t bank_count_ = 3U;
+
+    /** @brief First MIDI CC number reserved for the ADSR block. */
+    static const uint8_t midi_cc_base_ = 14U;
 
     /** @brief Static configuration for the standalone buttons. */
     static constexpr Button::Config button_configs_[] = {
@@ -158,6 +163,28 @@ private:
      */
     int recall_bank_to_knobs_(size_t bank_index);
 
+    /**
+     * @brief Sends one ADSR knob value as a MIDI Control Change message.
+     *
+     * @param bank_index ADSR bank index in the range `[0, bank_count_)`.
+     * @param knob_index ADSR knob index in the range `[0, knob_count_)`.
+     * @param value MIDI controller value in the range `[0, 127]`.
+     */
+    void send_knob_midi_cc_(size_t bank_index, size_t knob_index, uint8_t value);
+
+    /**
+     * @brief Sends one ADSR latched button state as a MIDI Control Change message.
+     *
+     * @param bank_index ADSR bank index in the range `[0, bank_count_)`.
+     * @param enabled Latched button state where `true` maps to `127`.
+     */
+    void send_button3_midi_cc_(size_t bank_index, bool enabled);
+
+    /**
+     * @brief Sends the full stored ADSR parameter state over MIDI.
+     */
+    void send_all_midi_cc_();
+
     /** @brief Standalone buttons owned by the block. */
     Button buttons_[button_count_];
 
@@ -172,6 +199,9 @@ private:
 
     /** @brief Latched button-3 state stored independently for each bank. */
     bool button3_values_[bank_count_] = {};
+
+    /** @brief Optional MIDI transport used for ADSR Control Change messages. */
+    MIDI *midi_ = nullptr;
 };
 
 #endif /* SRC_BLOCKS_ADSR_H_ */
