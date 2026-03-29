@@ -11,6 +11,7 @@
 #include "blocks/OSC.h"
 #include "InputController.h"
 #include "LEDS.h"
+#include "MIDI.h"
 #include "PresetStore.h"
 #include "UART.h"
 
@@ -33,7 +34,8 @@ static K_SEM_DEFINE(input_thread_started, 0, 1);
 
 static int input_thread_status = 0;
 
-static void input_thread(void *, void *, void *) {
+static void input_thread(void *p1, void *, void *) {
+    MIDI *midi = static_cast<MIDI *>(p1);
     InputController inputs;
     LEDSController leds;
     ADSR adsr;
@@ -61,7 +63,7 @@ static void input_thread(void *, void *, void *) {
         ret = mod.init(inputs, leds);
     }
     if (ret == 0) {
-        ret = osc.init(inputs, leds);
+        ret = osc.init(inputs, leds, midi);
     }
     if (ret == 0) {
         ret = preset_store.init();
@@ -136,6 +138,7 @@ int main(void)
     int ret;
     uint32_t blink_count = 0U;
     UART uart1;
+    MIDI midi;
 
     if (!gpio_is_ready_dt(&led)) {
         LOG_ERR("LED GPIO device is not ready");
@@ -156,6 +159,11 @@ int main(void)
         if (ret < 0) {
             LOG_ERR("Failed to write UART1 startup banner: %d", ret);
         }
+
+        ret = midi.init(uart1);
+        if (ret < 0) {
+            LOG_ERR("Failed to initialize MIDI transport: %d", ret);
+        }
     }
 
     LOG_INF("Bassline Junkie Interface");
@@ -165,7 +173,7 @@ int main(void)
                     input_thread_stack,
                     K_THREAD_STACK_SIZEOF(input_thread_stack),
                     input_thread,
-                    nullptr,
+                    &midi,
                     nullptr,
                     nullptr,
                     input_thread_priority,

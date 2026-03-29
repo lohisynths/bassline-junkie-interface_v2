@@ -5,6 +5,7 @@
 #include "InputController.h"
 #include "Knob.h"
 #include "LEDS.h"
+#include "MIDI.h"
 #include "PresetSnapshot.h"
 
 #include <stddef.h>
@@ -23,11 +24,12 @@ public:
      *
      * @param inputs Shared input controller used by all block controls.
      * @param leds Shared LED controller used by all block controls.
+     * @param midi Optional MIDI transport used for OSC knob Control Change messages.
      *
      * @retval 0 All controls were initialized successfully.
      * @retval negative Error propagated from @ref Button::init or @ref Knob::init.
      */
-    int init(InputController &inputs, LEDSController &leds);
+    int init(InputController &inputs, LEDSController &leds, MIDI *midi = nullptr);
 
     /**
      * @brief Captures the current durable OSC block state.
@@ -187,6 +189,9 @@ private:
 
     /** @brief Stored knob values for each selector bank. */
     uint8_t knob_values_[bank_count_][knob_count_] = {};
+
+    /** @brief Optional MIDI transport used for OSC knob Control Change messages. */
+    MIDI *midi_ = nullptr;
 
     /** @brief Set when one knob button was newly pressed during the latest update. */
     bool has_newly_pressed_knob_ = false;
