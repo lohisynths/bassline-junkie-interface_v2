@@ -34,6 +34,9 @@ int LED_DISP::init(InputController &inputs,
     browse_started_at_ms_ = 0;
     revert_blink_active_ = false;
     revert_blink_started_at_ms_ = 0;
+    save_triggered_during_hold_ = false;
+    save_feedback_blink_active_ = false;
+    save_feedback_blink_started_at_ms_ = 0;
 
     int ret = knob_.init(inputs, knob_config_, leds);
     if (ret < 0) {
@@ -59,6 +62,7 @@ int LED_DISP::init(InputController &inputs,
 int LED_DISP::update()
 {
     Knob::knob_msg knob_msg;
+    const int64_t now_ms = k_uptime_get();
 
     int ret = knob_.update(knob_msg);
     if (ret < 0) {
@@ -70,6 +74,11 @@ int LED_DISP::update()
         if (revert_blink_active_) {
             revert_blink_active_ = false;
             revert_blink_started_at_ms_ = 0;
+        }
+
+        if (save_feedback_blink_active_) {
+            save_feedback_blink_active_ = false;
+            save_feedback_blink_started_at_ms_ = 0;
         }
 
         refresh_browse_timeout_();
@@ -99,20 +108,17 @@ int LED_DISP::update()
                 }
             }
 
-            press_started_at_ms_ = k_uptime_get();
+            press_started_at_ms_ = now_ms;
+            save_triggered_during_hold_ = false;
             return 0;
         }
 
-        const int64_t held_ms = k_uptime_get() - press_started_at_ms_;
+        const int64_t held_ms = now_ms - press_started_at_ms_;
         press_started_at_ms_ = 0;
+        const bool save_was_triggered = save_triggered_during_hold_;
+        save_triggered_during_hold_ = false;
 
-        if (held_ms >= save_hold_ms_) {
-            ret = save_selected_preset_();
-            if (ret < 0) {
-                LOG_ERR("Failed to save preset %d: %d", (int)knob_.get_value(), ret);
-                return ret;
-            }
-        } else {
+        if (!save_was_triggered && (held_ms < save_hold_ms_)) {
             ret = load_selected_preset_();
             if (ret < 0) {
                 LOG_ERR("Failed to load preset %d: %d", (int)knob_.get_value(), ret);
@@ -121,8 +127,47 @@ int LED_DISP::update()
         }
     }
 
+    if (knob_.get_state() && (press_started_at_ms_ != 0)) {
+        const int64_t held_ms = now_ms - press_started_at_ms_;
+
+        if ((held_ms >= save_hold_ms_) && !save_triggered_during_hold_) {
+            ret = save_selected_preset_();
+            if (ret < 0) {
+                LOG_ERR("Failed to save preset %d on hold timeout: %d",
+                        (int)knob_.get_value(),
+                        ret);
+                return ret;
+            }
+
+            save_triggered_during_hold_ = true;
+            save_feedback_blink_active_ = true;
+            save_feedback_blink_started_at_ms_ = now_ms;
+
+            ret = render_blank_();
+            if (ret < 0) {
+                LOG_ERR("Failed to start save feedback blink: %d", ret);
+                return ret;
+            }
+        }
+    }
+
+    if (save_feedback_blink_active_) {
+        if ((now_ms - save_feedback_blink_started_at_ms_) >= save_feedback_blink_ms_) {
+            save_feedback_blink_active_ = false;
+            save_feedback_blink_started_at_ms_ = 0;
+
+            ret = render_value_();
+            if (ret < 0) {
+                LOG_ERR("Failed to restore display after save blink: %d", ret);
+                return ret;
+            }
+        }
+
+        return 0;
+    }
+
     if (revert_blink_active_) {
-        if ((k_uptime_get() - revert_blink_started_at_ms_) >= revert_blink_ms_) {
+        if ((now_ms - revert_blink_started_at_ms_) >= revert_blink_ms_) {
             revert_blink_active_ = false;
             revert_blink_started_at_ms_ = 0;
             browse_started_at_ms_ = 0;
@@ -147,9 +192,9 @@ int LED_DISP::update()
 
     if ((browse_started_at_ms_ != 0) &&
         !knob_.get_state() &&
-        ((k_uptime_get() - browse_started_at_ms_) >= browse_timeout_ms_)) {
+        ((now_ms - browse_started_at_ms_) >= browse_timeout_ms_)) {
         revert_blink_active_ = true;
-        revert_blink_started_at_ms_ = k_uptime_get();
+        revert_blink_started_at_ms_ = now_ms;
 
         ret = render_blank_();
         if (ret < 0) {
@@ -291,6 +336,8 @@ int LED_DISP::load_selected_preset_()
     browse_started_at_ms_ = 0;
     revert_blink_active_ = false;
     revert_blink_started_at_ms_ = 0;
+    save_feedback_blink_active_ = false;
+    save_feedback_blink_started_at_ms_ = 0;
 
     LOG_INF("%s preset %d",
             slot_was_saved ? "Loaded" : "Loaded default state for empty",
@@ -317,6 +364,8 @@ int LED_DISP::save_selected_preset_()
     browse_started_at_ms_ = 0;
     revert_blink_active_ = false;
     revert_blink_started_at_ms_ = 0;
+    save_feedback_blink_active_ = false;
+    save_feedback_blink_started_at_ms_ = 0;
 
     LOG_INF("Saved preset %d", (int)knob_.get_value());
     return render_value_();
