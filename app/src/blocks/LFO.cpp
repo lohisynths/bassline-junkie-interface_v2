@@ -46,7 +46,6 @@ int LFO::init(InputController &inputs, LEDSController &leds)
 void LFO::capture_state(LFOState &state) const
 {
     state = {};
-    state.selected_bank = selected_bank_;
 
     for (size_t bank = 0U; bank < bank_count_; ++bank) {
         state.radio_selection[bank] = radio_selection_[bank];
@@ -67,7 +66,12 @@ int LFO::apply_state(const LFOState &state)
         }
     }
 
-    return select_bank_(clamp_index_(state.selected_bank, bank_count_));
+    int ret = recall_bank_to_knobs_(selected_bank_);
+    if (ret < 0) {
+        return ret;
+    }
+
+    return update_selector_leds_();
 }
 
 int LFO::update()

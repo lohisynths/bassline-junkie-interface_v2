@@ -11,7 +11,6 @@ struct ADSRState {
     static constexpr size_t bank_count = 3U;
     static constexpr size_t knob_count = 4U;
 
-    uint8_t selected_bank = 0U;
     uint8_t knob_values[bank_count][knob_count] = {};
     uint8_t button3_values[bank_count] = {};
 };
@@ -33,7 +32,6 @@ struct LFOState {
     static constexpr size_t bank_count = 3U;
     static constexpr size_t knob_count = 1U;
 
-    uint8_t selected_bank = 0U;
     uint8_t knob_values[bank_count][knob_count] = {};
     uint8_t radio_selection[bank_count] = {};
 };
@@ -45,7 +43,6 @@ struct MODState {
     static constexpr size_t bank_count = 6U;
     static constexpr size_t knob_count = 1U;
 
-    uint8_t selected_bank = 0U;
     uint8_t knob_values[bank_count][knob_count] = {};
 };
 
@@ -56,7 +53,6 @@ struct OSCState {
     static constexpr size_t bank_count = 3U;
     static constexpr size_t knob_count = 5U;
 
-    uint8_t selected_bank = 0U;
     uint8_t knob_values[bank_count][knob_count] = {};
 };
 

@@ -29,7 +29,8 @@ block class groups one standalone knob with one three-digit seven-segment LED
 display into a preset selector and preset save/load UI. The new `PresetStore`
 class keeps 128 preset snapshots in a dedicated internal-flash partition, and
 the `PresetSnapshot` model captures the durable state of the `ADSR`, `FLT`,
-`LFO`, `MOD`, and `OSC` blocks. The current runtime pattern maps one encoder
+`LFO`, `MOD`, and `OSC` blocks while leaving the bank-selector buttons live.
+The current runtime pattern maps one encoder
 onto each LED-backed segment, exposes latched knob-value banks where required,
 maintains one clamped knob value in the range `0..127` per knob, lights one
 LED in each segment according to the active value when LEDs are assigned,
@@ -214,6 +215,7 @@ When the application is flashed and running on the board:
 - selector and radio-button LEDs reflect the currently active state, and bank `0` is selected on boot
 - the `LED_DISP` block shows the currently selected preset number in the range `0..127` with blank leading digits
 - preset `0` is auto-loaded on boot, short display-knob presses load the selected preset, and long display-knob presses save the current full-surface state
+- presets restore bank contents but keep the currently selected bank in `ADSR`, `LFO`, `MOD`, and `OSC`
 - loading an unsaved preset slot applies the default all-zero surface state until the slot is explicitly saved
 - button inputs are active-low, and each knob exposes its encoder push-button state for higher-level logic
 - serial logs report bank changes, button transitions, radio selections, knob movements, and preset save/load actions while the input thread runs
