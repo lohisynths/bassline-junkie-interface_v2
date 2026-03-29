@@ -77,6 +77,12 @@ private:
     /** @brief Hold time required to save one preset instead of loading it. */
     static const int64_t save_hold_ms_ = 1000;
 
+    /** @brief Idle time after preset browsing before the display snaps back. */
+    static const int64_t browse_timeout_ms_ = 5000;
+
+    /** @brief Duration of the blanking blink before the active preset is restored. */
+    static const int64_t revert_blink_ms_ = 200;
+
     /** @brief Static knob binding for the display encoder and push button. */
     static constexpr Knob::Config knob_config_ = {
         .button_mux_index = 4U,
@@ -120,6 +126,14 @@ private:
     int set_digit_(size_t digit_index, const bool (&pattern)[display_segments_per_digit_]);
 
     /**
+     * @brief Blanks all three display digits.
+     *
+     * @retval 0 The display was blanked successfully.
+     * @retval negative Error propagated from @ref set_digit_.
+     */
+    int render_blank_();
+
+    /**
      * @brief Renders the current preset number onto the 3-digit display.
      *
      * Leading zero digits are blanked while the ones digit is always shown.
@@ -158,6 +172,11 @@ private:
      */
     int save_selected_preset_();
 
+    /**
+     * @brief Starts or clears the browse timeout depending on the selected preset.
+     */
+    void refresh_browse_timeout_();
+
     /** @brief Display knob owned by the block. */
     Knob knob_;
 
@@ -184,6 +203,18 @@ private:
 
     /** @brief Timestamp captured when the preset button was pressed. */
     int64_t press_started_at_ms_ = 0;
+
+    /** @brief Preset currently considered active after the last load or save. */
+    uint8_t active_preset_ = 0U;
+
+    /** @brief Timestamp of the last browse movement away from the active preset. */
+    int64_t browse_started_at_ms_ = 0;
+
+    /** @brief Tracks whether the timeout blink is currently blanking the display. */
+    bool revert_blink_active_ = false;
+
+    /** @brief Timestamp when the timeout blink started. */
+    int64_t revert_blink_started_at_ms_ = 0;
 };
 
 #endif /* SRC_BLOCKS_LED_DISP_H_ */
