@@ -8,18 +8,12 @@ project(bassline_junkie_interface)
 target_include_directories(app PRIVATE src)
 
 target_sources(app PRIVATE
-    src/blocks/ADSR.cpp
-    src/blocks/FLT.cpp
-    src/blocks/LED_DISP.cpp
-    src/blocks/LFO.cpp
-    src/blocks/MOD.cpp
     src/blocks/OSC.cpp
     src/Button.cpp
     src/Encoder.cpp
     src/Knob.cpp
     src/main.cpp
     src/MIDI.cpp
-    src/PresetStore.cpp
     src/GPIO.cpp
     src/InputController.cpp
     src/LEDS.cpp

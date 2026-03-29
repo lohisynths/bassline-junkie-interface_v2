@@ -3,16 +3,10 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
-#include "blocks/ADSR.h"
-#include "blocks/FLT.h"
-#include "blocks/LED_DISP.h"
-#include "blocks/LFO.h"
-#include "blocks/MOD.h"
 #include "blocks/OSC.h"
 #include "InputController.h"
 #include "LEDS.h"
 #include "MIDI.h"
-#include "PresetStore.h"
 #include "UART.h"
 
 LOG_MODULE_REGISTER(app, LOG_LEVEL_INF);
@@ -38,38 +32,10 @@ static void input_thread(void *p1, void *, void *) {
     MIDI *midi = static_cast<MIDI *>(p1);
     InputController inputs;
     LEDSController leds;
-    ADSR adsr;
-    FLT flt;
-    LED_DISP led_disp;
-    LFO lfo;
-    MOD mod;
-    OSC osc;
-    PresetStore preset_store;
 
     int ret = inputs.init();
     if (ret == 0) {
         ret = leds.init();
-    }
-    if (ret == 0) {
-        ret = adsr.init(inputs, leds, midi);
-    }
-    if (ret == 0) {
-        ret = flt.init(inputs, leds, midi);
-    }
-    if (ret == 0) {
-        ret = lfo.init(inputs, leds, midi);
-    }
-    if (ret == 0) {
-        ret = mod.init(inputs, leds, midi);
-    }
-    if (ret == 0) {
-        ret = osc.init(inputs, leds, midi);
-    }
-    if (ret == 0) {
-        ret = preset_store.init();
-    }
-    if (ret == 0) {
-        ret = led_disp.init(inputs, leds, preset_store, adsr, flt, lfo, mod, osc);
     }
 
     input_thread_status = ret;
@@ -85,74 +51,6 @@ static void input_thread(void *p1, void *, void *) {
         if (ret < 0) {
             LOG_ERR("Failed to read inputs: %d", ret);
             return;
-        }
-
-        ret = adsr.update();
-        if (ret < 0) {
-            return;
-        }
-
-        ret = flt.update();
-        if (ret < 0) {
-            return;
-        }
-
-        ret = lfo.update();
-        if (ret < 0) {
-            return;
-        }
-
-        ret = mod.update();
-        if (ret < 0) {
-            return;
-        }
-
-        ret = osc.update();
-        if (ret < 0) {
-            return;
-        }
-
-        ret = led_disp.update();
-        if (ret < 0) {
-            return;
-        }
-
-        if (mod.mod_knob_pressed()) {
-            size_t knob_index = 0U;
-
-            if (flt.take_newly_pressed_knob(knob_index)) {
-                mod.report_link_target("FLT", knob_index, 0);
-            }
-
-            if (osc.take_newly_pressed_knob(knob_index)) {
-                mod.report_link_target("OSC", knob_index, osc.selected_bank());
-            }
-        }
-
-        if (mod.osc_flt_led_preview_active()) {
-            ret = osc.show_mod_preview(mod);
-            if (ret < 0) {
-                LOG_ERR("Failed to render OSC MOD preview: %d", ret);
-                return;
-            }
-
-            ret = flt.show_mod_preview(mod);
-            if (ret < 0) {
-                LOG_ERR("Failed to render FLT MOD preview: %d", ret);
-                return;
-            }
-        } else {
-            ret = osc.restore_leds_after_preview();
-            if (ret < 0) {
-                LOG_ERR("Failed to restore OSC LEDs after MOD preview: %d", ret);
-                return;
-            }
-
-            ret = flt.restore_leds_after_preview();
-            if (ret < 0) {
-                LOG_ERR("Failed to restore FLT LEDs after MOD preview: %d", ret);
-                return;
-            }
         }
 
         k_msleep(input_poll_interval_ms);
