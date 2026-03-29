@@ -11,6 +11,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - quadrature decoding from cached CD4067 channels through the `Encoder` class
 - reusable knob composition through the `Knob` class
 - polling-based app transport through the `UART` class on `USART1`
+- MIDI channel-message helpers through the `MIDI` class layered on `UART`
 - ADSR control-surface composition through the `ADSR` block class
 - FLT control-surface composition through the `FLT` block class
 - preset display composition through the `LED_DISP` block class
@@ -38,6 +39,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - `PresetSnapshot`: provides the durable schema for the `ADSR`, `FLT`, `LFO`, `MOD`, and `OSC` block states stored in one preset slot while leaving bank selectors live
 - `PresetStore`: owns the flash-backed 128-slot preset log, validates it with CRC32, returns default state for unsaved slots, and appends one flash record on save
 - `UART`: wraps the app-owned `USART1` device on `PA9`/`PA10`, exposes polling writes plus non-blocking reads, and keeps the Zephyr console on `USART2`
+- `MIDI`: binds to one initialized `UART` transport and emits Note On, Note Off, and Control Change channel messages
 - `utils`: provides shared helpers such as 16-bit mask-to-binary-string formatting used by debug logging
 - `cd4067`: out-of-tree Zephyr module providing the CD4067 GPIO multiplexer driver
 - `main.cpp`: initializes the board LED, starts an input thread that constructs `InputController`, `LEDSController`, one `ADSR` block, one `FLT` block, one `LFO` block, one `MOD` block, one `OSC` block, one `PresetStore`, and one `LED_DISP` block as plain locals, and runs the block update loop alongside the heartbeat LED
@@ -78,6 +80,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - PWM LED control is implemented in `src/LEDS.cpp` and declared in `src/LEDS.h`.
 - Flash-backed preset persistence is implemented in `src/PresetStore.cpp` and declared in `src/PresetStore.h`.
 - App-owned UART transport is implemented in `src/UART.cpp` and declared in `src/UART.h`.
+- MIDI transport helpers are implemented in `src/MIDI.cpp` and declared in `src/MIDI.h`.
 - The durable preset schema is declared in `src/PresetSnapshot.h`.
 - CD4067 aggregation is implemented in `src/MUX.cpp` and declared in `src/MUX.h`.
 - Shared binary-mask formatting helpers are implemented in `src/utils.cpp` and declared in `src/utils.h`.

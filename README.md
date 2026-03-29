@@ -32,6 +32,8 @@ the `PresetSnapshot` model captures the durable state of the `ADSR`, `FLT`,
 `LFO`, `MOD`, and `OSC` blocks while leaving the bank-selector buttons live.
 The `UART` class owns one app-facing polling transport on `USART1` and keeps
 the existing Zephyr console on the ST-LINK virtual serial port.
+The `MIDI` class builds on top of that `UART` transport and emits basic MIDI
+channel messages such as Note On, Note Off, and Control Change.
 The current runtime pattern maps one encoder
 onto each LED-backed segment, exposes latched knob-value banks where required,
 maintains one clamped knob value in the range `0..127` per knob, lights one
@@ -140,6 +142,7 @@ The main application sources are:
 - `app/src/PresetSnapshot.h`: durable preset schema for the `ADSR`, `FLT`, `LFO`, `MOD`, and `OSC` blocks
 - `app/src/PresetStore.h` and `app/src/PresetStore.cpp`: flash-backed preset storage helper that validates one versioned preset log with CRC32, exposes 128 slots, returns default state for unsaved slots, and appends one flash record on each save
 - `app/src/UART.h` and `app/src/UART.cpp`: polling-based wrapper around the app-owned `USART1` transport on `PA9`/`PA10`, including buffer writes plus non-blocking reads
+- `app/src/MIDI.h` and `app/src/MIDI.cpp`: MIDI channel-message helper layered on top of `UART`, including Note On, Note Off, and Control Change message encoding
 - `app/src/main.cpp`: entrypoint, input-thread setup, `ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`, `OSC`, and `PresetStore` wiring, and top-level runtime loop
 - `app/src/GPIO.h` and `app/src/GPIO.cpp`: discrete GPIO input initialization and bitmask reads
 - `app/src/InputController.h` and `app/src/InputController.cpp`: aggregate input reads across all mux and GPIO sources, expose `input_count`, and provide optional debug logging helpers for input transitions and state dumps
@@ -191,7 +194,7 @@ The Doxygen landing page focuses on code structure and module responsibilities.
 Use this README as the canonical source for environment setup, build, flash,
 and hardware wiring information. The generated API docs include the `Button`,
 `Encoder`, `GPIO`, `InputController`, `Knob`, `LEDSController`, `MUX`,
-`PresetStore`, `UART`, `ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`, and `OSC` classes,
+`PresetStore`, `UART`, `MIDI`, `ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`, and `OSC` classes,
 the shared `PresetSnapshot` schema, the shared `utils` helpers, plus the
 CD4067 driver interface.
 
