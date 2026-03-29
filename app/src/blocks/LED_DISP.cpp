@@ -30,6 +30,10 @@ int LED_DISP::init(InputController &inputs,
     mod_ = nullptr;
     osc_ = nullptr;
     press_started_at_ms_ = 0;
+    active_preset_ = 0U;
+    browse_started_at_ms_ = 0;
+    revert_blink_active_ = false;
+    revert_blink_started_at_ms_ = 0;
 
     int ret = knob_.init(inputs, knob_config_, leds);
     if (ret < 0) {
@@ -63,6 +67,13 @@ int LED_DISP::update()
     }
 
     if (knob_msg.value_changed) {
+        if (revert_blink_active_) {
+            revert_blink_active_ = false;
+            revert_blink_started_at_ms_ = 0;
+        }
+
+        refresh_browse_timeout_();
+
         ret = render_value_();
         if (ret < 0) {
             LOG_ERR("Failed to update preset display value: %d", ret);
@@ -77,6 +88,17 @@ int LED_DISP::update()
                 knob_.get_state() ? "pressed" : "released");
 
         if (knob_.get_state()) {
+            if (revert_blink_active_) {
+                revert_blink_active_ = false;
+                revert_blink_started_at_ms_ = 0;
+
+                ret = render_value_();
+                if (ret < 0) {
+                    LOG_ERR("Failed to restore preset display during button press: %d", ret);
+                    return ret;
+                }
+            }
+
             press_started_at_ms_ = k_uptime_get();
             return 0;
         }
@@ -96,6 +118,43 @@ int LED_DISP::update()
                 LOG_ERR("Failed to load preset %d: %d", (int)knob_.get_value(), ret);
                 return ret;
             }
+        }
+    }
+
+    if (revert_blink_active_) {
+        if ((k_uptime_get() - revert_blink_started_at_ms_) >= revert_blink_ms_) {
+            revert_blink_active_ = false;
+            revert_blink_started_at_ms_ = 0;
+            browse_started_at_ms_ = 0;
+
+            ret = knob_.set_value(active_preset_);
+            if (ret < 0) {
+                LOG_ERR("Failed to restore active preset %d: %d", (int)active_preset_, ret);
+                return ret;
+            }
+
+            ret = render_value_();
+            if (ret < 0) {
+                LOG_ERR("Failed to redraw restored preset %d: %d", (int)active_preset_, ret);
+                return ret;
+            }
+
+            LOG_INF("Restored active preset %d after browse timeout", (int)active_preset_);
+        }
+
+        return 0;
+    }
+
+    if ((browse_started_at_ms_ != 0) &&
+        !knob_.get_state() &&
+        ((k_uptime_get() - browse_started_at_ms_) >= browse_timeout_ms_)) {
+        revert_blink_active_ = true;
+        revert_blink_started_at_ms_ = k_uptime_get();
+
+        ret = render_blank_();
+        if (ret < 0) {
+            LOG_ERR("Failed to blink preset display before restore: %d", ret);
+            return ret;
         }
     }
 
@@ -151,6 +210,21 @@ int LED_DISP::render_value_()
     }
 
     return set_digit_(2U, digit_patterns_[ones]);
+}
+
+int LED_DISP::render_blank_()
+{
+    int ret = set_digit_(0U, blank_digit_pattern_);
+    if (ret < 0) {
+        return ret;
+    }
+
+    ret = set_digit_(1U, blank_digit_pattern_);
+    if (ret < 0) {
+        return ret;
+    }
+
+    return set_digit_(2U, blank_digit_pattern_);
 }
 
 void LED_DISP::capture_snapshot_(PresetSnapshot &snapshot) const
@@ -213,6 +287,11 @@ int LED_DISP::load_selected_preset_()
         return ret;
     }
 
+    active_preset_ = knob_.get_value();
+    browse_started_at_ms_ = 0;
+    revert_blink_active_ = false;
+    revert_blink_started_at_ms_ = 0;
+
     LOG_INF("%s preset %d",
             slot_was_saved ? "Loaded" : "Loaded default state for empty",
             (int)knob_.get_value());
@@ -234,6 +313,21 @@ int LED_DISP::save_selected_preset_()
         return ret;
     }
 
+    active_preset_ = knob_.get_value();
+    browse_started_at_ms_ = 0;
+    revert_blink_active_ = false;
+    revert_blink_started_at_ms_ = 0;
+
     LOG_INF("Saved preset %d", (int)knob_.get_value());
     return render_value_();
+}
+
+void LED_DISP::refresh_browse_timeout_()
+{
+    if (knob_.get_value() == active_preset_) {
+        browse_started_at_ms_ = 0;
+        return;
+    }
+
+    browse_started_at_ms_ = k_uptime_get();
 }
