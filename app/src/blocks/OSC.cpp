@@ -12,15 +12,6 @@ uint8_t clamp_knob_value_(uint8_t value)
     return (value > 127U) ? 127U : value;
 }
 
-uint8_t clamp_index_(uint8_t index, size_t count)
-{
-    if ((count == 0U) || (index < count)) {
-        return index;
-    }
-
-    return (uint8_t)(count - 1U);
-}
-
 } // namespace
 
 int OSC::init(InputController &inputs, LEDSController &leds)
@@ -46,7 +37,6 @@ int OSC::init(InputController &inputs, LEDSController &leds)
 void OSC::capture_state(OSCState &state) const
 {
     state = {};
-    state.selected_bank = selected_bank_;
 
     for (size_t bank = 0U; bank < bank_count_; ++bank) {
         for (size_t knob = 0U; knob < knob_count_; ++knob) {
@@ -66,7 +56,12 @@ int OSC::apply_state(const OSCState &state)
     has_newly_pressed_knob_ = false;
     newly_pressed_knob_index_ = 0U;
 
-    return select_bank_(clamp_index_(state.selected_bank, bank_count_));
+    int ret = recall_bank_to_knobs_(selected_bank_);
+    if (ret < 0) {
+        return ret;
+    }
+
+    return update_selector_leds_();
 }
 
 int OSC::update()

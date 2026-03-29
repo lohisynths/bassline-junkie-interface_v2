@@ -34,7 +34,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - `Knob`: owns one internal `Encoder`, reads one configured active-low button bit directly from cached input state, binds the knob UI to one contiguous LED range, maintains one `0..127` value from encoder movement, supports explicit value recall through `set_value()`, renders that value on the LED segment, and exposes the knob button state
 - `LEDSController`: wraps the configured PCA9685 controllers and exposes channel-based LED control
 - `MUX`: wraps the configured CD4067 devices, scans their inputs, and logs one active-channel mask per mux in hex or binary form
-- `PresetSnapshot`: provides the durable schema for the `ADSR`, `FLT`, `LFO`, `MOD`, and `OSC` block states stored in one preset slot
+- `PresetSnapshot`: provides the durable schema for the `ADSR`, `FLT`, `LFO`, `MOD`, and `OSC` block states stored in one preset slot while leaving bank selectors live
 - `PresetStore`: owns the flash-backed 128-slot preset image, validates it with CRC32, returns default state for unsaved slots, and rewrites the dedicated preset partition on save
 - `utils`: provides shared helpers such as 16-bit mask-to-binary-string formatting used by debug logging
 - `cd4067`: out-of-tree Zephyr module providing the CD4067 GPIO multiplexer driver
@@ -50,6 +50,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - `PresetStore` reserves one flash partition for 128 preset slots and returns the all-zero default surface when a slot has never been saved.
 - `LED_DISP` provides one knob plus an active-low three-digit seven-segment display that shows the selected preset number in the range `0..127`.
 - Preset `0` is auto-loaded on boot. Short display-knob presses load the selected preset, and long display-knob presses save the current full-surface state into that slot.
+- Preset loads restore bank contents but do not force a different selected bank in `ADSR`, `LFO`, `MOD`, or `OSC`.
 - `LEDSController` drives the PCA9685 outputs used for selector LEDs, knob segments, and the display.
 - Runtime logs cover heartbeat activity, button transitions, radio selections, bank changes, knob movement, and preset save/load actions.
 

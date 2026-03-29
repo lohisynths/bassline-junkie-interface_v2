@@ -13,7 +13,7 @@ LOG_MODULE_REGISTER(PresetStore, LOG_LEVEL_INF);
 namespace {
 
 constexpr uint32_t preset_magic = 0x31525042U;
-constexpr uint16_t preset_format_version = 1U;
+constexpr uint16_t preset_format_version = 2U;
 constexpr size_t valid_mask_size = PresetStore::preset_count / 8U;
 constexpr size_t write_scratch_size = 256U;
 

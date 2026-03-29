@@ -12,15 +12,6 @@ uint8_t clamp_knob_value_(uint8_t value)
     return (value > 127U) ? 127U : value;
 }
 
-uint8_t clamp_index_(uint8_t index, size_t count)
-{
-    if ((count == 0U) || (index < count)) {
-        return index;
-    }
-
-    return (uint8_t)(count - 1U);
-}
-
 } // namespace
 
 int MOD::init(InputController &inputs, LEDSController &leds)
@@ -46,7 +37,6 @@ int MOD::init(InputController &inputs, LEDSController &leds)
 void MOD::capture_state(MODState &state) const
 {
     state = {};
-    state.selected_bank = selected_bank_;
 
     for (size_t bank = 0U; bank < bank_count_; ++bank) {
         for (size_t knob = 0U; knob < knob_count_; ++knob) {
@@ -63,7 +53,12 @@ int MOD::apply_state(const MODState &state)
         }
     }
 
-    return select_bank_(clamp_index_(state.selected_bank, bank_count_));
+    int ret = recall_bank_to_knobs_(selected_bank_);
+    if (ret < 0) {
+        return ret;
+    }
+
+    return update_selector_leds_();
 }
 
 int MOD::update()
