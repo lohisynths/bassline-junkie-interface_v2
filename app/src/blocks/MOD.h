@@ -5,6 +5,7 @@
 #include "InputController.h"
 #include "Knob.h"
 #include "LEDS.h"
+#include "MIDI.h"
 #include "PresetSnapshot.h"
 
 #include <stddef.h>
@@ -24,11 +25,12 @@ public:
      *
      * @param inputs Shared input controller used by all block controls.
      * @param leds Shared LED controller used by all block controls.
+     * @param midi Optional MIDI transport used for MOD Control Change messages.
      *
      * @retval 0 All controls were initialized successfully.
      * @retval negative Error propagated from @ref Button::init or @ref Knob::init.
      */
-    int init(InputController &inputs, LEDSController &leds);
+    int init(InputController &inputs, LEDSController &leds, MIDI *midi = nullptr);
 
     /**
      * @brief Captures the current durable MOD block state.
@@ -185,6 +187,19 @@ private:
     int recall_virtual_bank_to_knobs_(size_t virtual_bank_index);
 
     /**
+     * @brief Sends one MOD virtual-bank value as a MIDI Control Change message.
+     *
+     * @param virtual_bank_index MOD virtual bank index in `[0, virtual_bank_count_)`.
+     * @param value MIDI controller value in the range `[0, 127]`.
+     */
+    void send_midi_cc_(size_t virtual_bank_index, uint8_t value);
+
+    /**
+     * @brief Sends the full stored MOD parameter state over MIDI.
+     */
+    void send_all_midi_cc_();
+
+    /**
      * @brief Maps one reported link target onto a per-group target offset.
      *
      * @param block_name Name of the source block.
@@ -241,6 +256,9 @@ private:
 
     /** @brief Stored knob values for each virtual bank. */
     uint8_t knob_values_[virtual_bank_count_][knob_count_] = {};
+
+    /** @brief Optional MIDI transport used for MOD Control Change messages. */
+    MIDI *midi_ = nullptr;
 };
 
 #endif /* SRC_BLOCKS_MOD_H_ */

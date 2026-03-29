@@ -21,9 +21,11 @@ uint8_t clamp_target_offset_(uint8_t value)
 
 } // namespace
 
-int MOD::init(InputController &inputs, LEDSController &leds)
+int MOD::init(InputController &inputs, LEDSController &leds, MIDI *midi)
 {
     int ret = 0;
+
+    midi_ = (midi != nullptr && midi->is_initialized()) ? midi : nullptr;
 
     for (size_t i = 0U; (i < button_count_) && (ret == 0); ++i) {
         ret = buttons_[i].init(inputs, button_configs_[i], leds);
@@ -85,7 +87,13 @@ int MOD::apply_state(const MODState &state)
         return ret;
     }
 
-    return update_selector_leds_();
+    ret = update_selector_leds_();
+    if (ret < 0) {
+        return ret;
+    }
+
+    send_all_midi_cc_();
+    return 0;
 }
 
 int MOD::update()
@@ -167,6 +175,7 @@ int MOD::update()
                     (unsigned int)virtual_bank_index,
                     (unsigned int)i,
                     (int)knobs_[i].get_value());
+            send_midi_cc_(virtual_bank_index, knobs_[i].get_value());
         }
     }
 
@@ -238,6 +247,8 @@ void MOD::report_link_target(const char *block_name, size_t knob_index, uint8_t 
                 ret);
         return;
     }
+
+    send_midi_cc_(requested_virtual_bank, knob_values_[requested_virtual_bank][0]);
 }
 
 int MOD::select_group_(size_t group_index)
@@ -249,13 +260,21 @@ int MOD::select_group_(size_t group_index)
     const uint8_t previous_group = selected_group_;
     selected_group_ = (uint8_t)group_index;
 
-    const int ret = recall_virtual_bank_to_knobs_(current_virtual_bank_index_());
+    const size_t current_virtual_bank = current_virtual_bank_index_();
+    const int ret = recall_virtual_bank_to_knobs_(current_virtual_bank);
     if (ret < 0) {
         selected_group_ = previous_group;
         return ret;
     }
 
-    return update_selector_leds_();
+    const int led_ret = update_selector_leds_();
+    if (led_ret < 0) {
+        selected_group_ = previous_group;
+        return led_ret;
+    }
+
+    send_midi_cc_(current_virtual_bank, knob_values_[current_virtual_bank][0]);
+    return 0;
 }
 
 int MOD::update_selector_leds_()
@@ -291,6 +310,30 @@ int MOD::recall_virtual_bank_to_knobs_(size_t virtual_bank_index)
     }
 
     return 0;
+}
+
+void MOD::send_midi_cc_(size_t virtual_bank_index, uint8_t value)
+{
+    if ((midi_ == nullptr) || (virtual_bank_index >= virtual_bank_count_)) {
+        return;
+    }
+
+    const uint8_t cc_number = (uint8_t)virtual_bank_index;
+    const int ret = midi_->send_cc(cc_number, value, 0U);
+    if (ret < 0) {
+        LOG_ERR("Failed to send MOD MIDI CC %u for virtual bank %u: %d",
+                (unsigned int)cc_number,
+                (unsigned int)virtual_bank_index,
+                ret);
+    }
+}
+
+void MOD::send_all_midi_cc_()
+{
+    for (size_t virtual_bank_index = 0U; virtual_bank_index < virtual_bank_count_;
+         ++virtual_bank_index) {
+        send_midi_cc_(virtual_bank_index, knob_values_[virtual_bank_index][0]);
+    }
 }
 
 bool MOD::target_offset_for_link_(const char *block_name,

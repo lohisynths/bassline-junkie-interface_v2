@@ -60,7 +60,7 @@ static void input_thread(void *p1, void *, void *) {
         ret = lfo.init(inputs, leds, midi);
     }
     if (ret == 0) {
-        ret = mod.init(inputs, leds);
+        ret = mod.init(inputs, leds, midi);
     }
     if (ret == 0) {
         ret = osc.init(inputs, leds, midi);
