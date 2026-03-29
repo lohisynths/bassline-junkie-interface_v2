@@ -178,6 +178,20 @@ private:
      */
     int recall_bank_to_knobs_(size_t bank_index);
 
+    /**
+     * @brief Sends one OSC knob value as a MIDI Control Change message.
+     *
+     * @param bank_index OSC bank index in the range `[0, bank_count_)`.
+     * @param knob_index OSC knob index in the range `[0, knob_count_)`.
+     * @param value MIDI controller value in the range `[0, 127]`.
+     */
+    void send_midi_cc_(size_t bank_index, size_t knob_index, uint8_t value);
+
+    /**
+     * @brief Sends the full stored OSC parameter state over MIDI.
+     */
+    void send_all_midi_cc_();
+
     /** @brief Selector buttons owned by the block. */
     Button buttons_[button_count_];
 
