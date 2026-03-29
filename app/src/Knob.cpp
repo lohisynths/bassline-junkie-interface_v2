@@ -42,12 +42,12 @@ int Knob::init(InputController &inputs, const Config &config, LEDSController &le
     return leds_->set_channel_percent(first_led_ + previous_led_index_, knob_brightness_percent);
 }
 
-bool Knob::get_state()
+bool Knob::get_state() const
 {
     return pressed_;
 }
 
-uint8_t Knob::get_value()
+uint8_t Knob::get_value() const
 {
     return value_;
 }

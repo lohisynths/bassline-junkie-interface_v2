@@ -39,7 +39,7 @@ int Button::update(button_msg &msg)
     return 0;
 }
 
-bool Button::get_state()
+bool Button::get_state() const
 {
     return pressed_;
 }

@@ -26,18 +26,21 @@ groups one knob, three bank-selector buttons, and five radio buttons into a
 fourth control-surface unit. The `FLT` block groups three radio buttons and
 three standalone knobs into a fifth control-surface unit. The `LED_DISP`
 block class groups one standalone knob with one three-digit seven-segment LED
-display into a sixth control-surface unit. The current runtime
-pattern maps one encoder onto each LED-backed segment, exposes latched
-knob-value banks where required, maintains one clamped knob value in the range
-`0..127` per knob, lights one LED in each segment according to the active
-value when LEDs are assigned, drives one active-low three-digit display from
-the dedicated display knob, and logs selection plus encoder movement as the
-input thread refreshes the cached state. The input thread constructs its
+display into a preset selector and preset save/load UI. The new `PresetStore`
+class keeps 128 preset snapshots in a dedicated internal-flash partition, and
+the `PresetSnapshot` model captures the durable state of the `ADSR`, `FLT`,
+`LFO`, `MOD`, and `OSC` blocks. The current runtime pattern maps one encoder
+onto each LED-backed segment, exposes latched knob-value banks where required,
+maintains one clamped knob value in the range `0..127` per knob, lights one
+LED in each segment according to the active value when LEDs are assigned,
+drives one active-low three-digit display from the dedicated preset knob,
+auto-loads preset `0` on boot, and uses the preset knob push button for short-
+press load plus long-press save. The input thread constructs its
 `InputController`, `LEDSController`, `ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`,
-and `OSC` objects as plain local objects, and each `Knob` owns its internal
-`Encoder` helper while reading its configured button bit directly. The button
-input is treated as active-low, so a raw mux bit value of `0` means pressed
-and `1` means released.
+`OSC`, and `PresetStore` objects as plain local objects, and each `Knob` owns
+its internal `Encoder` helper while reading its configured button bit
+directly. The button input is treated as active-low, so a raw mux bit value of
+`0` means pressed and `1` means released.
 
 The current CD4067 wiring described in `app/app.overlay` is:
 
@@ -112,14 +115,16 @@ The main application sources are:
 
 - `app/src/blocks/ADSR.h` and `app/src/blocks/ADSR.cpp`: reusable block that owns the current standalone button set and knob set, including their config tables, three banked knob-value sets, selector LED updates, and transition logging
 - `app/src/blocks/FLT.h` and `app/src/blocks/FLT.cpp`: reusable block that owns three radio buttons and three standalone knobs, including their config tables, radio-selection LED updates, and transition logging
-- `app/src/blocks/LED_DISP.h` and `app/src/blocks/LED_DISP.cpp`: reusable block that owns one standalone knob plus one active-low three-digit seven-segment display, including the knob config table, legacy segment pattern table, blank-leading decimal rendering, and transition logging
+- `app/src/blocks/LED_DISP.h` and `app/src/blocks/LED_DISP.cpp`: reusable block that owns the preset-selector knob plus one active-low three-digit seven-segment display, including the knob config table, preset save/load gesture handling, full-surface snapshot capture/application, blank-leading decimal rendering, and transition logging
 - `app/src/blocks/LFO.h` and `app/src/blocks/LFO.cpp`: reusable block that owns one knob plus three bank-selector buttons and five radio buttons, including their config tables, three banked knob-value sets, per-bank radio selection, selector LED updates, and transition logging
 - `app/src/blocks/MOD.h` and `app/src/blocks/MOD.cpp`: reusable block that owns one knob plus six bank-selector buttons, including their config tables, six banked knob-value sets, selector LED updates, and transition logging
 - `app/src/blocks/OSC.h` and `app/src/blocks/OSC.cpp`: reusable block that owns five knobs plus three bank-selector buttons, including their config tables, three banked knob-value sets, selector LED updates, and transition logging
 - `app/src/Button.h` and `app/src/Button.cpp`: button decoder with `Config` binding, `button_msg` change reporting, and explicit LED control through `set_led_val()`
 - `app/src/Encoder.h` and `app/src/Encoder.cpp`: quadrature decoder bound to one cached mux state and two CD4067 channels
 - `app/src/Knob.h` and `app/src/Knob.cpp`: reusable knob UI that owns one encoder, reads one raw active-low button bit, drives one contiguous LED segment, and supports explicit value recall through `set_value()`
-- `app/src/main.cpp`: entrypoint, input-thread setup, `ADSR`, `FLT`, `LFO`, `MOD`, and `OSC` block wiring, and top-level runtime loop
+- `app/src/PresetSnapshot.h`: durable preset schema for the `ADSR`, `FLT`, `LFO`, `MOD`, and `OSC` blocks
+- `app/src/PresetStore.h` and `app/src/PresetStore.cpp`: flash-backed preset storage helper that validates one versioned image with CRC32, exposes 128 slots, and rewrites the dedicated preset partition on save
+- `app/src/main.cpp`: entrypoint, input-thread setup, `ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`, `OSC`, and `PresetStore` wiring, and top-level runtime loop
 - `app/src/GPIO.h` and `app/src/GPIO.cpp`: discrete GPIO input initialization and bitmask reads
 - `app/src/InputController.h` and `app/src/InputController.cpp`: aggregate input reads across all mux and GPIO sources, expose `input_count`, and provide optional debug logging helpers for input transitions and state dumps
 - `app/src/LEDS.h` and `app/src/LEDS.cpp`: PCA9685 LED control through `LEDSController`
@@ -141,7 +146,10 @@ The final `app` argument tells `west` to use the application located in the
 `app/` directory. The app `CMakeLists.txt` registers `../cd4067` as an
 out-of-tree Zephyr module automatically and adds `app/src` to the target
 include path so nested sources such as `app/src/blocks/ADSR.h` can include
-project headers without `../` prefixes.
+project headers without `../` prefixes. The app config now enables
+`CONFIG_USE_DT_CODE_PARTITION`, so the linker is constrained to the `384 KB`
+`code_partition` declared in `app/app.overlay`, while the final `128 KB`
+sector is reserved for flash-backed presets in `preset_partition`.
 
 Successful builds produce artifacts under `build/app/zephyr/`, including
 `zephyr.elf`, `zephyr.hex`, and `zephyr.bin`.
@@ -167,8 +175,9 @@ The Doxygen landing page focuses on code structure and module responsibilities.
 Use this README as the canonical source for environment setup, build, flash,
 and hardware wiring information. The generated API docs include the `Button`,
 `Encoder`, `GPIO`, `InputController`, `Knob`, `LEDSController`, `MUX`, and
-`ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`, and `OSC` classes, the shared `utils`
-helpers, plus the CD4067 driver interface.
+`PresetStore`, `ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`, and `OSC` classes,
+the shared `PresetSnapshot` schema, the shared `utils` helpers, plus the
+CD4067 driver interface.
 
 ## Flash
 
@@ -195,15 +204,18 @@ When the application is flashed and running on the board:
 
 - the onboard LD2 LED toggles every 1 s
 - the firmware continuously scans the configured CD4067 muxes and discrete GPIO inputs into one cached input-state table
-- the input thread constructs the `InputController`, `LEDSController`, and the `ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`, and `OSC` control blocks before entering its polling loop
+- the input thread constructs the `InputController`, `LEDSController`, and the `ADSR`, `FLT`, `LFO`, `MOD`, `OSC`, `PresetStore`, and `LED_DISP` control blocks before entering its polling loop
 - the control surface exposes:
     - banked knob/button state in `ADSR`, `LFO`, `MOD`, and `OSC`
     - radio-button selection in `FLT` and in the per-bank `LFO` radio group
     - one active-low three-digit seven-segment display driven by `LED_DISP`
+    - 128 flash-backed presets selected on the `LED_DISP` encoder
 - knob values are clamped to `0..127`, recalled when a bank changes, and shown on their assigned LED segments when present
 - selector and radio-button LEDs reflect the currently active state, and bank `0` is selected on boot
-- the `LED_DISP` block shows its knob value in the range `0..127` with blank leading digits
+- the `LED_DISP` block shows the currently selected preset number in the range `0..127` with blank leading digits
+- preset `0` is auto-loaded on boot, short display-knob presses load the selected preset, and long display-knob presses save the current full-surface state
+- loading an unsaved preset slot applies the default all-zero surface state until the slot is explicitly saved
 - button inputs are active-low, and each knob exposes its encoder push-button state for higher-level logic
-- serial logs report bank changes, button transitions, radio selections, and knob movements while the input thread runs
+- serial logs report bank changes, button transitions, radio selections, knob movements, and preset save/load actions while the input thread runs
 - the main thread logs `Heartbeat: LED blink running` every 10 s
 - the firmware emits serial log messages on `ttyACM0` at `1000000` baud

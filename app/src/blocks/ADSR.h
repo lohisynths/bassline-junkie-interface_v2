@@ -5,6 +5,7 @@
 #include "InputController.h"
 #include "Knob.h"
 #include "LEDS.h"
+#include "PresetSnapshot.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -28,6 +29,19 @@ public:
      * @retval negative Error propagated from @ref Button::init or @ref Knob::init.
      */
     int init(InputController &inputs, LEDSController &leds);
+
+    /**
+     * @brief Captures the current durable ADSR block state.
+     */
+    void capture_state(ADSRState &state) const;
+
+    /**
+     * @brief Applies one durable ADSR block state snapshot.
+     *
+     * @retval 0 The requested state was applied successfully.
+     * @retval negative Error propagated from LED or knob updates.
+     */
+    int apply_state(const ADSRState &state);
 
     /**
      * @brief Updates all controls and emits the current transition logs.

@@ -5,6 +5,7 @@
 #include "InputController.h"
 #include "Knob.h"
 #include "LEDS.h"
+#include "PresetSnapshot.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -29,6 +30,19 @@ public:
     int init(InputController &inputs, LEDSController &leds);
 
     /**
+     * @brief Captures the current durable OSC block state.
+     */
+    void capture_state(OSCState &state) const;
+
+    /**
+     * @brief Applies one durable OSC block state snapshot.
+     *
+     * @retval 0 The requested state was applied successfully.
+     * @retval negative Error propagated from LED or knob updates.
+     */
+    int apply_state(const OSCState &state);
+
+    /**
      * @brief Updates all controls and emits the current transition logs.
      *
      * @retval 0 All controls were updated successfully.
@@ -49,7 +63,7 @@ public:
     /**
      * @brief Returns the currently selected bank.
      */
-    uint8_t selected_bank();
+    uint8_t selected_bank() const;
 
 private:
     /** @brief Number of LEDs reserved for each knob segment. */

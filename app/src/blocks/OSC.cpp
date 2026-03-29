@@ -5,6 +5,24 @@
 
 LOG_MODULE_REGISTER(OSC, LOG_LEVEL_INF);
 
+namespace {
+
+uint8_t clamp_knob_value_(uint8_t value)
+{
+    return (value > 127U) ? 127U : value;
+}
+
+uint8_t clamp_index_(uint8_t index, size_t count)
+{
+    if ((count == 0U) || (index < count)) {
+        return index;
+    }
+
+    return (uint8_t)(count - 1U);
+}
+
+} // namespace
+
 int OSC::init(InputController &inputs, LEDSController &leds)
 {
     int ret = 0;
@@ -23,6 +41,32 @@ int OSC::init(InputController &inputs, LEDSController &leds)
     }
 
     return ret;
+}
+
+void OSC::capture_state(OSCState &state) const
+{
+    state = {};
+    state.selected_bank = selected_bank_;
+
+    for (size_t bank = 0U; bank < bank_count_; ++bank) {
+        for (size_t knob = 0U; knob < knob_count_; ++knob) {
+            state.knob_values[bank][knob] = knob_values_[bank][knob];
+        }
+    }
+}
+
+int OSC::apply_state(const OSCState &state)
+{
+    for (size_t bank = 0U; bank < bank_count_; ++bank) {
+        for (size_t knob = 0U; knob < knob_count_; ++knob) {
+            knob_values_[bank][knob] = clamp_knob_value_(state.knob_values[bank][knob]);
+        }
+    }
+
+    has_newly_pressed_knob_ = false;
+    newly_pressed_knob_index_ = 0U;
+
+    return select_bank_(clamp_index_(state.selected_bank, bank_count_));
 }
 
 int OSC::update()
@@ -95,7 +139,7 @@ bool OSC::take_newly_pressed_knob(size_t &knob_index)
     return true;
 }
 
-uint8_t OSC::selected_bank()
+uint8_t OSC::selected_bank() const
 {
     return selected_bank_;
 }

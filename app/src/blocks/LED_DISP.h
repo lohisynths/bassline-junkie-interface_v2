@@ -4,33 +4,54 @@
 #include "InputController.h"
 #include "Knob.h"
 #include "LEDS.h"
+#include "PresetSnapshot.h"
 
 #include <stddef.h>
 #include <stdint.h>
 
+class ADSR;
+class FLT;
+class LFO;
+class MOD;
+class OSC;
+class PresetStore;
+
 /**
- * @brief Encapsulates the 3-digit LED display block and its dedicated knob.
+ * @brief Encapsulates the 3-digit LED display block as a preset selector UI.
  *
- * The block owns one knob with no local LED ring and projects its `0..127`
- * value onto a 3-digit 7-segment display with decimal-point LEDs. The display
- * outputs are currently active-low, so a `0%` PWM duty lights a segment and
- * `100%` turns it off.
+ * The block owns one knob with no local LED ring and interprets its `0..127`
+ * value as a flash-backed preset index. The 3-digit display always shows the
+ * selected preset number with blank leading digits. The display outputs are
+ * active-low, so a `0%` PWM duty lights a segment and `100%` turns it off.
  */
 class LED_DISP {
 public:
     /**
-     * @brief Initializes the knob and renders the initial display value.
+     * @brief Initializes the preset selector and auto-loads preset 0.
      *
      * @param inputs Shared input controller used by the knob.
      * @param leds Shared LED controller used by the display.
+     * @param preset_store Flash-backed preset store used for save/load actions.
+     * @param adsr ADSR block whose durable state participates in presets.
+     * @param flt FLT block whose durable state participates in presets.
+     * @param lfo LFO block whose durable state participates in presets.
+     * @param mod MOD block whose durable state participates in presets.
+     * @param osc OSC block whose durable state participates in presets.
      *
-     * @retval 0 The knob and display were initialized successfully.
+     * @retval 0 The selector was initialized and preset 0 was applied.
      * @retval negative Error propagated from @ref Knob::init or display updates.
      */
-    int init(InputController &inputs, LEDSController &leds);
+    int init(InputController &inputs,
+             LEDSController &leds,
+             PresetStore &preset_store,
+             ADSR &adsr,
+             FLT &flt,
+             LFO &lfo,
+             MOD &mod,
+             OSC &osc);
 
     /**
-     * @brief Updates the knob, logs its transitions, and refreshes the display.
+     * @brief Updates the preset selector, handles save/load gestures, and refreshes the display.
      *
      * @retval 0 The block state was updated successfully.
      * @retval negative Error propagated from @ref Knob::update or display writes.
@@ -52,6 +73,9 @@ private:
 
     /** @brief PWM percentage that turns one active-low display segment off. */
     static const uint8_t display_off_percent_ = 100U;
+
+    /** @brief Hold time required to save one preset instead of loading it. */
+    static const int64_t save_hold_ms_ = 1000;
 
     /** @brief Static knob binding for the display encoder and push button. */
     static constexpr Knob::Config knob_config_ = {
@@ -95,7 +119,7 @@ private:
     int set_digit_(size_t digit_index, const bool (&pattern)[display_segments_per_digit_]);
 
     /**
-     * @brief Renders the current knob value onto the 3-digit display.
+     * @brief Renders the current preset number onto the 3-digit display.
      *
      * Leading zero digits are blanked while the ones digit is always shown.
      *
@@ -104,11 +128,61 @@ private:
      */
     int render_value_();
 
+    /**
+     * @brief Captures one full-surface preset snapshot from the current blocks.
+     */
+    void capture_snapshot_(PresetSnapshot &snapshot) const;
+
+    /**
+     * @brief Applies one full-surface preset snapshot to all blocks.
+     *
+     * @retval 0 The snapshot was applied successfully.
+     * @retval negative Error propagated from block state application.
+     */
+    int apply_snapshot_(const PresetSnapshot &snapshot);
+
+    /**
+     * @brief Loads and applies the preset selected on the encoder.
+     *
+     * @retval 0 The selected preset or default state was applied successfully.
+     * @retval negative Error propagated from @ref PresetStore::load_preset or block updates.
+     */
+    int load_selected_preset_();
+
+    /**
+     * @brief Saves the current full-surface state into the selected preset slot.
+     *
+     * @retval 0 The selected preset was saved successfully.
+     * @retval negative Error propagated from @ref PresetStore::save_preset.
+     */
+    int save_selected_preset_();
+
     /** @brief Display knob owned by the block. */
     Knob knob_;
 
     /** @brief Shared LED controller borrowed from the caller. */
     LEDSController *leds_ = nullptr;
+
+    /** @brief Shared preset store borrowed from the caller. */
+    PresetStore *preset_store_ = nullptr;
+
+    /** @brief ADSR block borrowed from the caller. */
+    ADSR *adsr_ = nullptr;
+
+    /** @brief FLT block borrowed from the caller. */
+    FLT *flt_ = nullptr;
+
+    /** @brief LFO block borrowed from the caller. */
+    LFO *lfo_ = nullptr;
+
+    /** @brief MOD block borrowed from the caller. */
+    MOD *mod_ = nullptr;
+
+    /** @brief OSC block borrowed from the caller. */
+    OSC *osc_ = nullptr;
+
+    /** @brief Timestamp captured when the preset button was pressed. */
+    int64_t press_started_at_ms_ = 0;
 };
 
 #endif /* SRC_BLOCKS_LED_DISP_H_ */
