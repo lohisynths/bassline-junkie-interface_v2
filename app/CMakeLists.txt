@@ -23,4 +23,5 @@ target_sources(app PRIVATE
     src/InputController.cpp
     src/LEDS.cpp
     src/MUX.cpp
+    src/UART.cpp
     src/utils.cpp)
