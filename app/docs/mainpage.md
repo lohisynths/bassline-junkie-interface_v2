@@ -56,7 +56,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - FLT knob `0`, FLT knob `1`, and the FLT radio selection emit MIDI Control Change messages on channel `0`; FLT knob `2` is ignored by MIDI.
 - LFO banked radio selection and the LFO knob emit MIDI Control Change messages on channel `0`; the fifth LFO radio button is ignored by MIDI.
 - OSC knob value changes also emit MIDI Control Change messages on channel `0`, using CC `0..14` across the three OSC banks.
-- MOD knob value changes emit MIDI Control Change messages on channel `0`, using CC `0..101` across the 102 MOD virtual banks, and MOD bank recalls also resend the currently active virtual-bank value.
+- MOD knob value changes emit MIDI Control Change messages on channel `1`, using CC `0..101` across the 102 MOD virtual banks, and MOD bank recalls also resend the currently active virtual-bank value.
 - While the MOD knob is held, newly pressed OSC knobs map onto MOD target offsets `0..14`, FLT knob `0` maps to offset `15`, FLT knob `1` maps to offset `16`, and FLT knob `2` is ignored.
 - Each MOD selector group stores one remembered target offset and one MOD knob value for every virtual bank `((group * 17) + target_offset)`.
 - Preset loads also resend the full MOD MIDI Control Change snapshot, including all 102 MOD virtual banks.
