@@ -12,6 +12,7 @@
 #include "InputController.h"
 #include "LEDS.h"
 #include "PresetStore.h"
+#include "UART.h"
 
 LOG_MODULE_REGISTER(app, LOG_LEVEL_INF);
 
@@ -134,6 +135,7 @@ int main(void)
 {
     int ret;
     uint32_t blink_count = 0U;
+    UART uart1;
 
     if (!gpio_is_ready_dt(&led)) {
         LOG_ERR("LED GPIO device is not ready");
@@ -144,6 +146,16 @@ int main(void)
     if (ret < 0) {
         LOG_ERR("Failed to configure LED pin: %d", ret);
         return 0;
+    }
+
+    ret = uart1.init();
+    if (ret < 0) {
+        LOG_ERR("Failed to initialize UART1: %d", ret);
+    } else {
+        ret = uart1.write("Bassline Junkie Interface UART1 ready\r\n");
+        if (ret < 0) {
+            LOG_ERR("Failed to write UART1 startup banner: %d", ret);
+        }
     }
 
     LOG_INF("Bassline Junkie Interface");

@@ -30,6 +30,8 @@ display into a preset selector and preset save/load UI. The new `PresetStore`
 class keeps 128 preset snapshots in a dedicated internal-flash partition, and
 the `PresetSnapshot` model captures the durable state of the `ADSR`, `FLT`,
 `LFO`, `MOD`, and `OSC` blocks while leaving the bank-selector buttons live.
+The `UART` class owns one app-facing polling transport on `USART1` and keeps
+the existing Zephyr console on the ST-LINK virtual serial port.
 The current runtime pattern maps one encoder
 onto each LED-backed segment, exposes latched knob-value banks where required,
 maintains one clamped knob value in the range `0..127` per knob, lights one
@@ -70,6 +72,16 @@ The configured discrete GPIO inputs are:
 - `ENC14SW` -> `PC0`
 - `ENC14B` -> `PC1`
 - `ENC14A` -> `PH0`
+
+The configured app-owned UART wiring is:
+
+- `UART1_TX` -> `PA9`
+- `UART1_RX` -> `PA10`
+
+The serial transports are:
+
+- `USART1` on `PA9`/`PA10`: app-owned external UART transport at `115200` baud
+- `USART2` on the ST-LINK virtual COM port: Zephyr console and logs on `ttyACM0` at `1000000` baud
 
 ## Requirements
 
@@ -127,6 +139,7 @@ The main application sources are:
 - `app/src/Knob.h` and `app/src/Knob.cpp`: reusable knob UI that owns one encoder, reads one raw active-low button bit, drives one contiguous LED segment, supports explicit value recall through `set_value()`, and can divide raw encoder edges before exposing one visible value step
 - `app/src/PresetSnapshot.h`: durable preset schema for the `ADSR`, `FLT`, `LFO`, `MOD`, and `OSC` blocks
 - `app/src/PresetStore.h` and `app/src/PresetStore.cpp`: flash-backed preset storage helper that validates one versioned preset log with CRC32, exposes 128 slots, returns default state for unsaved slots, and appends one flash record on each save
+- `app/src/UART.h` and `app/src/UART.cpp`: polling-based wrapper around the app-owned `USART1` transport on `PA9`/`PA10`, including buffer writes plus non-blocking reads
 - `app/src/main.cpp`: entrypoint, input-thread setup, `ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`, `OSC`, and `PresetStore` wiring, and top-level runtime loop
 - `app/src/GPIO.h` and `app/src/GPIO.cpp`: discrete GPIO input initialization and bitmask reads
 - `app/src/InputController.h` and `app/src/InputController.cpp`: aggregate input reads across all mux and GPIO sources, expose `input_count`, and provide optional debug logging helpers for input transitions and state dumps
@@ -178,7 +191,7 @@ The Doxygen landing page focuses on code structure and module responsibilities.
 Use this README as the canonical source for environment setup, build, flash,
 and hardware wiring information. The generated API docs include the `Button`,
 `Encoder`, `GPIO`, `InputController`, `Knob`, `LEDSController`, `MUX`,
-`PresetStore`, `ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`, and `OSC` classes,
+`PresetStore`, `UART`, `ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`, and `OSC` classes,
 the shared `PresetSnapshot` schema, the shared `utils` helpers, plus the
 CD4067 driver interface.
 
@@ -206,6 +219,7 @@ Verified on this machine with:
 When the application is flashed and running on the board:
 
 - the onboard LD2 LED toggles every 1 s
+- the app-owned `USART1` transport on `PA9`/`PA10` emits `Bassline Junkie Interface UART1 ready` at `115200` baud during boot
 - the firmware continuously scans the configured CD4067 muxes and discrete GPIO inputs into one cached input-state table
 - the input thread constructs the `InputController`, `LEDSController`, and the `ADSR`, `FLT`, `LFO`, `MOD`, `OSC`, `PresetStore`, and `LED_DISP` control blocks before entering its polling loop
 - the control surface exposes:

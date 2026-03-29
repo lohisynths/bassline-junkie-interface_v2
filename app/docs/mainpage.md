@@ -10,6 +10,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - button decoding from cached input bits through the `Button` class
 - quadrature decoding from cached CD4067 channels through the `Encoder` class
 - reusable knob composition through the `Knob` class
+- polling-based app transport through the `UART` class on `USART1`
 - ADSR control-surface composition through the `ADSR` block class
 - FLT control-surface composition through the `FLT` block class
 - preset display composition through the `LED_DISP` block class
@@ -36,6 +37,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - `MUX`: wraps the configured CD4067 devices, scans their inputs, and logs one active-channel mask per mux in hex or binary form
 - `PresetSnapshot`: provides the durable schema for the `ADSR`, `FLT`, `LFO`, `MOD`, and `OSC` block states stored in one preset slot while leaving bank selectors live
 - `PresetStore`: owns the flash-backed 128-slot preset log, validates it with CRC32, returns default state for unsaved slots, and appends one flash record on save
+- `UART`: wraps the app-owned `USART1` device on `PA9`/`PA10`, exposes polling writes plus non-blocking reads, and keeps the Zephyr console on `USART2`
 - `utils`: provides shared helpers such as 16-bit mask-to-binary-string formatting used by debug logging
 - `cd4067`: out-of-tree Zephyr module providing the CD4067 GPIO multiplexer driver
 - `main.cpp`: initializes the board LED, starts an input thread that constructs `InputController`, `LEDSController`, one `ADSR` block, one `FLT` block, one `LFO` block, one `MOD` block, one `OSC` block, one `PresetStore`, and one `LED_DISP` block as plain locals, and runs the block update loop alongside the heartbeat LED
@@ -43,6 +45,8 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 ## Runtime Overview
 
 - The application uses the onboard `led0` as a heartbeat and emits status logs over the ST-LINK virtual serial port at `1000000` baud.
+- The application also owns a separate polling UART transport on `USART1` using `PA9` for TX and `PA10` for RX at `115200` baud.
+- `main.cpp` initializes `UART` during boot and sends `Bassline Junkie Interface UART1 ready` on `USART1`.
 - A dedicated input thread builds `InputController`, `LEDSController`, the `ADSR`, `FLT`, `LFO`, `MOD`, and `OSC` control blocks, the `PresetStore`, and the `LED_DISP` preset selector, then repeatedly refreshes inputs and updates all blocks.
 - `InputController` merges the CD4067 mux scans and discrete GPIO reads into one cached state table. `Button`, `Encoder`, and `Knob` build on that cache to provide reusable input primitives.
 - `ADSR`, `LFO`, `MOD`, and `OSC` expose banked controls. Bank switches recall stored knob state and update the related LEDs.
@@ -73,6 +77,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - Input aggregation is implemented in `src/InputController.cpp` and declared in `src/InputController.h`.
 - PWM LED control is implemented in `src/LEDS.cpp` and declared in `src/LEDS.h`.
 - Flash-backed preset persistence is implemented in `src/PresetStore.cpp` and declared in `src/PresetStore.h`.
+- App-owned UART transport is implemented in `src/UART.cpp` and declared in `src/UART.h`.
 - The durable preset schema is declared in `src/PresetSnapshot.h`.
 - CD4067 aggregation is implemented in `src/MUX.cpp` and declared in `src/MUX.h`.
 - Shared binary-mask formatting helpers are implemented in `src/utils.cpp` and declared in `src/utils.h`.
