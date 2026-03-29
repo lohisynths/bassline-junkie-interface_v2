@@ -319,7 +319,7 @@ void MOD::send_midi_cc_(size_t virtual_bank_index, uint8_t value)
     }
 
     const uint8_t cc_number = (uint8_t)virtual_bank_index;
-    const int ret = midi_->send_cc(cc_number, value, 0U);
+    const int ret = midi_->send_cc(cc_number, value, 1U);
     if (ret < 0) {
         LOG_ERR("Failed to send MOD MIDI CC %u for virtual bank %u: %d",
                 (unsigned int)cc_number,

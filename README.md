@@ -243,8 +243,8 @@ When the application is flashed and running on the board:
 - loading a preset also emits the FLT MIDI snapshot on channel `0`, resending CC `29`, `30`, and `31`
 - LFO banked radio selection emits MIDI Control Change messages on channel `0` using CC `32`, `34`, and `36` with values `0..3` for the first four LFO radio buttons, while the banked LFO knob emits CC `33`, `35`, and `37`; the fifth LFO radio button is intentionally ignored by MIDI
 - loading a preset also emits the LFO MIDI snapshot on channel `0`, resending CC `32..37`
-- MOD knob changes emit MIDI Control Change messages on channel `0` using CC `0..101`, one CC per MOD virtual bank; changing the active MOD group or MOD link target also resends the currently recalled virtual bank value
-- loading a preset also emits the full MOD MIDI snapshot on channel `0`, resending all MOD CC numbers `0..101`
+- MOD knob changes emit MIDI Control Change messages on channel `1` using CC `0..101`, one CC per MOD virtual bank; changing the active MOD group or MOD link target also resends the currently recalled virtual bank value
+- loading a preset also emits the full MOD MIDI snapshot on channel `1`, resending all MOD CC numbers `0..101`
 - while the MOD knob is held, `OSC` bank/knob pairs map to MOD target offsets `0..14`, `FLT` knob `0` maps to `15`, `FLT` knob `1` maps to `16`, and `FLT` knob `2` is ignored
 - each MOD selector group remembers its last linked target offset, recalls that virtual bank when the group changes, and stores one MOD knob value for each virtual bank `((group * 17) + target_offset)`
 - long-pressing any MOD selector button for `1000 ms` temporarily previews that selector group's MOD values on the OSC knob LEDs for the currently selected OSC bank and on FLT knobs `0` and `1`; this preview is LED-only and does not change stored OSC, FLT, or MOD values
