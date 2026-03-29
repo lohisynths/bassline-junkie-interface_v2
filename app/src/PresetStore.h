@@ -41,6 +41,20 @@ public:
     int load_preset(uint8_t index, PresetSnapshot &snapshot, bool &slot_was_saved) const;
 
     /**
+     * @brief Loads the most recently activated preset index from flash-backed metadata.
+     *
+     * When no active preset was saved previously, the store returns preset `0`
+     * and reports that no saved value exists yet.
+     *
+     * @param index Receives the saved or default active preset index.
+     * @param was_saved Receives `true` when the index came from flash metadata.
+     *
+     * @retval 0 The request completed successfully.
+     * @retval -EACCES The store has not been initialized.
+     */
+    int load_active_preset(uint8_t &index, bool &was_saved) const;
+
+    /**
      * @brief Saves one preset snapshot by appending one flash record.
      *
      * @param index Preset slot in the range `[0, preset_count)`.
@@ -52,6 +66,20 @@ public:
      * @retval negative Error propagated from the flash driver.
      */
     int save_preset(uint8_t index, const PresetSnapshot &snapshot);
+
+    /**
+     * @brief Saves the most recently activated preset index as flash-backed metadata.
+     *
+     * The selected preset slot is not modified; only the startup bookmark is updated.
+     *
+     * @param index Preset slot in the range `[0, preset_count)`.
+     *
+     * @retval 0 The bookmark was updated successfully.
+     * @retval -EACCES The store has not been initialized.
+     * @retval -EINVAL The requested preset index is out of range.
+     * @retval negative Error propagated from the flash driver.
+     */
+    int save_active_preset(uint8_t index);
 
 private:
     /** @brief Open flash area backing the preset image. */

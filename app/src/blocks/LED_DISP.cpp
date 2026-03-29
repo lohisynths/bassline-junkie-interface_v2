@@ -49,10 +49,26 @@ int LED_DISP::init(InputController &inputs,
     mod_ = &mod;
     osc_ = &osc;
 
+    uint8_t startup_preset = 0U;
+    bool startup_preset_was_saved = false;
+    ret = preset_store_->load_active_preset(startup_preset, startup_preset_was_saved);
+    if (ret < 0) {
+        return ret;
+    }
+
+    ret = knob_.set_value(startup_preset);
+    if (ret < 0) {
+        return ret;
+    }
+
     ret = render_value_();
     if (ret < 0) {
         return ret;
     }
+
+    LOG_INF("%s startup preset %d",
+            startup_preset_was_saved ? "Restored" : "Using default",
+            (int)startup_preset);
 
     return load_selected_preset_();
 }
@@ -293,6 +309,11 @@ int LED_DISP::load_selected_preset_()
     browse_deadline_at_ms_ = 0;
     cancel_blink_();
 
+    ret = preset_store_->save_active_preset(active_preset_);
+    if (ret < 0) {
+        LOG_WRN("Failed to persist active preset %d: %d", (int)active_preset_, ret);
+    }
+
     LOG_INF("%s preset %d",
             slot_was_saved ? "Loaded" : "Loaded default state for empty",
             (int)knob_.get_value());
@@ -309,7 +330,7 @@ int LED_DISP::save_selected_preset_()
     PresetSnapshot snapshot = default_preset_snapshot();
     capture_snapshot_(snapshot);
 
-    const int ret = preset_store_->save_preset(knob_.get_value(), snapshot);
+    int ret = preset_store_->save_preset(knob_.get_value(), snapshot);
     if (ret < 0) {
         return ret;
     }
@@ -317,6 +338,11 @@ int LED_DISP::save_selected_preset_()
     active_preset_ = knob_.get_value();
     browse_deadline_at_ms_ = 0;
     cancel_blink_();
+
+    ret = preset_store_->save_active_preset(active_preset_);
+    if (ret < 0) {
+        LOG_WRN("Failed to persist active preset %d: %d", (int)active_preset_, ret);
+    }
 
     LOG_INF("Saved preset %d", (int)knob_.get_value());
     return render_value_();
