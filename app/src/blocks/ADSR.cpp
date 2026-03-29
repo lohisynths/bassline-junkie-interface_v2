@@ -5,6 +5,24 @@
 
 LOG_MODULE_REGISTER(ADSR, LOG_LEVEL_INF);
 
+namespace {
+
+uint8_t clamp_knob_value_(uint8_t value)
+{
+    return (value > 127U) ? 127U : value;
+}
+
+size_t clamp_index_(uint8_t index, size_t count)
+{
+    if ((count == 0U) || (index < count)) {
+        return index;
+    }
+
+    return count - 1U;
+}
+
+} // namespace
+
 int ADSR::init(InputController &inputs, LEDSController &leds)
 {
     int ret = 0;
@@ -23,6 +41,33 @@ int ADSR::init(InputController &inputs, LEDSController &leds)
     }
 
     return ret;
+}
+
+void ADSR::capture_state(ADSRState &state) const
+{
+    state = {};
+    state.selected_bank = selected_bank_;
+
+    for (size_t bank = 0U; bank < bank_count_; ++bank) {
+        state.button3_values[bank] = button3_values_[bank] ? 1U : 0U;
+
+        for (size_t knob = 0U; knob < knob_count_; ++knob) {
+            state.knob_values[bank][knob] = knob_values_[bank][knob];
+        }
+    }
+}
+
+int ADSR::apply_state(const ADSRState &state)
+{
+    for (size_t bank = 0U; bank < bank_count_; ++bank) {
+        button3_values_[bank] = state.button3_values[bank] != 0U;
+
+        for (size_t knob = 0U; knob < knob_count_; ++knob) {
+            knob_values_[bank][knob] = clamp_knob_value_(state.knob_values[bank][knob]);
+        }
+    }
+
+    return select_bank_(clamp_index_(state.selected_bank, bank_count_));
 }
 
 int ADSR::update()

@@ -11,6 +11,7 @@
 #include "blocks/OSC.h"
 #include "InputController.h"
 #include "LEDS.h"
+#include "PresetStore.h"
 
 LOG_MODULE_REGISTER(app, LOG_LEVEL_INF);
 
@@ -22,7 +23,7 @@ LOG_MODULE_REGISTER(app, LOG_LEVEL_INF);
 
 static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0_NODE, gpios);
 
-static const size_t input_thread_stack_size = 4096U;
+static const size_t input_thread_stack_size = 10240U;
 static const int input_thread_priority = -1;
 static const int input_poll_interval_ms = 5;
 K_THREAD_STACK_DEFINE(input_thread_stack, input_thread_stack_size);
@@ -40,6 +41,7 @@ static void input_thread(void *, void *, void *) {
     LFO lfo;
     MOD mod;
     OSC osc;
+    PresetStore preset_store;
 
     int ret = inputs.init();
     if (ret == 0) {
@@ -52,9 +54,6 @@ static void input_thread(void *, void *, void *) {
         ret = flt.init(inputs, leds);
     }
     if (ret == 0) {
-        ret = led_disp.init(inputs, leds);
-    }
-    if (ret == 0) {
         ret = lfo.init(inputs, leds);
     }
     if (ret == 0) {
@@ -62,6 +61,12 @@ static void input_thread(void *, void *, void *) {
     }
     if (ret == 0) {
         ret = osc.init(inputs, leds);
+    }
+    if (ret == 0) {
+        ret = preset_store.init();
+    }
+    if (ret == 0) {
+        ret = led_disp.init(inputs, leds, preset_store, adsr, flt, lfo, mod, osc);
     }
 
     input_thread_status = ret;

@@ -1,13 +1,35 @@
 #include "LED_DISP.h"
 
+#include "ADSR.h"
+#include "FLT.h"
+#include "LFO.h"
+#include "MOD.h"
+#include "OSC.h"
+#include "PresetStore.h"
+
 #include <errno.h>
+#include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(LED_DISP, LOG_LEVEL_INF);
 
-int LED_DISP::init(InputController &inputs, LEDSController &leds)
+int LED_DISP::init(InputController &inputs,
+                   LEDSController &leds,
+                   PresetStore &preset_store,
+                   ADSR &adsr,
+                   FLT &flt,
+                   LFO &lfo,
+                   MOD &mod,
+                   OSC &osc)
 {
     leds_ = nullptr;
+    preset_store_ = nullptr;
+    adsr_ = nullptr;
+    flt_ = nullptr;
+    lfo_ = nullptr;
+    mod_ = nullptr;
+    osc_ = nullptr;
+    press_started_at_ms_ = 0;
 
     int ret = knob_.init(inputs, knob_config_, leds);
     if (ret < 0) {
@@ -15,7 +37,19 @@ int LED_DISP::init(InputController &inputs, LEDSController &leds)
     }
 
     leds_ = &leds;
-    return render_value_();
+    preset_store_ = &preset_store;
+    adsr_ = &adsr;
+    flt_ = &flt;
+    lfo_ = &lfo;
+    mod_ = &mod;
+    osc_ = &osc;
+
+    ret = render_value_();
+    if (ret < 0) {
+        return ret;
+    }
+
+    return load_selected_preset_();
 }
 
 int LED_DISP::update()
@@ -28,22 +62,43 @@ int LED_DISP::update()
         return ret;
     }
 
+    if (knob_msg.value_changed) {
+        ret = render_value_();
+        if (ret < 0) {
+            LOG_ERR("Failed to update preset display value: %d", ret);
+            return ret;
+        }
+
+        LOG_INF("Selected preset %d", (int)knob_.get_value());
+    }
+
     if (knob_msg.switch_changed) {
-        LOG_INF("LED display knob button %s",
+        LOG_INF("Preset selector button %s",
                 knob_.get_state() ? "pressed" : "released");
+
+        if (knob_.get_state()) {
+            press_started_at_ms_ = k_uptime_get();
+            return 0;
+        }
+
+        const int64_t held_ms = k_uptime_get() - press_started_at_ms_;
+        press_started_at_ms_ = 0;
+
+        if (held_ms >= save_hold_ms_) {
+            ret = save_selected_preset_();
+            if (ret < 0) {
+                LOG_ERR("Failed to save preset %d: %d", (int)knob_.get_value(), ret);
+                return ret;
+            }
+        } else {
+            ret = load_selected_preset_();
+            if (ret < 0) {
+                LOG_ERR("Failed to load preset %d: %d", (int)knob_.get_value(), ret);
+                return ret;
+            }
+        }
     }
 
-    if (!knob_msg.value_changed) {
-        return 0;
-    }
-
-    ret = render_value_();
-    if (ret < 0) {
-        LOG_ERR("Failed to update LED display value: %d", ret);
-        return ret;
-    }
-
-    LOG_INF("LED display position=%d", (int)knob_.get_value());
     return 0;
 }
 
@@ -96,4 +151,89 @@ int LED_DISP::render_value_()
     }
 
     return set_digit_(2U, digit_patterns_[ones]);
+}
+
+void LED_DISP::capture_snapshot_(PresetSnapshot &snapshot) const
+{
+    snapshot = default_preset_snapshot();
+
+    adsr_->capture_state(snapshot.adsr);
+    flt_->capture_state(snapshot.flt);
+    lfo_->capture_state(snapshot.lfo);
+    mod_->capture_state(snapshot.mod);
+    osc_->capture_state(snapshot.osc);
+}
+
+int LED_DISP::apply_snapshot_(const PresetSnapshot &snapshot)
+{
+    int ret = adsr_->apply_state(snapshot.adsr);
+    if (ret < 0) {
+        return ret;
+    }
+
+    ret = flt_->apply_state(snapshot.flt);
+    if (ret < 0) {
+        return ret;
+    }
+
+    ret = lfo_->apply_state(snapshot.lfo);
+    if (ret < 0) {
+        return ret;
+    }
+
+    ret = mod_->apply_state(snapshot.mod);
+    if (ret < 0) {
+        return ret;
+    }
+
+    return osc_->apply_state(snapshot.osc);
+}
+
+int LED_DISP::load_selected_preset_()
+{
+    if ((preset_store_ == nullptr) ||
+        (adsr_ == nullptr) ||
+        (flt_ == nullptr) ||
+        (lfo_ == nullptr) ||
+        (mod_ == nullptr) ||
+        (osc_ == nullptr)) {
+        return -EACCES;
+    }
+
+    PresetSnapshot snapshot = default_preset_snapshot();
+    bool slot_was_saved = false;
+
+    int ret = preset_store_->load_preset(knob_.get_value(), snapshot, slot_was_saved);
+    if (ret < 0) {
+        return ret;
+    }
+
+    ret = apply_snapshot_(snapshot);
+    if (ret < 0) {
+        return ret;
+    }
+
+    LOG_INF("%s preset %d",
+            slot_was_saved ? "Loaded" : "Loaded default state for empty",
+            (int)knob_.get_value());
+
+    return render_value_();
+}
+
+int LED_DISP::save_selected_preset_()
+{
+    if (preset_store_ == nullptr) {
+        return -EACCES;
+    }
+
+    PresetSnapshot snapshot = default_preset_snapshot();
+    capture_snapshot_(snapshot);
+
+    const int ret = preset_store_->save_preset(knob_.get_value(), snapshot);
+    if (ret < 0) {
+        return ret;
+    }
+
+    LOG_INF("Saved preset %d", (int)knob_.get_value());
+    return render_value_();
 }

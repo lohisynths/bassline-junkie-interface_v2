@@ -1,4 +1,8 @@
 / {
+    chosen {
+        zephyr,code-partition = &code_partition;
+    };
+
     aliases {
         enc10sw = &enc10sw;
         enc10a = &enc10a;
@@ -93,6 +97,24 @@
                        <&gpiob 10 GPIO_ACTIVE_HIGH>,
                        <&gpioa 8 GPIO_ACTIVE_HIGH>;
         sig-gpios = <&gpiob 0 GPIO_ACTIVE_HIGH>;
+    };
+};
+
+&flash0 {
+    partitions {
+        compatible = "fixed-partitions";
+        #address-cells = <1>;
+        #size-cells = <1>;
+
+        code_partition: partition@0 {
+            label = "image-0";
+            reg = <0x00000000 0x00060000>;
+        };
+
+        preset_partition: partition@60000 {
+            label = "presets";
+            reg = <0x00060000 0x00020000>;
+        };
     };
 };
 

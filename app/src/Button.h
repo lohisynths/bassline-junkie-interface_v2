@@ -72,7 +72,7 @@ public:
      * @return `true` when the configured raw input bit is `0` (pressed),
      *         otherwise `false`.
      */
-    bool get_state();
+    bool get_state() const;
 
     /**
      * @brief Drives the LED assigned to this button.

@@ -5,6 +5,24 @@
 
 LOG_MODULE_REGISTER(LFO, LOG_LEVEL_INF);
 
+namespace {
+
+uint8_t clamp_knob_value_(uint8_t value)
+{
+    return (value > 127U) ? 127U : value;
+}
+
+uint8_t clamp_index_(uint8_t index, size_t count)
+{
+    if ((count == 0U) || (index < count)) {
+        return index;
+    }
+
+    return (uint8_t)(count - 1U);
+}
+
+} // namespace
+
 int LFO::init(InputController &inputs, LEDSController &leds)
 {
     int ret = 0;
@@ -23,6 +41,33 @@ int LFO::init(InputController &inputs, LEDSController &leds)
     }
 
     return ret;
+}
+
+void LFO::capture_state(LFOState &state) const
+{
+    state = {};
+    state.selected_bank = selected_bank_;
+
+    for (size_t bank = 0U; bank < bank_count_; ++bank) {
+        state.radio_selection[bank] = radio_selection_[bank];
+
+        for (size_t knob = 0U; knob < knob_count_; ++knob) {
+            state.knob_values[bank][knob] = knob_values_[bank][knob];
+        }
+    }
+}
+
+int LFO::apply_state(const LFOState &state)
+{
+    for (size_t bank = 0U; bank < bank_count_; ++bank) {
+        radio_selection_[bank] = clamp_index_(state.radio_selection[bank], radio_button_count_);
+
+        for (size_t knob = 0U; knob < knob_count_; ++knob) {
+            knob_values_[bank][knob] = clamp_knob_value_(state.knob_values[bank][knob]);
+        }
+    }
+
+    return select_bank_(clamp_index_(state.selected_bank, bank_count_));
 }
 
 int LFO::update()

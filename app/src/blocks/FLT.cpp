@@ -4,6 +4,24 @@
 
 LOG_MODULE_REGISTER(FLT, LOG_LEVEL_INF);
 
+namespace {
+
+uint8_t clamp_knob_value_(uint8_t value)
+{
+    return (value > 127U) ? 127U : value;
+}
+
+uint8_t clamp_index_(uint8_t index, size_t count)
+{
+    if ((count == 0U) || (index < count)) {
+        return index;
+    }
+
+    return (uint8_t)(count - 1U);
+}
+
+} // namespace
+
 int FLT::init(InputController &inputs, LEDSController &leds)
 {
     int ret = 0;
@@ -22,6 +40,37 @@ int FLT::init(InputController &inputs, LEDSController &leds)
     }
 
     return ret;
+}
+
+void FLT::capture_state(FLTState &state) const
+{
+    state = {};
+    state.selected_button = selected_button_;
+
+    for (size_t i = 0U; i < knob_count_; ++i) {
+        state.knob_values[i] = knobs_[i].get_value();
+    }
+}
+
+int FLT::apply_state(const FLTState &state)
+{
+    selected_button_ = clamp_index_(state.selected_button, button_count_);
+    has_newly_pressed_knob_ = false;
+    newly_pressed_knob_index_ = 0U;
+
+    int ret = update_selector_leds_();
+    if (ret < 0) {
+        return ret;
+    }
+
+    for (size_t i = 0U; i < knob_count_; ++i) {
+        ret = knobs_[i].set_value(clamp_knob_value_(state.knob_values[i]));
+        if (ret < 0) {
+            return ret;
+        }
+    }
+
+    return 0;
 }
 
 int FLT::update()

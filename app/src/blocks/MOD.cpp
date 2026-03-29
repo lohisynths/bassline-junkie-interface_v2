@@ -5,6 +5,24 @@
 
 LOG_MODULE_REGISTER(MOD, LOG_LEVEL_INF);
 
+namespace {
+
+uint8_t clamp_knob_value_(uint8_t value)
+{
+    return (value > 127U) ? 127U : value;
+}
+
+uint8_t clamp_index_(uint8_t index, size_t count)
+{
+    if ((count == 0U) || (index < count)) {
+        return index;
+    }
+
+    return (uint8_t)(count - 1U);
+}
+
+} // namespace
+
 int MOD::init(InputController &inputs, LEDSController &leds)
 {
     int ret = 0;
@@ -23,6 +41,29 @@ int MOD::init(InputController &inputs, LEDSController &leds)
     }
 
     return ret;
+}
+
+void MOD::capture_state(MODState &state) const
+{
+    state = {};
+    state.selected_bank = selected_bank_;
+
+    for (size_t bank = 0U; bank < bank_count_; ++bank) {
+        for (size_t knob = 0U; knob < knob_count_; ++knob) {
+            state.knob_values[bank][knob] = knob_values_[bank][knob];
+        }
+    }
+}
+
+int MOD::apply_state(const MODState &state)
+{
+    for (size_t bank = 0U; bank < bank_count_; ++bank) {
+        for (size_t knob = 0U; knob < knob_count_; ++knob) {
+            knob_values_[bank][knob] = clamp_knob_value_(state.knob_values[bank][knob]);
+        }
+    }
+
+    return select_bank_(clamp_index_(state.selected_bank, bank_count_));
 }
 
 int MOD::update()
@@ -78,7 +119,7 @@ int MOD::update()
     return 0;
 }
 
-bool MOD::mod_knob_pressed()
+bool MOD::mod_knob_pressed() const
 {
     return knobs_[0].get_state();
 }

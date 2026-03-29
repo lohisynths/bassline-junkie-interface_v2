@@ -5,6 +5,7 @@
 #include "InputController.h"
 #include "Knob.h"
 #include "LEDS.h"
+#include "PresetSnapshot.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -29,6 +30,19 @@ public:
     int init(InputController &inputs, LEDSController &leds);
 
     /**
+     * @brief Captures the current durable MOD block state.
+     */
+    void capture_state(MODState &state) const;
+
+    /**
+     * @brief Applies one durable MOD block state snapshot.
+     *
+     * @retval 0 The requested state was applied successfully.
+     * @retval negative Error propagated from LED or knob updates.
+     */
+    int apply_state(const MODState &state);
+
+    /**
      * @brief Updates all controls and emits the current transition logs.
      *
      * @retval 0 All controls were updated successfully.
@@ -39,7 +53,7 @@ public:
     /**
      * @brief Returns the current pressed state of the MOD knob button.
      */
-    bool mod_knob_pressed();
+    bool mod_knob_pressed() const;
 
     /**
      * @brief Logs one identified cross-block target with bank context.

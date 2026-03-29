@@ -81,14 +81,14 @@ public:
      *
      * @return `true` when the bound button is pressed, otherwise `false`.
      */
-    bool get_state();
+    bool get_state() const;
 
     /**
      * @brief Returns the current knob value.
      *
      * @return Clamped knob value in the range `[0, 127]`.
      */
-    uint8_t get_value();
+    uint8_t get_value() const;
 
     /**
      * @brief Replaces the current knob value and redraws the LED indicator.
