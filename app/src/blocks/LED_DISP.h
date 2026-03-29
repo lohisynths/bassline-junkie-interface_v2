@@ -86,6 +86,7 @@ private:
         .encoder_pin_b = 5U,
         .first_led = 0U,
         .led_count = 0U,
+        .encoder_step_divider = 4U,
     };
 
     /** @brief Segment pattern used to blank one digit. */

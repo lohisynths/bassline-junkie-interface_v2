@@ -55,6 +55,9 @@ public:
 
         /** @brief Number of contiguous LED channels reserved for this knob. */
         size_t led_count = 0U;
+
+        /** @brief Raw encoder edges required for one visible value step. */
+        uint8_t encoder_step_divider = 1U;
     };
 
     /**
@@ -156,6 +159,9 @@ private:
     /** @brief Number of contiguous LED channels reserved for this knob. */
     size_t led_count_ = 0U;
 
+    /** @brief Raw encoder edges required for one visible value step. */
+    uint8_t encoder_step_divider_ = 1U;
+
     /** @brief Tracks whether @ref init completed successfully. */
     bool initialized_ = false;
 
@@ -167,6 +173,9 @@ private:
 
     /** @brief Previously rendered LED index inside the knob segment. */
     size_t previous_led_index_ = 0U;
+
+    /** @brief Accumulated raw encoder steps waiting to cross one visible step. */
+    int32_t pending_encoder_steps_ = 0;
 };
 
 #endif /* SRC_KNOB_H_ */
