@@ -129,6 +129,32 @@ static void input_thread(void *p1, void *, void *) {
             }
         }
 
+        if (mod.osc_flt_led_preview_active()) {
+            ret = osc.show_mod_preview(mod);
+            if (ret < 0) {
+                LOG_ERR("Failed to render OSC MOD preview: %d", ret);
+                return;
+            }
+
+            ret = flt.show_mod_preview(mod);
+            if (ret < 0) {
+                LOG_ERR("Failed to render FLT MOD preview: %d", ret);
+                return;
+            }
+        } else {
+            ret = osc.restore_leds_after_preview();
+            if (ret < 0) {
+                LOG_ERR("Failed to restore OSC LEDs after MOD preview: %d", ret);
+                return;
+            }
+
+            ret = flt.restore_leds_after_preview();
+            if (ret < 0) {
+                LOG_ERR("Failed to restore FLT LEDs after MOD preview: %d", ret);
+                return;
+            }
+        }
+
         k_msleep(input_poll_interval_ms);
     }
 }

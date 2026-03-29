@@ -65,9 +65,32 @@ public:
      */
     void report_link_target(const char *block_name, size_t knob_index, uint8_t bank_index);
 
+    /**
+     * @brief Returns whether OSC/FLT LED preview mode is currently active.
+     */
+    bool osc_flt_led_preview_active() const;
+
+    /**
+     * @brief Returns the MOD group currently being previewed.
+     */
+    uint8_t preview_group_index() const;
+
+    /**
+     * @brief Returns one stored MOD value for the requested preview target.
+     *
+     * @param group_index MOD group index in the range `[0, selector_group_count_)`.
+     * @param target_offset Target offset in the range `[0, targets_per_group_)`.
+     *
+     * @return Stored MOD value for that virtual bank, or `0` when out of range.
+     */
+    uint8_t preview_value_for_target_offset(uint8_t group_index, uint8_t target_offset) const;
+
 private:
     /** @brief Number of LEDs reserved for the knob segment. */
     static const size_t knob_led_count_ = 10U;
+
+    /** @brief Hold time required to enable OSC/FLT LED preview. */
+    static const int64_t preview_hold_ms_ = 1000;
 
     /** @brief Number of selector groups exposed by the buttons. */
     static const size_t selector_group_count_ = 6U;
@@ -200,6 +223,18 @@ private:
 
     /** @brief Currently selected top-level MOD group. */
     uint8_t selected_group_ = 0U;
+
+    /** @brief Timestamp when the currently tracked preview hold began. */
+    int64_t preview_started_at_ms_ = 0;
+
+    /** @brief Selector button currently tracked for preview hold timing. */
+    uint8_t preview_button_index_ = 0U;
+
+    /** @brief Set when OSC/FLT LED preview mode is currently active. */
+    bool preview_active_ = false;
+
+    /** @brief Set while the tracked preview button is still physically pressed. */
+    bool preview_button_still_pressed_ = false;
 
     /** @brief Remembers the last linked target offset for each selector group. */
     uint8_t selected_target_offset_[selector_group_count_] = {};

@@ -2,6 +2,7 @@
 
 #include <errno.h>
 #include <string.h>
+#include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(MOD, LOG_LEVEL_INF);
@@ -34,6 +35,10 @@ int MOD::init(InputController &inputs, LEDSController &leds)
 
     if (ret == 0) {
         selected_group_ = 0U;
+        preview_started_at_ms_ = 0;
+        preview_button_index_ = 0U;
+        preview_active_ = false;
+        preview_button_still_pressed_ = false;
         for (size_t group = 0U; group < selector_group_count_; ++group) {
             selected_target_offset_[group] = 0U;
         }
@@ -60,6 +65,11 @@ void MOD::capture_state(MODState &state) const
 
 int MOD::apply_state(const MODState &state)
 {
+    preview_started_at_ms_ = 0;
+    preview_button_index_ = selected_group_;
+    preview_active_ = false;
+    preview_button_still_pressed_ = false;
+
     for (size_t bank = 0U; bank < virtual_bank_count_; ++bank) {
         for (size_t knob = 0U; knob < knob_count_; ++knob) {
             knob_values_[bank][knob] = clamp_knob_value_(state.knob_values[bank][knob]);
@@ -81,6 +91,7 @@ int MOD::apply_state(const MODState &state)
 int MOD::update()
 {
     int ret = 0;
+    const int64_t now_ms = k_uptime_get();
 
     for (size_t i = 0U; i < button_count_; ++i) {
         Button::button_msg button_msg;
@@ -89,6 +100,19 @@ int MOD::update()
         if (ret < 0) {
             LOG_ERR("Failed to update MOD button %u: %d", (unsigned int)i, ret);
             return ret;
+        }
+
+        if (button_msg.switch_changed) {
+            if (buttons_[i].get_state()) {
+                preview_started_at_ms_ = now_ms;
+                preview_button_index_ = (uint8_t)i;
+                preview_active_ = false;
+                preview_button_still_pressed_ = true;
+            } else if (preview_button_still_pressed_ && (preview_button_index_ == i)) {
+                preview_started_at_ms_ = 0;
+                preview_active_ = false;
+                preview_button_still_pressed_ = false;
+            }
         }
 
         if (!button_msg.switch_changed || !buttons_[i].get_state() || (i == selected_group_)) {
@@ -105,6 +129,18 @@ int MOD::update()
                 (unsigned int)i,
                 (unsigned int)selected_target_offset_[i],
                 (unsigned int)current_virtual_bank_index_());
+    }
+
+    if (preview_button_still_pressed_) {
+        if (!buttons_[preview_button_index_].get_state()) {
+            preview_started_at_ms_ = 0;
+            preview_active_ = false;
+            preview_button_still_pressed_ = false;
+        } else if (!preview_active_ &&
+                   ((now_ms - preview_started_at_ms_) >= preview_hold_ms_)) {
+            preview_active_ = true;
+            LOG_INF("MOD preview active for group %u", (unsigned int)preview_button_index_);
+        }
     }
 
     for (size_t i = 0U; i < knob_count_; ++i) {
@@ -140,6 +176,25 @@ int MOD::update()
 bool MOD::mod_knob_pressed() const
 {
     return knobs_[0].get_state();
+}
+
+bool MOD::osc_flt_led_preview_active() const
+{
+    return preview_active_;
+}
+
+uint8_t MOD::preview_group_index() const
+{
+    return preview_button_index_;
+}
+
+uint8_t MOD::preview_value_for_target_offset(uint8_t group_index, uint8_t target_offset) const
+{
+    if ((group_index >= selector_group_count_) || (target_offset >= targets_per_group_)) {
+        return 0U;
+    }
+
+    return knob_values_[virtual_bank_index_(group_index, target_offset)][0];
 }
 
 void MOD::report_link_target(const char *block_name, size_t knob_index, uint8_t bank_index)
