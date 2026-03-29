@@ -8,7 +8,7 @@
 struct flash_area;
 
 /**
- * @brief Persists one 128-slot preset image in the dedicated flash partition.
+ * @brief Persists 128 preset slots in the dedicated flash partition.
  */
 class PresetStore {
 public:
@@ -18,7 +18,7 @@ public:
     static const uint8_t preset_count = 128U;
 
     /**
-     * @brief Initializes the flash-backed preset image cache.
+     * @brief Initializes the flash-backed preset cache from the preset log.
      *
      * @retval 0 The store is ready and the flash image was loaded or reset.
      * @retval negative Error propagated from the flash map or flash driver.
@@ -41,7 +41,7 @@ public:
     int load_preset(uint8_t index, PresetSnapshot &snapshot, bool &slot_was_saved) const;
 
     /**
-     * @brief Saves one preset snapshot and rewrites the preset flash partition.
+     * @brief Saves one preset snapshot by appending one flash record.
      *
      * @param index Preset slot in the range `[0, preset_count)`.
      * @param snapshot Snapshot to store in the selected slot.
