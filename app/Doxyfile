@@ -10,18 +10,8 @@ INPUT                  = README.md \
                          app/src/PresetSnapshot.h \
                          app/src/PresetStore.h \
                          app/src/PresetStore.cpp \
-                         app/src/blocks/ADSR.h \
-                         app/src/blocks/ADSR.cpp \
-                         app/src/blocks/FLT.h \
-                         app/src/blocks/FLT.cpp \
-                         app/src/blocks/LED_DISP.h \
-                         app/src/blocks/LED_DISP.cpp \
-                         app/src/blocks/LFO.h \
-                         app/src/blocks/LFO.cpp \
-                         app/src/blocks/MOD.h \
-                         app/src/blocks/MOD.cpp \
+                         app/src/blocks/UI_BLOCK.h \
                          app/src/blocks/OSC.h \
-                         app/src/blocks/OSC.cpp \
                          app/src/Button.h \
                          app/src/Button.cpp \
                          app/src/Encoder.h \
