@@ -9,9 +9,6 @@
 #include "MIDI.h"
 #include "UART.h"
 
-#include "blocks/OSC.h"
-
-
 LOG_MODULE_REGISTER(app, LOG_LEVEL_INF);
 
 #define LED0_NODE DT_ALIAS(led0)
@@ -60,6 +57,8 @@ static void input_thread(void *p1, void *, void *) {
             LOG_ERR("Failed to read inputs: %d", ret);
             return;
         }
+
+        osc.update();
 
         k_msleep(input_poll_interval_ms);
     }
