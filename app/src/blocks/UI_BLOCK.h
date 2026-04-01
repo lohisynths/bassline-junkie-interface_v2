@@ -130,8 +130,8 @@ public:
      * @param leds   Shared LED controller for indicator output.
      * @param inputs Shared input controller holding the cached input masks.
      */
-    void init(MIDI *midi, LEDSController &leds, InputController &inputs) {
-        midi_ = midi;
+    void init(MIDI &midi, LEDSController &leds, InputController &inputs) {
+        midi_ = &midi;
         leds_ = &leds;
         inputs_ = &inputs;
 

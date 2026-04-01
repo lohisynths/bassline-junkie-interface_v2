@@ -31,7 +31,8 @@ static int input_thread_status = 0;
 
 
 static void input_thread(void *p1, void *, void *) {
-    MIDI *midi = static_cast<MIDI *>(p1);
+    UART uart1;
+    MIDI midi;
     InputController inputs;
     LEDSController leds;
     OSC osc;
@@ -39,6 +40,21 @@ static void input_thread(void *p1, void *, void *) {
     int ret = inputs.init();
     if (ret == 0) {
         ret = leds.init();
+    }
+
+    ret = uart1.init();
+    if (ret < 0) {
+        LOG_ERR("Failed to initialize UART1: %d", ret);
+    } else {
+        ret = uart1.write("Bassline Junkie Interface UART1 ready\r\n");
+        if (ret < 0) {
+            LOG_ERR("Failed to write UART1 startup banner: %d", ret);
+        }
+
+        ret = midi.init(uart1);
+        if (ret < 0) {
+            LOG_ERR("Failed to initialize MIDI transport: %d", ret);
+        }
     }
 
     input_thread_status = ret;
@@ -68,8 +84,7 @@ int main(void)
 {
     int ret;
     uint32_t blink_count = 0U;
-    UART uart1;
-    MIDI midi;
+
 
     if (!gpio_is_ready_dt(&led)) {
         LOG_ERR("LED GPIO device is not ready");
@@ -82,20 +97,7 @@ int main(void)
         return 0;
     }
 
-    ret = uart1.init();
-    if (ret < 0) {
-        LOG_ERR("Failed to initialize UART1: %d", ret);
-    } else {
-        ret = uart1.write("Bassline Junkie Interface UART1 ready\r\n");
-        if (ret < 0) {
-            LOG_ERR("Failed to write UART1 startup banner: %d", ret);
-        }
 
-        ret = midi.init(uart1);
-        if (ret < 0) {
-            LOG_ERR("Failed to initialize MIDI transport: %d", ret);
-        }
-    }
 
     LOG_INF("Bassline Junkie Interface");
     LOG_INF("Console TX ready on ttyACM0");
@@ -104,7 +106,7 @@ int main(void)
                     input_thread_stack,
                     K_THREAD_STACK_SIZEOF(input_thread_stack),
                     input_thread,
-                    &midi,
+                    nullptr,
                     nullptr,
                     nullptr,
                     input_thread_priority,
