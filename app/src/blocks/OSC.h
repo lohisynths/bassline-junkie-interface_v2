@@ -20,6 +20,9 @@ static constexpr uint8_t OSC_BUTTON_COUNT = 3U;
 /** @brief Number of banked instances (selector positions) in the OSC block. */
 static constexpr uint8_t OSC_COUNT = 3U;
 
+/** @brief MIDI offset */
+static constexpr uint8_t OSC_MIDI_OFFSET = 0U;
+
 /**
  * @brief Logical parameter indices for one OSC bank.
  */
@@ -114,7 +117,7 @@ public:
      * Layout: CC `0..4` for bank 0, `5..9` for bank 1, `10..14` for bank 2.
      */
     uint8_t get_midi_nr(uint8_t instance, uint8_t index) {
-        return static_cast<uint8_t>(instance * OSC_PARAM_COUNT + index);
+        return static_cast<uint8_t>(OSC_MIDI_OFFSET + instance * OSC_PARAM_COUNT + index);
     }
 
     /** @brief MIDI channel used for all OSC control-change messages. */
