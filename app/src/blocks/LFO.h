@@ -143,18 +143,11 @@ public:
     void force_function(uint8_t /*value*/) {
         const uint8_t shape = get_current_preset_value(LFO_SHAPE);
         for (uint8_t i = 0U; i < LFO_SHAPE_COUNT; i++) {
-            if (i == shape) {
-                turn_on_sw(LFO_COUNT + i);
-            } else {
-                turn_off_sw(LFO_COUNT + i);
-            }
+            set_sw_state(LFO_COUNT + i, i == shape);
         }
 
-        if (get_current_preset_value(LFO_SYNC)) {
-            turn_on_sw(LFO_COUNT + LFO_SHAPE_COUNT);
-        } else {
-            turn_off_sw(LFO_COUNT + LFO_SHAPE_COUNT);
-        }
+        set_sw_state(LFO_COUNT + LFO_SHAPE_COUNT,
+                     get_current_preset_value(LFO_SYNC) != 0U);
     }
 
     /**
@@ -188,11 +181,7 @@ public:
      */
     void select_lfo_shape(uint8_t shape) {
         for (uint8_t i = 0U; i < LFO_SHAPE_COUNT; i++) {
-            if (i == shape) {
-                turn_on_sw(LFO_COUNT + i);
-            } else {
-                turn_off_sw(LFO_COUNT + i);
-            }
+            set_sw_state(LFO_COUNT + i, i == shape);
         }
         set_current_preset_value(LFO_SHAPE, shape);
         if (get_midi()) {
@@ -209,11 +198,7 @@ public:
      */
     void toggle_sync() {
         const uint8_t sync = get_current_preset_value(LFO_SYNC) ^ 1U;
-        if (sync) {
-            turn_on_sw(LFO_COUNT + LFO_SHAPE_COUNT);
-        } else {
-            turn_off_sw(LFO_COUNT + LFO_SHAPE_COUNT);
-        }
+        set_sw_state(LFO_COUNT + LFO_SHAPE_COUNT, sync != 0U);
         set_current_preset_value(LFO_SYNC, sync);
         if (get_midi()) {
             get_midi()->send_cc(get_current_instance_midi_nr(LFO_SYNC),
