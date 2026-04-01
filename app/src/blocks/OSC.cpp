@@ -7,12 +7,4 @@
 
 #include "OSC.h"
 
-OSC::OSC() {
-    // TODO Auto-generated constructor stub
-
-}
-
-OSC::~OSC() {
-    // TODO Auto-generated destructor stub
-}
 
