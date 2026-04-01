@@ -21,17 +21,15 @@
 
 
 
-template<uint8_t KNOB_COUNT, uint8_t BUTTON_COUNT, uint8_t PARAM_COUNT, uint8_t COUNT>
+template<typename Derived, uint8_t KNOB_COUNT, uint8_t BUTTON_COUNT, uint8_t PARAM_COUNT, uint8_t COUNT>
 class UI_BLOCK {
 public:
 
 
 
-    void init(const std::array<Knob::Config, KNOB_COUNT> knob_settings,
-              const std::array<Button::Config, BUTTON_COUNT>  button_config,
-              MIDI *_midi, LEDSController &_leds, InputController &_mux) {
+    void init(MIDI *_midi, LEDSController &_leds, InputController &_mux) {
         midi = _midi;
-        init_internal(knob_settings, button_config, _leds, _mux);
+        init_internal(Derived::knob_configs_, Derived::button_configs_, _leds, _mux);
 //        select_instance(current_instance);
     }
 
