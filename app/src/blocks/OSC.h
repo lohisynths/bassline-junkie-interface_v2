@@ -122,6 +122,9 @@ public:
 
     /** @brief MIDI channel used for all OSC control-change messages. */
     uint8_t get_midi_ch() { return 0U; }
+
+    /** @brief Returns the currently selected oscillator bank index. */
+    uint8_t get_current_osc() { return get_current_instance(); }
 };
 
 #endif /* APP_SRC_BLOCKS_OSC_H_ */
