@@ -9,6 +9,8 @@
 #ifndef APP_SRC_BLOCKS_LED_DISP_H_
 #define APP_SRC_BLOCKS_LED_DISP_H_
 
+#include <zephyr/kernel.h>
+
 #include "UI_BLOCK.h"
 
 /** @brief Number of encoder knobs in the LED display block. */
@@ -140,8 +142,20 @@ public:
      * @brief Stores the current display value, updates the LED digits, and keeps legacy state in sync.
      */
     void knob_val_changed(uint8_t /*index*/, uint8_t value_scaled) {
+        set_display_value(value_scaled);
+    }
+
+    /**
+     * @brief Updates the displayed preset slot without generating MIDI.
+     */
+    void set_display_value(uint8_t value_scaled) {
+        if (value_scaled > 127U) {
+            value_scaled = 127U;
+        }
+
         actual_preset_value_ = value_scaled;
         set_current_preset_value(LED_DISP_VALUE, value_scaled);
+        last_preset_selected_ = static_cast<int>(value_scaled);
         render_value_(value_scaled);
     }
 
@@ -159,20 +173,24 @@ public:
      * @retval 2  The encoder switch was released before the legacy threshold.
      */
     int get_long_push() {
-        int ret = -1;
-        const bool pushed = get_first_knob_sw_pushed() >= 0;
+        const bool pushed = get_knobs()[0].get_state();
+        const uint32_t now = k_uptime_get_32();
 
         if (pushed) {
-            last_disp_count_++;
+            if (!last_disp_pushed_) {
+                last_disp_pushed_ = true;
+                last_disp_pressed_at_ms_ = now;
+            }
+            return -1;
         }
 
-        if (!pushed && last_disp_pushed_) {
-            ret = (last_disp_count_ > 500) ? 1 : 2;
-            last_disp_count_ = 0;
+        if (!last_disp_pushed_) {
+            return -1;
         }
 
-        last_disp_pushed_ = pushed;
-        return ret;
+        last_disp_pushed_ = false;
+        const uint32_t held_ms = now - last_disp_pressed_at_ms_;
+        return (held_ms >= long_push_ms_) ? 1 : 2;
     }
 
     /**
@@ -265,8 +283,11 @@ private:
     /** @brief Tracks the value currently shown by the display. */
     uint8_t actual_preset_value_ = 0U;
 
-    /** @brief Legacy hold counter for the encoder push-switch. */
-    int last_disp_count_ = 0;
+    /** @brief Hold threshold in milliseconds. */
+    static constexpr uint32_t long_push_ms_ = 1000U;
+
+    /** @brief Legacy press timestamp for the encoder push-switch. */
+    uint32_t last_disp_pressed_at_ms_ = 0U;
 
     /** @brief Legacy edge detector for the encoder push-switch. */
     bool last_disp_pushed_ = false;
