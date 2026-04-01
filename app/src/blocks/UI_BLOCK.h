@@ -66,8 +66,7 @@ public:
     using preset = std::array<std::array<int, PARAM_COUNT>, COUNT>;
 
     /** @brief Mod-routing preset storage indexed by source group and destination. */
-    using mod_preset = std::array<std::array<int, PARAM_COUNT * MOD_SRC_COUNT>,
-                                  MOD_SRC_COUNT>;
+    using mod_preset = std::array<std::array<int, PARAM_COUNT * MOD_SRC_COUNT>, MOD_SRC_COUNT>;
 
     /**
      * @brief Reports which outputs changed during one @ref update call.
@@ -132,8 +131,6 @@ public:
      */
     void init(MIDI &midi, LEDSController &leds, InputController &inputs) {
         midi_ = &midi;
-        leds_ = &leds;
-        inputs_ = &inputs;
 
         for (uint8_t i = 0; i < KNOB_COUNT; i++) {
             knobs_[i].init(inputs, Derived::knob_configs_[i], leds);
@@ -240,9 +237,6 @@ public:
 
     /** @brief Returns a reference to the owned knob array. */
     std::array<Knob, KNOB_COUNT> &get_knobs() { return knobs_; }
-
-    /** @brief Returns the borrowed LED controller pointer. */
-    LEDSController *get_leds() { return leds_; }
 
     /** @brief Returns the borrowed MIDI transport pointer. */
     MIDI *get_midi() { return midi_; }
@@ -550,12 +544,6 @@ private:
 
     /** @brief Borrowed MIDI transport for CC emission (may be @c nullptr). */
     MIDI *midi_ = nullptr;
-
-    /** @brief Borrowed LED controller. */
-    LEDSController *leds_ = nullptr;
-
-    /** @brief Borrowed input controller. */
-    InputController *inputs_ = nullptr;
 
     /** @brief Change flags from the most recent @ref update call. */
     ret_value last_ret_;
