@@ -32,59 +32,6 @@ static K_SEM_DEFINE(input_thread_started, 0, 1);
 static int input_thread_status = 0;
 
 
-static constexpr std::array osc_button_configs_ = {
-    Button::Config{ .mux_index = 3U, .pin = 3U, .led_number = 110U },
-    Button::Config{ .mux_index = 3U, .pin = 2U, .led_number = 109U },
-    Button::Config{ .mux_index = 3U, .pin = 1U, .led_number = 108U },
-};
-
-static constexpr std::array osc_knob_configs_ = {
-    Knob::Config{
-        .button_mux_index = 1U,
-        .button_pin = 12U,
-        .encoder_mux_index = 1U,
-        .encoder_pin_a = 13U,
-        .encoder_pin_b = 14U,
-        .first_led = 96U,
-        .led_count = 10U,
-    },
-    Knob::Config{
-        .button_mux_index = 1U,
-        .button_pin = 9U,
-        .encoder_mux_index = 1U,
-        .encoder_pin_a = 10U,
-        .encoder_pin_b = 11U,
-        .first_led = 78U,
-        .led_count = 10U,
-    },
-    Knob::Config{
-        .button_mux_index = 1U,
-        .button_pin = 6U,
-        .encoder_mux_index = 1U,
-        .encoder_pin_a = 7U,
-        .encoder_pin_b = 8U,
-        .first_led = 68U,
-        .led_count = 10U,
-    },
-    Knob::Config{
-        .button_mux_index = 1U,
-        .button_pin = 3U,
-        .encoder_mux_index = 1U,
-        .encoder_pin_a = 4U,
-        .encoder_pin_b = 5U,
-        .first_led = 58U,
-        .led_count = 10U,
-    },
-    Knob::Config{
-        .button_mux_index = 1U,
-        .button_pin = 0U,
-        .encoder_mux_index = 1U,
-        .encoder_pin_a = 1U,
-        .encoder_pin_b = 2U,
-        .first_led = 48U,
-        .led_count = 10U,
-    },
-};
 
 static void input_thread(void *p1, void *, void *) {
     MIDI *midi = static_cast<MIDI *>(p1);
@@ -105,7 +52,7 @@ static void input_thread(void *p1, void *, void *) {
         return;
     }
 
-    osc.init(osc_knob_configs_, osc_button_configs_, midi, leds, inputs);
+    osc.init(OSC::knob_configs_, OSC::button_configs_, midi, leds, inputs);
 
     while (1) {
         ret = inputs.update();
