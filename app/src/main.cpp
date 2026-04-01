@@ -5,6 +5,7 @@
 
 #include "blocks/OSC.h"
 #include "blocks/ADSR.h"
+#include "blocks/LFO.h"
 #include "InputController.h"
 #include "LEDS.h"
 #include "MIDI.h"
@@ -36,6 +37,7 @@ static void input_thread(void *p1, void *, void *) {
     LEDSController leds;
     OSC osc;
     ADSR adsr;
+    LFO lfo;
 
     int ret = inputs.init();
     if (ret == 0) {
@@ -67,6 +69,7 @@ static void input_thread(void *p1, void *, void *) {
 
     osc.init(midi, leds, inputs);
     adsr.init(midi, leds, inputs);
+    lfo.init(midi, leds, inputs);
 
     while (1) {
         ret = inputs.update();
@@ -77,6 +80,7 @@ static void input_thread(void *p1, void *, void *) {
 
         osc.update();
         adsr.update();
+        lfo.update();
 
         k_msleep(input_poll_interval_ms);
     }
