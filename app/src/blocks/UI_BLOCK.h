@@ -1,6 +1,8 @@
 /**
  * @file UI_BLOCK.h
- * @brief CRTP base class for banked control-surface blocks.
+ * @brief CRTP base template providing banked knob/button wiring,
+ *        preset storage, mod-routing overlay, and MIDI dump for
+ *        control-surface blocks.
  *
  * Created on: Mar 29, 2026
  *     Author: alax
@@ -10,7 +12,6 @@
 #define APP_SRC_BLOCKS_UI_BLOCK_H_
 
 #include <cstdint>
-#include <cstring>
 #include <array>
 
 #include "Button.h"
@@ -20,9 +21,6 @@
 #include "LEDS.h"
 
 #include <zephyr/logging/log.h>
-
-/** @brief Number of modulation source groups used by the mod preset layout. */
-static constexpr uint8_t MOD_SRC_COUNT = 6U;
 
 /**
  * @brief CRTP base class providing banked knob/button wiring, preset storage,
@@ -62,16 +60,19 @@ template<typename Derived, uint8_t KNOB_COUNT, uint8_t BUTTON_COUNT,
          uint8_t PARAM_COUNT, uint8_t COUNT>
 class UI_BLOCK {
 public:
+    /** @brief Number of modulation source groups used by the mod preset layout. */
+    static constexpr uint8_t MOD_SRC_COUNT = 6U;
+
     /** @brief Banked preset storage: @c COUNT banks of @c PARAM_COUNT parameters each. */
     using preset = std::array<std::array<uint8_t, PARAM_COUNT>, COUNT>;
 
     /** @brief Mod-routing preset storage indexed by source group and destination. */
     using mod_preset = std::array<std::array<uint8_t, PARAM_COUNT * MOD_SRC_COUNT>, MOD_SRC_COUNT>;
 
-    /** @brief Button array - alias for the block's owned button storage**/
+    /** @brief Alias for the block's owned button storage. */
     using button_array = std::array<Button, BUTTON_COUNT>;
 
-    /** @brief Knob array - alias for the block's owned knob storage**/
+    /** @brief Alias for the block's owned knob storage. */
     using knob_array = std::array<Knob, KNOB_COUNT>;
 
     /**
@@ -103,9 +104,10 @@ public:
          * @brief Returns the index of the first knob whose push-button
          *        transitioned to pressed during this update.
          *
-         * @return Knob index, or @c -1 if no knob push-button was pressed.
+         * @return Knob index in the range `[0, KNOB_COUNT)`, or `-1` if no
+         *         knob push-button was pressed during this update.
          */
-        uint8_t get_first_pushed_knob_sw() {
+        int8_t get_first_pushed_knob_sw() {
             for (uint8_t i = 0; i < KNOB_COUNT; i++) {
                 if (knobs_sw_changed_array[i] && knobs_sw[i]) {
                     return i;
@@ -224,8 +226,14 @@ public:
     /*  Mod-routing value accessors                                       */
     /* ------------------------------------------------------------------ */
 
-    /** @brief Returns one mod-routing value addressed by @p src and @p dst. */
-    int16_t get_preset_mod_value(uint8_t src, uint8_t dst) {
+    /**
+     * @brief Returns one mod-routing value addressed by @p src and @p dst.
+     *
+     * @param src Modulation source group index in `[0, MOD_SRC_COUNT)`.
+     * @param dst Destination parameter index in `[0, PARAM_COUNT * MOD_SRC_COUNT)`.
+     * @return    The stored mod-routing value in the range `[0, 255]`.
+     */
+    uint8_t get_preset_mod_value(uint8_t src, uint8_t dst) {
         return mod_preset_values[src][dst];
     }
 
@@ -242,7 +250,7 @@ public:
     button_array &get_buttons() { return buttons_; }
 
     /** @brief Returns a reference to the owned knob array. */
-    std::array<Knob, KNOB_COUNT> &get_knobs() { return knobs_; }
+    knob_array &get_knobs() { return knobs_; }
 
     /** @brief Returns the borrowed MIDI transport pointer. */
     MIDI *get_midi() { return midi_; }
@@ -283,9 +291,12 @@ public:
 
     /**
      * @brief Returns the index of the first knob push-button pressed during
-     *        the most recent @ref update, or @c -1 if none.
+     *        the most recent @ref update, or `-1` if none.
+     *
+     * @return Index of the first pressed knob push-button in the range
+     *         `[0, KNOB_COUNT)`, or `-1` if none was pressed.
      */
-    uint8_t get_first_knob_sw_pushed() {
+    int8_t get_first_knob_sw_pushed() {
         if (last_ret_.knobs_sw_changed) {
             return last_ret_.get_first_pushed_knob_sw();
         }
@@ -340,7 +351,7 @@ public:
         set_current_preset_value(index, value_scaled);
         if (midi_) {
             midi_->send_cc(self()->get_current_instance_midi_nr(index),
-                           static_cast<uint8_t>(value_scaled),
+                           value_scaled,
                            self()->get_midi_ch());
         }
     }
@@ -476,15 +487,6 @@ private:
     /* ------------------------------------------------------------------ */
 
     /**
-     * @brief Recalls a knob value from the current bank without emitting
-     *        MIDI. Used during bank switches to restore the LED state.
-     */
-    void force_knob_update(uint8_t index, uint8_t value_scaled) {
-        set_current_preset_value(index, value_scaled);
-        knobs_[index].set_value(static_cast<uint8_t>(value_scaled));
-    }
-
-    /**
      * @brief Switches to bank @p index, updates selector LEDs, recalls
      *        all knob values, and applies special parameters.
      */
@@ -498,9 +500,7 @@ private:
         current_instance_ = index;
 
         for (uint8_t j = 0; j < KNOB_COUNT; j++) {
-            const uint8_t val = static_cast<uint8_t>(
-                    get_current_preset_value(j));
-            force_knob_update(j, val);
+            knobs_[j].set_value(get_current_preset_value(j));
         }
 
         if (!mod_viewer_mode) {
@@ -508,7 +508,7 @@ private:
                 constexpr uint8_t special_count = PARAM_COUNT - KNOB_COUNT;
                 for (uint8_t i = 0; i < special_count; i++) {
                     const uint8_t val = get_current_preset_value(KNOB_COUNT + i);
-                    self()->force_function(static_cast<uint8_t>(val));
+                    self()->force_function(val);
                     LOG_INF("%s %d special param %d %d",
                             self()->get_name(), current_instance_,
                             KNOB_COUNT + i, val);
@@ -537,9 +537,7 @@ private:
             for (uint8_t j = 0; j < PARAM_COUNT; j++) {
                 const uint8_t value = preset_values_[i][j];
                 const uint8_t midi_nr = self()->get_midi_nr(i, j);
-                midi_->send_cc(midi_nr,
-                               static_cast<uint8_t>(value),
-                               self()->get_midi_ch());
+                midi_->send_cc(midi_nr, value, self()->get_midi_ch());
             }
         }
     }
