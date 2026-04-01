@@ -17,14 +17,21 @@ namespace {
 
 constexpr uint32_t record_magic = 0x42535052U;
 constexpr uint16_t record_version = PresetSnapshot::version;
+constexpr uint8_t record_kind_preset = 0U;
+constexpr uint8_t record_kind_startup_slot = 1U;
 constexpr size_t record_prefix_size = sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint8_t) +
                                       sizeof(uint8_t) + sizeof(PresetSnapshot);
+constexpr size_t record_startup_prefix_size = sizeof(uint32_t) + sizeof(uint16_t) +
+                                              sizeof(uint8_t) + sizeof(uint8_t) +
+                                              sizeof(uint8_t);
 constexpr size_t min_record_storage_size = record_prefix_size + sizeof(uint32_t);
 constexpr size_t max_record_storage_size = 1024U;
 
 struct SlotCache {
     std::array<PresetSnapshot, EEPROM::preset_count> snapshots = {};
     std::array<uint8_t, EEPROM::preset_count / 8U> valid_mask = {};
+    uint8_t startup_slot = 0U;
+    bool startup_slot_valid = false;
 };
 
 static SlotCache cache = {};
@@ -86,11 +93,12 @@ bool read_record(const struct flash_area *flash_area,
     return !is_erased_bytes(buffer, storage_size, erased_value);
 }
 
-bool validate_record(const uint8_t *buffer, size_t storage_size)
+bool validate_record(const uint8_t *buffer, size_t storage_size, uint8_t &kind, uint8_t &slot)
 {
     uint32_t magic = 0U;
     uint16_t version = 0U;
-    uint8_t slot = 0U;
+    uint8_t read_kind = 0U;
+    uint8_t read_slot = 0U;
     uint8_t reserved = 0U;
     uint32_t stored_crc = 0U;
 
@@ -99,20 +107,48 @@ bool validate_record(const uint8_t *buffer, size_t storage_size)
     offset += sizeof(magic);
     memcpy(&version, buffer + offset, sizeof(version));
     offset += sizeof(version);
-    memcpy(&slot, buffer + offset, sizeof(slot));
-    offset += sizeof(slot);
+    memcpy(&read_kind, buffer + offset, sizeof(read_kind));
+    offset += sizeof(read_kind);
+    memcpy(&read_slot, buffer + offset, sizeof(read_slot));
+    offset += sizeof(read_slot);
     memcpy(&reserved, buffer + offset, sizeof(reserved));
     offset += sizeof(reserved);
 
-    if ((magic != record_magic) || (version != record_version) || (slot >= EEPROM::preset_count) ||
-        (reserved != 0U) || (storage_size < min_record_storage_size)) {
+    if ((magic != record_magic) || (version != record_version) ||
+        (read_slot >= EEPROM::preset_count)) {
         return false;
     }
 
-    const size_t crc_offset = record_prefix_size;
+    size_t crc_offset = 0U;
+    switch (read_kind) {
+    case record_kind_preset:
+        if (reserved != 0U) {
+            return false;
+        }
+        crc_offset = record_prefix_size;
+        if (storage_size < (record_prefix_size + sizeof(stored_crc))) {
+            return false;
+        }
+        break;
+    case record_kind_startup_slot:
+        if (reserved != 0U) {
+            return false;
+        }
+        crc_offset = record_startup_prefix_size;
+        if (storage_size < (record_startup_prefix_size + sizeof(stored_crc))) {
+            return false;
+        }
+        break;
+    default:
+        return false;
+    }
+
     memcpy(&stored_crc, buffer + crc_offset, sizeof(stored_crc));
 
-    const uint32_t computed_crc = record_crc(buffer, record_prefix_size);
+    kind = read_kind;
+    slot = read_slot;
+
+    const uint32_t computed_crc = record_crc(buffer, crc_offset);
     return computed_crc == stored_crc;
 }
 
@@ -122,10 +158,10 @@ void unpack_snapshot(const uint8_t *buffer, PresetSnapshot &snapshot)
     memcpy(&snapshot, buffer + offset, sizeof(PresetSnapshot));
 }
 
-int write_record(const struct flash_area *flash_area,
-                 size_t offset,
-                 uint8_t slot,
-                 const PresetSnapshot &snapshot)
+int write_preset_record(const struct flash_area *flash_area,
+                        size_t offset,
+                        uint8_t slot,
+                        const PresetSnapshot &snapshot)
 {
     const size_t storage_size = record_storage_size(flash_area);
     if (storage_size > max_record_storage_size) {
@@ -138,11 +174,14 @@ int write_record(const struct flash_area *flash_area,
     size_t write_offset = 0U;
     const uint32_t magic = record_magic;
     const uint16_t version = record_version;
+    const uint8_t kind = record_kind_preset;
     const uint8_t reserved = 0U;
     memcpy(buffer.data() + write_offset, &magic, sizeof(magic));
     write_offset += sizeof(magic);
     memcpy(buffer.data() + write_offset, &version, sizeof(version));
     write_offset += sizeof(version);
+    memcpy(buffer.data() + write_offset, &kind, sizeof(kind));
+    write_offset += sizeof(kind);
     memcpy(buffer.data() + write_offset, &slot, sizeof(slot));
     write_offset += sizeof(slot);
     memcpy(buffer.data() + write_offset, &reserved, sizeof(reserved));
@@ -151,6 +190,41 @@ int write_record(const struct flash_area *flash_area,
 
     const uint32_t crc = record_crc(buffer.data(), record_prefix_size);
     memcpy(buffer.data() + record_prefix_size, &crc, sizeof(crc));
+
+    return flash_area_write(flash_area,
+                            static_cast<off_t>(offset),
+                            buffer.data(),
+                            storage_size);
+}
+
+int write_startup_record(const struct flash_area *flash_area, size_t offset, uint8_t slot)
+{
+    const size_t storage_size = record_storage_size(flash_area);
+    if (storage_size > max_record_storage_size) {
+        return -ENOTSUP;
+    }
+
+    std::array<uint8_t, max_record_storage_size> buffer = {};
+    buffer.fill(flash_area_erased_val(flash_area));
+
+    size_t write_offset = 0U;
+    const uint32_t magic = record_magic;
+    const uint16_t version = record_version;
+    const uint8_t kind = record_kind_startup_slot;
+    const uint8_t reserved = 0U;
+    memcpy(buffer.data() + write_offset, &magic, sizeof(magic));
+    write_offset += sizeof(magic);
+    memcpy(buffer.data() + write_offset, &version, sizeof(version));
+    write_offset += sizeof(version);
+    memcpy(buffer.data() + write_offset, &kind, sizeof(kind));
+    write_offset += sizeof(kind);
+    memcpy(buffer.data() + write_offset, &slot, sizeof(slot));
+    write_offset += sizeof(slot);
+    memcpy(buffer.data() + write_offset, &reserved, sizeof(reserved));
+    write_offset += sizeof(reserved);
+
+    const uint32_t crc = record_crc(buffer.data(), record_startup_prefix_size);
+    memcpy(buffer.data() + record_startup_prefix_size, &crc, sizeof(crc));
 
     return flash_area_write(flash_area,
                             static_cast<off_t>(offset),
@@ -173,7 +247,16 @@ int compact_log(const struct flash_area *flash_area)
             continue;
         }
 
-        ret = write_record(flash_area, offset, slot, cache.snapshots[slot]);
+        ret = write_preset_record(flash_area, offset, slot, cache.snapshots[slot]);
+        if (ret < 0) {
+            return ret;
+        }
+
+        offset += storage_size;
+    }
+
+    if (cache.startup_slot_valid) {
+        ret = write_startup_record(flash_area, offset, cache.startup_slot);
         if (ret < 0) {
             return ret;
         }
@@ -208,7 +291,7 @@ int EEPROM::init()
 
     const size_t storage_size = record_storage_size(flash_area_);
     if ((storage_size == 0U) || (storage_size > max_record_storage_size) ||
-        (storage_size * EEPROM::preset_count > flash_area_->fa_size)) {
+        (storage_size * (EEPROM::preset_count + 1U) > flash_area_->fa_size)) {
         LOG_ERR("Preset record size is invalid for partition");
         clear_cache();
         return -ENOSPC;
@@ -224,15 +307,20 @@ int EEPROM::init()
             continue;
         }
 
-        if (!validate_record(buffer.data(), storage_size)) {
+        uint8_t kind = 0U;
+        uint8_t slot = 0U;
+        if (!validate_record(buffer.data(), storage_size, kind, slot)) {
             needs_compaction = true;
             continue;
         }
 
-        uint8_t slot = 0U;
-        memcpy(&slot, buffer.data() + sizeof(uint32_t) + sizeof(uint16_t), sizeof(slot));
-        unpack_snapshot(buffer.data(), cache.snapshots[slot]);
-        set_slot_valid(slot);
+        if (kind == record_kind_preset) {
+            unpack_snapshot(buffer.data(), cache.snapshots[slot]);
+            set_slot_valid(slot);
+        } else if (kind == record_kind_startup_slot) {
+            cache.startup_slot = slot;
+            cache.startup_slot_valid = true;
+        }
         next_record_offset = offset + storage_size;
     }
 
@@ -278,7 +366,7 @@ int EEPROM::save(uint8_t index, const PresetSnapshot &snapshot)
         }
     }
 
-    ret = write_record(flash_area_, next_record_offset, index, snapshot);
+    ret = write_preset_record(flash_area_, next_record_offset, index, snapshot);
     if (ret < 0) {
         LOG_ERR("Failed to append preset record: %d", ret);
         return ret;
@@ -286,6 +374,55 @@ int EEPROM::save(uint8_t index, const PresetSnapshot &snapshot)
 
     cache.snapshots[index] = snapshot;
     set_slot_valid(index);
+    next_record_offset += storage_size;
+    return 0;
+}
+
+int EEPROM::load_startup_slot(uint8_t &slot) const
+{
+    slot = cache.startup_slot_valid ? cache.startup_slot : 0U;
+    if (cache.startup_slot_valid) {
+        LOG_INF("Startup preset slot %u loaded from flash", static_cast<unsigned int>(slot));
+    } else {
+        LOG_INF("Startup preset slot not stored yet, using preset 0");
+    }
+    return 0;
+}
+
+int EEPROM::save_startup_slot(uint8_t slot)
+{
+    if (slot >= EEPROM::preset_count) {
+        return -EINVAL;
+    }
+
+    if (!initialized_) {
+        return -EACCES;
+    }
+
+    if (cache.startup_slot_valid && (cache.startup_slot == slot)) {
+        return 0;
+    }
+
+    const size_t storage_size = record_storage_size(flash_area_);
+    const bool has_space = (next_record_offset + storage_size) <= flash_area_->fa_size;
+
+    int ret = 0;
+    if (needs_compaction || !has_space) {
+        ret = compact_log(flash_area_);
+        if (ret < 0) {
+            LOG_ERR("Failed to compact preset log: %d", ret);
+            return ret;
+        }
+    }
+
+    ret = write_startup_record(flash_area_, next_record_offset, slot);
+    if (ret < 0) {
+        LOG_ERR("Failed to append startup slot record: %d", ret);
+        return ret;
+    }
+
+    cache.startup_slot = slot;
+    cache.startup_slot_valid = true;
     next_record_offset += storage_size;
     return 0;
 }

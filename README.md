@@ -44,9 +44,11 @@ onto each LED-backed segment, exposes latched knob-value banks where required,
 maintains one clamped knob value in the range `0..127` per knob, lights one
 LED in each segment according to the active value when LEDs are assigned,
 drives one active-low three-digit display from the dedicated preset knob,
-auto-loads preset `0` on boot, uses a reduced-resolution preset encoder to
-avoid accidental slot changes while pressing, and uses the preset knob push
-button for short-press load plus timeout-triggered long-press save. The input
+restores the last loaded preset on boot from NVM, falling back to preset `0`
+if no startup slot has been stored yet, uses a reduced-resolution preset
+encoder to avoid accidental slot changes while pressing, and uses the preset
+knob push button for short-press load plus timeout-triggered long-press save.
+The input
 thread constructs its `UART`, `MIDI`, `InputController`, `LEDSController`,
 `ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`, `OSC`, `EEPROM`, and `Preset`
 objects as
@@ -255,7 +257,7 @@ When the application is flashed and running on the board:
 - selector and radio-button LEDs reflect the currently active state, and bank `0` is selected on boot
 - the `LED_DISP` block shows the currently selected preset number in the range `0..127` with blank leading digits
 - the preset encoder uses a coarser step size than the other knobs so pressing it is less likely to move the displayed preset number
-- preset `0` is auto-loaded on boot, short display-knob presses load the selected preset on release, and holding the display knob for `1000 ms` saves immediately on timeout
+- the last loaded preset is restored on boot, falling back to preset `0` if no startup slot has been stored yet; short display-knob presses load the selected preset on release, and holding the display knob for `1000 ms` saves immediately on timeout
 - after a hold-triggered save, the display blanks briefly as confirmation
 - browsing to another preset without loading or saving for `5000 ms` causes the display to blank briefly, then snap back to the active preset number
 - presets restore bank contents but keep the currently selected bank in `ADSR`, `LFO`, `MOD`, and `OSC`
