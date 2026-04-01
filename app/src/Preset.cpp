@@ -212,7 +212,7 @@ void Preset::start_blink_(uint8_t restore_slot)
     blink_active_ = true;
     blink_restore_slot_ = restore_slot;
     blink_ends_at_ms_ = k_uptime_get_32() + blink_ms;
-    display_->set_all(100U);
+    display_->set_all(0U);
 }
 
 void Preset::update_display_restore_()
