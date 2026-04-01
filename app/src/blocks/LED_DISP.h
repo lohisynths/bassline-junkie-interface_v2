@@ -137,14 +137,6 @@ public:
     }
 
     /**
-     * @brief Toggles viewer mode and refreshes the display.
-     */
-    void set_viewer_mode(bool enable) {
-        UI_BLOCK<LED_DISP, LED_DISP_KNOB_COUNT, LED_DISP_BUTTON_COUNT, LED_DISP_PARAM_COUNT, LED_DISP_COUNT>::set_viewer_mode(enable);
-        refresh_display();
-    }
-
-    /**
      * @brief Stores the current display value, updates the LED digits, and keeps legacy state in sync.
      */
     void knob_val_changed(uint8_t /*index*/, uint8_t value_scaled) {

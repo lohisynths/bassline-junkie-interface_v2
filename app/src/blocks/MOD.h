@@ -95,19 +95,6 @@ public:
     /* ------------------------------------------------------------------ */
 
     /**
-     * @brief Toggles MOD viewer mode when the encoder push-button is pressed.
-     */
-    void knob_sw_changed(uint8_t /*index*/, bool state) {
-        if (!state) {
-            return;
-        }
-
-        LOG_MODULE_DECLARE(UI_BLOCK, LOG_LEVEL_INF);
-        set_viewer_mode(!mod_viewer_mode);
-        LOG_INF("mod_viewer mode changed %d", mod_viewer_mode);
-    }
-
-    /**
      * @brief Returns the current routing amount for the selected source and destination.
      */
     uint8_t get_current_preset_value(uint8_t /*index*/) {
@@ -130,10 +117,6 @@ public:
      */
     void knob_val_changed(uint8_t /*index*/, uint8_t value_scaled) {
         store_current_preset_value(value_scaled);
-
-        if (mod_viewer_mode) {
-            return;
-        }
 
         if (get_midi()) {
             get_midi()->send_cc(get_midi_nr(get_current_instance(), actual_mod_dest),
