@@ -71,6 +71,9 @@ public:
     /** @brief Button array **/
     using button_array = std::array<Button, BUTTON_COUNT>;
 
+    /** @brief Knob array **/
+    using knob_array = std::array<Knob, KNOB_COUNT>;
+
     /**
      * @brief Reports which outputs changed during one @ref update call.
      */
@@ -554,7 +557,7 @@ private:
     button_array buttons_;
 
     /** @brief Encoder-backed knobs owned by the block. */
-    std::array<Knob, KNOB_COUNT> knobs_;
+    knob_array knobs_;
 
     /** @brief Currently selected bank index. */
     uint8_t current_instance_ = 0;
