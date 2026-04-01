@@ -49,32 +49,109 @@ public:
     uint8_t get_active_slot() const;
 
 private:
+    /**
+     * @brief Loads one preset slot from storage and applies it to every bound block.
+     *
+     * @param slot Preset slot to restore.
+     * @retval true The slot was loaded and applied successfully.
+     * @retval false The controller is not initialized or the load failed.
+     */
     bool load_slot_(uint8_t slot);
+
+    /**
+     * @brief Captures the current block state and writes it to one preset slot.
+     *
+     * @param slot Preset slot to save.
+     * @retval true The slot was captured and stored successfully.
+     * @retval false The controller is not initialized or the save failed.
+     */
     bool save_slot_(uint8_t slot);
+
+    /**
+     * @brief Copies the live block state into a preset snapshot structure.
+     *
+     * @param snapshot Destination snapshot that receives the current state.
+     */
     void capture_snapshot_(PresetSnapshot &snapshot) const;
+
+    /**
+     * @brief Applies a stored preset snapshot to every bound block.
+     *
+     * @param snapshot Snapshot to restore.
+     */
     void apply_snapshot_(const PresetSnapshot &snapshot);
+
+    /**
+     * @brief Sends the snapshot modulation matrix to the MIDI backend.
+     *
+     * @param snapshot Snapshot containing the modulation routing values.
+     */
     void send_mod_matrix_(const PresetSnapshot &snapshot);
+
+    /**
+     * @brief Starts the temporary display blink before restoring one slot number.
+     *
+     * @param restore_slot Slot number to show again after the blink expires.
+     */
     void start_blink_(uint8_t restore_slot);
+
+    /**
+     * @brief Restores the display after a blink timeout has elapsed.
+     */
     void update_display_restore_();
 
+    /** @brief Borrowed EEPROM backend used for preset persistence. */
     EEPROM *eeprom_ = nullptr;
+
+    /** @brief Borrowed LED display block used for preset browsing feedback. */
     LED_DISP *display_ = nullptr;
+
+    /** @brief Borrowed ADSR block restored from preset snapshots. */
     ADSR *adsr_ = nullptr;
+
+    /** @brief Borrowed filter block restored from preset snapshots. */
     FLT *flt_ = nullptr;
+
+    /** @brief Borrowed LFO block restored from preset snapshots. */
     LFO *lfo_ = nullptr;
+
+    /** @brief Borrowed modulation block used to translate matrix values to MIDI. */
     MOD *mod_ = nullptr;
+
+    /** @brief Borrowed oscillator block restored from preset snapshots. */
     OSC *osc_ = nullptr;
 
+    /** @brief Slot number of the currently active preset. */
     uint8_t active_slot_ = 0U;
+
+    /** @brief Slot number currently shown on the display while browsing. */
     uint8_t displayed_slot_ = 0U;
+
+    /** @brief Tracks whether the display encoder switch is currently held. */
     bool display_pressed_ = false;
+
+    /** @brief Tracks whether the current long-press save action has already fired. */
     bool save_fired_ = false;
+
+    /** @brief Tracks whether the most recent save action succeeded. */
     bool save_succeeded_ = false;
+
+    /** @brief Slot that was saved during the current long-press action. */
     uint8_t saved_slot_ = 0U;
+
+    /** @brief Timestamp when the display encoder switch was pressed. */
     uint32_t display_pressed_at_ms_ = 0U;
+
+    /** @brief Timestamp when browsing away from the active slot began. */
     uint32_t browse_timeout_started_at_ms_ = 0U;
+
+    /** @brief Tracks whether the display is temporarily blanked for feedback. */
     bool blink_active_ = false;
+
+    /** @brief Slot to restore after the blink finishes. */
     uint8_t blink_restore_slot_ = 0U;
+
+    /** @brief Timestamp when the blink feedback should end. */
     uint32_t blink_ends_at_ms_ = 0U;
 };
 
