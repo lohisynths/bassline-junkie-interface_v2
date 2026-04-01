@@ -52,7 +52,7 @@ static void input_thread(void *p1, void *, void *) {
         return;
     }
 
-    osc.init(OSC::knob_configs_, OSC::button_configs_, midi, leds, inputs);
+    osc.init(midi, leds, inputs);
 
     while (1) {
         ret = inputs.update();
