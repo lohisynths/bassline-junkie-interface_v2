@@ -68,10 +68,10 @@ public:
     /** @brief Mod-routing preset storage indexed by source group and destination. */
     using mod_preset = std::array<std::array<uint8_t, PARAM_COUNT * MOD_SRC_COUNT>, MOD_SRC_COUNT>;
 
-    /** @brief Button array **/
+    /** @brief Button array - alias for the block's owned button storage**/
     using button_array = std::array<Button, BUTTON_COUNT>;
 
-    /** @brief Knob array **/
+    /** @brief Knob array - alias for the block's owned knob storage**/
     using knob_array = std::array<Knob, KNOB_COUNT>;
 
     /**
