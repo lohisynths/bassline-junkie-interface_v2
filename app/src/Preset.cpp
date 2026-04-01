@@ -131,7 +131,7 @@ bool Preset::load_slot_(uint8_t slot)
     apply_snapshot_(snapshot);
     active_slot_ = slot;
     displayed_slot_ = slot;
-    display_->set_display_value(slot);
+    display_->sync_preset_value(slot);
     browse_timeout_started_at_ms_ = 0U;
     LOG_INF("Loaded preset %u", static_cast<unsigned int>(slot));
     return true;
@@ -226,7 +226,7 @@ void Preset::update_display_restore_()
         return;
     }
 
-    display_->set_display_value(blink_restore_slot_);
+    display_->sync_preset_value(blink_restore_slot_);
     blink_active_ = false;
     blink_ends_at_ms_ = 0U;
 }
