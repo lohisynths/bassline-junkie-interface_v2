@@ -148,11 +148,7 @@ public:
      */
     void force_function(uint8_t value) {
         for (uint8_t i = 0U; i < FLT_TYPE_COUNT; i++) {
-            if (i == value) {
-                turn_on_sw(i);
-            } else {
-                turn_off_sw(i);
-            }
+            set_sw_state(i, i == value);
         }
     }
 
@@ -183,11 +179,7 @@ public:
      */
     void select_filter_type(uint8_t type) {
         for (uint8_t i = 0U; i < FLT_TYPE_COUNT; i++) {
-            if (i == type) {
-                turn_on_sw(i);
-            } else {
-                turn_off_sw(i);
-            }
+            set_sw_state(i, i == type);
         }
         set_current_preset_value(FLT_TYPE, type);
         if (get_midi()) {

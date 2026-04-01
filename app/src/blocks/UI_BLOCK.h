@@ -177,6 +177,16 @@ public:
         buttons_[index].set_led_val(100);
     }
 
+    /**
+     * @brief Sets one button LED to either off or full brightness.
+     *
+     * @param index Button index to update.
+     * @param state @c true turns the LED on, @c false turns it off.
+     */
+    void set_sw_state(uint8_t index, bool state) {
+        buttons_[index].set_led_val(state ? 100 : 0);
+    }
+
     /* ------------------------------------------------------------------ */
     /*  Preset value accessors                                            */
     /* ------------------------------------------------------------------ */
@@ -463,8 +473,8 @@ private:
     void select_instance(uint8_t index) {
         LOG_MODULE_DECLARE(UI_BLOCK, LOG_LEVEL_INF);
         if constexpr (BUTTON_COUNT > 0) {
-            turn_off_sw(current_instance_);
-            turn_on_sw(index);
+            set_sw_state(current_instance_, false);
+            set_sw_state(index, true);
         }
 
         current_instance_ = index;

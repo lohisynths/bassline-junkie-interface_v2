@@ -142,11 +142,7 @@ public:
      * @param value Recalled LOOP state (`0` = off, non-zero = on).
      */
     void force_function(uint8_t value) {
-        if (value) {
-            turn_on_sw(ADSR_COUNT);
-        } else {
-            turn_off_sw(ADSR_COUNT);
-        }
+        set_sw_state(ADSR_COUNT, value != 0U);
     }
 
     /**
@@ -170,11 +166,7 @@ public:
      */
     void toggle_loop() {
         const uint8_t loop_state = get_current_preset_value(ADSR_LOOP) ^ 1U;
-        if (loop_state) {
-            turn_on_sw(ADSR_COUNT);
-        } else {
-            turn_off_sw(ADSR_COUNT);
-        }
+        set_sw_state(ADSR_COUNT, loop_state != 0U);
         set_current_preset_value(ADSR_LOOP, loop_state);
         if (get_midi()) {
             get_midi()->send_cc(get_current_instance_midi_nr(ADSR_LOOP),
