@@ -126,7 +126,7 @@ public:
     }
 
     /** @brief MIDI channel used for all ADSR control-change messages. */
-    uint8_t get_midi_ch() { return 0U; }
+    uint8_t get_midi_ch() { return 1U; }
 
     /* ------------------------------------------------------------------ */
     /*  CRTP hook overrides                                               */
