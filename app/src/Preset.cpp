@@ -37,7 +37,9 @@ int Preset::init(EEPROM &eeprom, LED_DISP &display, ADSR &adsr, FLT &flt, LFO &l
         LOG_ERR("EEPROM init failed, continuing with RAM-only presets: %d", ret);
     }
 
-    (void)load_slot_(0U);
+    uint8_t startup_slot = 0U;
+    (void)eeprom_->load_startup_slot(startup_slot);
+    (void)load_slot_(startup_slot);
     return 0;
 }
 
@@ -132,6 +134,11 @@ bool Preset::load_slot_(uint8_t slot)
     active_slot_ = slot;
     displayed_slot_ = slot;
     display_->sync_preset_value(slot);
+    const int startup_ret = eeprom_->save_startup_slot(slot);
+    if (startup_ret < 0) {
+        LOG_WRN("Failed to remember startup preset %u: %d",
+                static_cast<unsigned int>(slot), startup_ret);
+    }
     browse_timeout_started_at_ms_ = 0U;
     LOG_INF("Loaded preset %u", static_cast<unsigned int>(slot));
     return true;
@@ -155,6 +162,11 @@ bool Preset::save_slot_(uint8_t slot)
 
     active_slot_ = slot;
     displayed_slot_ = slot;
+    const int startup_ret = eeprom_->save_startup_slot(slot);
+    if (startup_ret < 0) {
+        LOG_WRN("Failed to remember startup preset %u after save: %d",
+                static_cast<unsigned int>(slot), startup_ret);
+    }
     start_blink_(slot);
     LOG_INF("Saved preset %u", static_cast<unsigned int>(slot));
     return true;

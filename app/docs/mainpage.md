@@ -38,7 +38,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - `MUX`: wraps the configured CD4067 devices, scans their inputs, and logs one active-channel mask per mux in hex or binary form
 - `PresetSnapshot`: provides the durable schema for the `ADSR`, `FLT`, `LFO`, `MOD`, and `OSC` block states stored in one preset slot while leaving bank selectors live, including the OSC and FLT modulation matrices edited by MOD
 - `EEPROM`: owns the flash-backed 128-slot preset log, validates it with CRC32, returns default state for unsaved slots, treats older snapshot formats as incompatible, and appends one flash record on save
-- `Preset`: coordinates the `LED_DISP` encoder, auto-loads preset `0` on boot, loads on short press release, saves on 1 second hold, and provides the display blink feedback used after save and browse timeout restore
+- `Preset`: coordinates the `LED_DISP` encoder, restores the last loaded preset on boot with a fallback to preset `0`, loads on short press release, saves on 1 second hold, and provides the display blink feedback used after save and browse timeout restore
 - `UART`: wraps the app-owned `USART1` device on `PA9`/`PA10`, exposes polling writes plus non-blocking reads, and keeps the Zephyr console on `USART2`
 - `MIDI`: binds to one initialized `UART` transport and emits Note On, Note Off, and Control Change channel messages
 - `utils`: provides shared helpers such as 16-bit mask-to-binary-string formatting used by debug logging
@@ -70,7 +70,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - `EEPROM` reserves one flash partition for 128 preset slots, stores saves as an append-only log, and returns the all-zero default surface when a slot has never been saved.
 - `LED_DISP` provides one knob plus an active-low three-digit seven-segment display that shows the selected preset number in the range `0..127`.
 - The preset encoder uses a coarser step size than the other knobs so casual button presses are less likely to move the selected slot.
-- Preset `0` is auto-loaded on boot. Short display-knob presses load the selected preset on release, and holding the display knob for `1000 ms` saves the current full-surface state immediately on timeout.
+- The last loaded preset is restored on boot, falling back to preset `0` if no startup slot has been stored yet. Short display-knob presses load the selected preset on release, and holding the display knob for `1000 ms` saves the current full-surface state immediately on timeout.
 - After a hold-triggered save, `LED_DISP` blanks briefly as confirmation.
 - Browsing away from the active preset without pressing load or save for `5000 ms` makes the display blank briefly, then restore the active preset number.
 - Preset loads restore bank contents but do not force a different selected selector group or bank in `ADSR`, `LFO`, `MOD`, or `OSC`.

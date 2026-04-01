@@ -50,6 +50,30 @@ public:
      */
     int save(uint8_t index, const PresetSnapshot &snapshot);
 
+    /**
+     * @brief Loads the preset slot that should be restored at startup.
+     *
+     * If no startup slot has been stored yet, this returns slot `0`.
+     *
+     * @param slot Receives the stored startup slot.
+     *
+     * @retval 0 The startup slot was returned successfully.
+     */
+    int load_startup_slot(uint8_t &slot) const;
+
+    /**
+     * @brief Stores the preset slot that should be restored at startup.
+     *
+     * This appends a small metadata record to the same flash journal used by
+     * preset snapshots.
+     *
+     * @param slot Preset slot to restore on the next boot.
+     *
+     * @retval 0 The startup slot was written successfully.
+     * @retval negative Error propagated from the flash driver.
+     */
+    int save_startup_slot(uint8_t slot);
+
 private:
     /** @brief Open flash area backing the preset image. */
     const struct flash_area *flash_area_ = nullptr;
