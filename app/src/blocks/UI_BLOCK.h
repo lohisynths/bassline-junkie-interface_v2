@@ -1,8 +1,7 @@
 /**
  * @file UI_BLOCK.h
  * @brief CRTP base template providing banked knob/button wiring,
- *        preset storage, mod-routing overlay, and MIDI dump for
- *        control-surface blocks.
+ *        preset storage, and MIDI dump for control-surface blocks.
  *
  * Created on: Mar 29, 2026
  *     Author: alax
@@ -24,7 +23,7 @@
 
 /**
  * @brief CRTP base class providing banked knob/button wiring, preset storage,
- *        mod-routing overlay, and MIDI dump logic.
+ *        and MIDI dump logic.
  *
  * Each derived class supplies its own hardware configuration by defining two
  * public static constexpr arrays named @c knob_configs_ and
@@ -120,9 +119,6 @@ public:
     /** @brief Mod-routing preset values (public for direct access by MOD block). */
     mod_preset mod_preset_values = {};
 
-    /** @brief When @c true, preset accessors route through mod-routing storage. */
-    bool mod_viewer_mode = false;
-
     UI_BLOCK() = default;
 
     /**
@@ -190,17 +186,9 @@ public:
         return get_preset_value(current_instance_, index);
     }
 
-    /**
-     * @brief Returns one parameter value from the specified bank.
-     *
-     * When @ref mod_viewer_mode is active the read is redirected to the
-     * mod-routing storage.
-     */
+    /** @brief Returns one parameter value from the specified bank. */
     uint8_t get_preset_value(uint8_t instance, uint8_t index) {
-        if (!mod_viewer_mode) {
-            return preset_values_[instance][index];
-        }
-        return self()->get_preset_mod_value(instance, index);
+        return preset_values_[instance][index];
     }
 
     /** @brief Stores one parameter value in the current bank. */
@@ -208,18 +196,9 @@ public:
         set_preset_value(current_instance_, index, value);
     }
 
-    /**
-     * @brief Stores one parameter value in the specified bank.
-     *
-     * When @ref mod_viewer_mode is active the write is redirected to the
-     * mod-routing storage.
-     */
+    /** @brief Stores one parameter value in the specified bank. */
     void set_preset_value(uint8_t instance, uint8_t index, uint8_t value) {
-        if (!mod_viewer_mode) {
-            preset_values_[instance][index] = value;
-        } else {
-            self()->set_preset_mod_value(instance, index, value);
-        }
+        preset_values_[instance][index] = value;
     }
 
     /* ------------------------------------------------------------------ */
@@ -309,15 +288,6 @@ public:
     /* ------------------------------------------------------------------ */
     /*  Viewer mode                                                       */
     /* ------------------------------------------------------------------ */
-
-    /**
-     * @brief Enables or disables mod-viewer mode and re-selects the current
-     *        bank so that knob LEDs reflect the new storage source.
-     */
-    void set_viewer_mode(bool enable) {
-        mod_viewer_mode = enable;
-        select_instance(current_instance_);
-    }
 
     /** @brief Re-applies the current bank selection without changing it. */
     void reset() {
@@ -503,16 +473,14 @@ private:
             knobs_[j].set_value(self()->get_current_preset_value(j));
         }
 
-        if (!mod_viewer_mode) {
-            if constexpr (PARAM_COUNT > KNOB_COUNT) {
-                constexpr uint8_t special_count = PARAM_COUNT - KNOB_COUNT;
-                for (uint8_t i = 0; i < special_count; i++) {
-                    const uint8_t val = self()->get_current_preset_value(KNOB_COUNT + i);
-                    self()->force_function(val);
-                    LOG_INF("%s %d special param %d %d",
-                            self()->get_name(), current_instance_,
-                            KNOB_COUNT + i, val);
-                }
+        if constexpr (PARAM_COUNT > KNOB_COUNT) {
+            constexpr uint8_t special_count = PARAM_COUNT - KNOB_COUNT;
+            for (uint8_t i = 0; i < special_count; i++) {
+                const uint8_t val = self()->get_current_preset_value(KNOB_COUNT + i);
+                self()->force_function(val);
+                LOG_INF("%s %d special param %d %d",
+                        self()->get_name(), current_instance_,
+                        KNOB_COUNT + i, val);
             }
         }
 
