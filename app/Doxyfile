@@ -19,6 +19,8 @@ INPUT                  = README.md \
                          app/src/blocks/UI_BLOCK.cpp \
                          app/src/Button.h \
                          app/src/Button.cpp \
+                         app/src/EEPROM.h \
+                         app/src/EEPROM.cpp \
                          app/src/Encoder.h \
                          app/src/Encoder.cpp \
                          app/src/GPIO.h \
@@ -29,6 +31,9 @@ INPUT                  = README.md \
                          app/src/Knob.cpp \
                          app/src/LEDS.h \
                          app/src/LEDS.cpp \
+                         app/src/Preset.h \
+                         app/src/Preset.cpp \
+                         app/src/PresetSnapshot.h \
                          app/src/MUX.h \
                          app/src/MUX.cpp \
                          app/src/utils.h \

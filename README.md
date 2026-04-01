@@ -30,10 +30,11 @@ groups one knob, three bank-selector buttons, and five radio buttons into a
 fourth control-surface unit. The `FLT` block groups three radio buttons and
 three standalone knobs into a fifth control-surface unit. The `LED_DISP`
 block class groups one standalone knob with one three-digit seven-segment LED
-display into a preset selector and preset save/load UI. The new `PresetStore`
-class keeps 128 preset snapshots in a dedicated internal-flash partition, and
-the `PresetSnapshot` model captures the durable state of the `ADSR`, `FLT`,
-`LFO`, `MOD`, and `OSC` blocks while leaving the bank-selector buttons live.
+display into a preset selector and preset save/load UI. The new `Preset`
+controller works with the flash-backed `EEPROM` backend to keep 128 preset
+snapshots in a dedicated internal-flash partition, and the `PresetSnapshot`
+model captures the durable state of the `ADSR`, `FLT`, `LFO`, `MOD`, and
+`OSC` blocks while leaving the bank-selector buttons live.
 The `UART` class owns one app-facing polling transport on `USART1` and keeps
 the existing Zephyr console on the ST-LINK virtual serial port.
 The `MIDI` class builds on top of that `UART` transport and emits basic MIDI
@@ -47,7 +48,8 @@ auto-loads preset `0` on boot, uses a reduced-resolution preset encoder to
 avoid accidental slot changes while pressing, and uses the preset knob push
 button for short-press load plus timeout-triggered long-press save. The input
 thread constructs its `UART`, `MIDI`, `InputController`, `LEDSController`,
-`ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`, `OSC`, and `PresetStore` objects as
+`ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`, `OSC`, `EEPROM`, and `Preset`
+objects as
 plain local objects, and each `Knob` owns
 its internal `Encoder` helper while reading its configured button bit
 directly. The button input is treated as active-low, so a raw mux bit value of
@@ -143,11 +145,12 @@ The main application sources are:
 - `app/src/Button.h` and `app/src/Button.cpp`: button decoder with `Config` binding, `button_msg` change reporting, and explicit LED control through `set_led_val()`
 - `app/src/Encoder.h` and `app/src/Encoder.cpp`: quadrature decoder bound to one cached mux state and two CD4067 channels
 - `app/src/Knob.h` and `app/src/Knob.cpp`: reusable knob UI that owns one encoder, reads one raw active-low button bit, drives one contiguous LED segment, supports explicit value recall through `set_value()`, supports temporary LED-only preview rendering, and can divide raw encoder edges before exposing one visible value step
-- `app/src/PresetSnapshot.h`: durable preset schema for the `ADSR`, `FLT`, `LFO`, `MOD`, and `OSC` blocks, including the expanded MOD virtual-bank state
-- `app/src/PresetStore.h` and `app/src/PresetStore.cpp`: flash-backed preset storage helper that validates one versioned preset log with CRC32, exposes 128 slots, returns default state for unsaved slots, and appends one flash record on each save
+- `app/src/PresetSnapshot.h`: durable preset schema for the `ADSR`, `FLT`, `LFO`, `MOD`, and `OSC` blocks, including the OSC and FLT modulation matrices edited by MOD
+- `app/src/EEPROM.h` and `app/src/EEPROM.cpp`: flash-backed preset storage backend that validates one versioned preset log with CRC32, exposes 128 slots, returns default state for unsaved slots, and appends one flash record on each save
+- `app/src/Preset.h` and `app/src/Preset.cpp`: high-level preset controller that coordinates the `LED_DISP` encoder, load/save gestures, and display blink feedback
 - `app/src/UART.h` and `app/src/UART.cpp`: polling-based wrapper around the app-owned `USART1` transport on `PA9`/`PA10`, including buffer writes plus non-blocking reads
 - `app/src/MIDI.h` and `app/src/MIDI.cpp`: MIDI channel-message helper layered on top of `UART`, including Note On, Note Off, and Control Change message encoding
-- `app/src/main.cpp`: entrypoint, `UART`/`MIDI` initialization, input-thread setup, `ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`, `OSC`, and `PresetStore` wiring, and top-level runtime loop
+- `app/src/main.cpp`: entrypoint, `UART`/`MIDI` initialization, input-thread setup, `ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`, `OSC`, `EEPROM`, and `Preset` wiring, and top-level runtime loop
 - `app/src/GPIO.h` and `app/src/GPIO.cpp`: discrete GPIO input initialization and bitmask reads
 - `app/src/InputController.h` and `app/src/InputController.cpp`: aggregate input reads across all mux and GPIO sources, expose `input_count`, and provide optional debug logging helpers for input transitions and state dumps
 - `app/src/LEDS.h` and `app/src/LEDS.cpp`: PCA9685 LED control through `LEDSController`
@@ -198,7 +201,7 @@ The Doxygen landing page focuses on code structure and module responsibilities.
 Use this README as the canonical source for environment setup, build, flash,
 and hardware wiring information. The generated API docs include the `Button`,
 `Encoder`, `GPIO`, `InputController`, `Knob`, `LEDSController`, `MUX`,
-`PresetStore`, `UART`, `MIDI`, `ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`, and `OSC` classes,
+`EEPROM`, `Preset`, `UART`, `MIDI`, `ADSR`, `FLT`, `LED_DISP`, `LFO`, `MOD`, and `OSC` classes,
 the shared `PresetSnapshot` schema, the shared `utils` helpers, plus the
 CD4067 driver interface.
 
@@ -228,7 +231,7 @@ When the application is flashed and running on the board:
 - the onboard LD2 LED toggles every 1 s
 - the app-owned `USART1` transport on `PA9`/`PA10` emits `Bassline Junkie Interface UART1 ready` at `115200` baud during boot
 - the firmware continuously scans the configured CD4067 muxes and discrete GPIO inputs into one cached input-state table
-- the input thread constructs the `UART`, `MIDI`, `InputController`, `LEDSController`, and the `ADSR`, `FLT`, `LFO`, `MOD`, `OSC`, `PresetStore`, and `LED_DISP` control blocks before entering its polling loop
+- the input thread constructs the `UART`, `MIDI`, `InputController`, `LEDSController`, and the `ADSR`, `FLT`, `LFO`, `MOD`, `OSC`, `EEPROM`, `Preset`, and `LED_DISP` control blocks before entering its polling loop
 - the control surface exposes:
     - banked knob/button state in `ADSR`, `LFO`, `MOD`, and `OSC`
     - six MOD selector groups with seventeen virtual link-target banks per group
@@ -243,8 +246,8 @@ When the application is flashed and running on the board:
 - loading a preset also emits the FLT MIDI snapshot on channel `0`, resending CC `29`, `30`, and `31`
 - LFO banked radio selection emits MIDI Control Change messages on channel `0` using CC `32`, `34`, and `36` with values `0..3` for the first four LFO radio buttons, while the banked LFO knob emits CC `33`, `35`, and `37`; the fifth LFO radio button is intentionally ignored by MIDI
 - loading a preset also emits the LFO MIDI snapshot on channel `0`, resending CC `32..37`
-- MOD knob changes emit MIDI Control Change messages on channel `1` using CC `0..101`, one CC per MOD virtual bank; changing the active MOD group or MOD link target also resends the currently recalled virtual bank value
-- loading a preset also emits the full MOD MIDI snapshot on channel `1`, resending all MOD CC numbers `0..101`
+- MOD knob changes emit MIDI Control Change messages on channel `1` using CC `0..107`, one CC per MOD modulation value; changing the active MOD group or MOD link target also resends the currently recalled virtual bank value
+- loading a preset also emits the full MOD MIDI snapshot on channel `1`, resending all MOD CC numbers `0..107`
 - while the MOD knob is held, `OSC` bank/knob pairs map to MOD target offsets `0..14`, `FLT` knob `0` maps to `15`, `FLT` knob `1` maps to `16`, and `FLT` knob `2` is ignored
 - each MOD selector group remembers its last linked target offset, recalls that virtual bank when the group changes, and stores one MOD knob value for each virtual bank `((group * 17) + target_offset)`
 - long-pressing any MOD selector button for `1000 ms` temporarily previews that selector group's `mod_preset_values` row on the OSC knob LEDs for the currently selected OSC bank and on FLT knobs `0` and `1`; this preview is LED-only and does not change stored OSC, FLT, or MOD values
