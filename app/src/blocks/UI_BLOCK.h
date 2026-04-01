@@ -400,7 +400,7 @@ private:
 
             if (msg.switch_changed) {
                 const bool state = knobs_[i].get_state();
-                LOG_INF("%s %d encoder switch %d %s\n",
+                LOG_INF("%s %d encoder switch %d %s",
                         self()->get_name(), current_instance_, i,
                         state ? "pushed" : "released");
                 self()->knob_sw_changed(i, state);
@@ -410,7 +410,7 @@ private:
             }
 
             if (msg.value_changed) {
-                LOG_INF("%s %d knob %d changed %d\n",
+                LOG_INF("%s %d knob %d changed %d",
                        self()->get_name(), current_instance_, i,
                        knobs_[i].get_value());
                 self()->knob_val_changed(i, knobs_[i].get_value());
@@ -436,7 +436,7 @@ private:
 
             if (msg.switch_changed) {
                 const bool pushed = buttons_[i].get_state();
-                LOG_INF("%s %d button %d %s\n",
+                LOG_INF("%s %d button %d %s",
                         self()->get_name(), current_instance_, i,
                         pushed ? "pushed" : "released");
                 button_changed(i, pushed);
@@ -509,14 +509,14 @@ private:
                 for (uint8_t i = 0; i < special_count; i++) {
                     const uint8_t val = get_current_preset_value(KNOB_COUNT + i);
                     self()->force_function(static_cast<uint8_t>(val));
-                    LOG_INF("%s %d special param %d %d\n",
+                    LOG_INF("%s %d special param %d %d",
                             self()->get_name(), current_instance_,
                             KNOB_COUNT + i, val);
                 }
             }
         }
 
-        LOG_INF("%s %d selected\n", self()->get_name(), index);
+        LOG_INF("%s %d selected", self()->get_name(), index);
     }
 
     /* ------------------------------------------------------------------ */
@@ -532,7 +532,7 @@ private:
             return;
         }
 
-        LOG_INF("%s dump midi\n", self()->get_name());
+        LOG_INF("%s dump midi", self()->get_name());
         for (uint8_t i = 0; i < COUNT; i++) {
             for (uint8_t j = 0; j < PARAM_COUNT; j++) {
                 const uint8_t value = preset_values_[i][j];
