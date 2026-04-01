@@ -28,8 +28,6 @@ static K_SEM_DEFINE(input_thread_started, 0, 1);
 
 static int input_thread_status = 0;
 
-
-
 static void input_thread(void *p1, void *, void *) {
     UART uart1;
     MIDI midi;
@@ -96,8 +94,6 @@ int main(void)
         LOG_ERR("Failed to configure LED pin: %d", ret);
         return 0;
     }
-
-
 
     LOG_INF("Bassline Junkie Interface");
     LOG_INF("Console TX ready on ttyACM0");
