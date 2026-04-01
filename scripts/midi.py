@@ -127,7 +127,7 @@ def read_bytes(fd):
 
 def main():
     fd = open_serial(PORT)
-    print(f"Listening on {PORT} @115200")
+    print(f"Listening on {PORT} @1000000")
 
     try:
         for msg in parse_midi(read_bytes(fd)):
