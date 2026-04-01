@@ -411,8 +411,8 @@ private:
 
             if (msg.value_changed) {
                 LOG_INF("%s %d knob %d changed %d",
-                       self()->get_name(), current_instance_, i,
-                       knobs_[i].get_value());
+                        self()->get_name(), current_instance_, i,
+                        knobs_[i].get_value());
                 self()->knob_val_changed(i, knobs_[i].get_value());
                 ret.knobs_val[i] = knobs_[i].get_value();
                 ret.knobs_changed = true;
