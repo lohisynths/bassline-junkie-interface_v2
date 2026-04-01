@@ -103,8 +103,8 @@ public:
         }
 
         LOG_MODULE_DECLARE(UI_BLOCK, LOG_LEVEL_INF);
-        mod_viewer_mode_ ^= 1U;
-        LOG_INF("mod_viewer mode changed %d", mod_viewer_mode_);
+        set_viewer_mode(!mod_viewer_mode);
+        LOG_INF("mod_viewer mode changed %d", mod_viewer_mode);
     }
 
     /**
@@ -125,13 +125,13 @@ public:
         return 0U;
     }
 
-
-
     /**
      * @brief Sends the new routing amount as MIDI when the knob changes.
      */
     void knob_val_changed(uint8_t /*index*/, uint8_t value_scaled) {
-        if (mod_viewer_mode_) {
+        store_current_preset_value(value_scaled);
+
+        if (mod_viewer_mode) {
             return;
         }
 
@@ -201,8 +201,26 @@ public:
     }
 
 private:
+    /**
+     * @brief Persists the current routing amount into the active OSC or FLT mod table.
+     */
+    void store_current_preset_value(uint8_t value) {
+        const uint8_t src = get_current_instance();
+        const uint8_t dst = actual_mod_dest;
+
+        if (dst < MOD_FIRST_FLT_DEST) {
+            if (osc_) {
+                osc_->set_preset_mod_value(src, dst, value);
+            }
+            return;
+        }
+
+        if (filter_) {
+            filter_->set_preset_mod_value(src, static_cast<uint8_t>(dst - MOD_FIRST_FLT_DEST), value);
+        }
+    }
+
     uint8_t actual_mod_dest = 0U;
-    bool mod_viewer_mode_ = false;
 
     OSC *osc_ = nullptr;
     FLT *filter_ = nullptr;
