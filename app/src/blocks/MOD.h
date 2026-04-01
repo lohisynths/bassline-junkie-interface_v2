@@ -185,7 +185,7 @@ public:
             return;
         }
 
-        LOG_MODULE_DECLARE(UI_BLOCK, LOG_LEVEL_INF);
+        LOG_MODULE_DECLARE(MOD, LOG_LEVEL_INF);
         actual_mod_dest = index;
         reset();
         if (osc_) {
@@ -240,7 +240,7 @@ private:
      * @brief Tracks any MOD selector button and toggles the viewer after a 1 second hold.
      */
     void update_viewer_state_() {
-        LOG_MODULE_DECLARE(UI_BLOCK, LOG_LEVEL_INF);
+        LOG_MODULE_DECLARE(MOD, LOG_LEVEL_INF);
 
         const int8_t pressed_button = get_pressed_button_();
         if (pressed_button < 0) {

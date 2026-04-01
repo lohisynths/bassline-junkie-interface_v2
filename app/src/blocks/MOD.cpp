@@ -1,0 +1,12 @@
+/**
+ * @file MOD.cpp
+ * @brief Registers the Zephyr log module used by the MOD template.
+ *
+ * Created on: Apr 1, 2026
+ *     Author: alax
+ */
+
+
+#include <zephyr/logging/log.h>
+
+LOG_MODULE_REGISTER(MOD, LOG_LEVEL_INF);

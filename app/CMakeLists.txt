@@ -10,6 +10,7 @@ target_include_directories(app PRIVATE src)
 target_sources(app PRIVATE
     src/blocks/OSC.cpp
     src/blocks/UI_BLOCK.cpp
+    src/blocks/MOD.cpp
     src/Button.cpp
     src/Encoder.cpp
     src/Knob.cpp
