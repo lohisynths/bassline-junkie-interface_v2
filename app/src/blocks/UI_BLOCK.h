@@ -19,7 +19,7 @@
 #include "InputController.h"
 #include "LEDS.h"
 
-#include <zephyr/sys/printk.h>
+#include <zephyr/logging/log.h>
 
 /** @brief Number of modulation source groups used by the mod preset layout. */
 static constexpr uint8_t MOD_SRC_COUNT = 6U;
@@ -393,15 +393,16 @@ private:
      * @c knob_val_changed and button-state changes to @c knob_sw_changed.
      */
     void update_knobs(ret_value &ret) {
+        LOG_MODULE_DECLARE(UI_BLOCK, LOG_LEVEL_INF);
         for (uint8_t i = 0; i < KNOB_COUNT; i++) {
             Knob::knob_msg msg;
             knobs_[i].update(msg);
 
             if (msg.switch_changed) {
                 const bool state = knobs_[i].get_state();
-                printk("%s %d encoder switch %d %s\n",
-                       self()->get_name(), current_instance_, i,
-                       state ? "pushed" : "released");
+                LOG_INF("%s %d encoder switch %d %s\n",
+                        self()->get_name(), current_instance_, i,
+                        state ? "pushed" : "released");
                 self()->knob_sw_changed(i, state);
                 ret.knobs_sw[i] = state;
                 ret.knobs_sw_changed = true;
@@ -409,7 +410,7 @@ private:
             }
 
             if (msg.value_changed) {
-                printk("%s %d knob %d changed %d\n",
+                LOG_INF("%s %d knob %d changed %d\n",
                        self()->get_name(), current_instance_, i,
                        knobs_[i].get_value());
                 self()->knob_val_changed(i, knobs_[i].get_value());
@@ -428,15 +429,16 @@ private:
      *        @ref button_changed.
      */
     void update_buttons(ret_value &ret) {
+        LOG_MODULE_DECLARE(UI_BLOCK, LOG_LEVEL_INF);
         for (uint8_t i = 0; i < BUTTON_COUNT; i++) {
             Button::button_msg msg;
             buttons_[i].update(msg);
 
             if (msg.switch_changed) {
                 const bool pushed = buttons_[i].get_state();
-                printk("%s %d button %d %s\n",
-                       self()->get_name(), current_instance_, i,
-                       pushed ? "pushed" : "released");
+                LOG_INF("%s %d button %d %s\n",
+                        self()->get_name(), current_instance_, i,
+                        pushed ? "pushed" : "released");
                 button_changed(i, pushed);
                 ret.buttons[i] = pushed;
                 ret.buttons_changed = true;
@@ -487,6 +489,7 @@ private:
      *        all knob values, and applies special parameters.
      */
     void select_instance(uint8_t index) {
+        LOG_MODULE_DECLARE(UI_BLOCK, LOG_LEVEL_INF);
         if constexpr (BUTTON_COUNT > 0) {
             turn_off_sw(current_instance_);
             turn_on_sw(index);
@@ -506,14 +509,14 @@ private:
                 for (uint8_t i = 0; i < special_count; i++) {
                     const uint8_t val = get_current_preset_value(KNOB_COUNT + i);
                     self()->force_function(static_cast<uint8_t>(val));
-                    printk("%s %d special param %d %d\n",
-                           self()->get_name(), current_instance_,
-                           KNOB_COUNT + i, val);
+                    LOG_INF("%s %d special param %d %d\n",
+                            self()->get_name(), current_instance_,
+                            KNOB_COUNT + i, val);
                 }
             }
         }
 
-        printk("%s %d selected\n", self()->get_name(), index);
+        LOG_INF("%s %d selected\n", self()->get_name(), index);
     }
 
     /* ------------------------------------------------------------------ */
@@ -524,11 +527,12 @@ private:
      * @brief Sends every parameter in every bank as a MIDI CC message.
      */
     void dump_midi() {
+        LOG_MODULE_DECLARE(UI_BLOCK, LOG_LEVEL_INF);
         if (!midi_) {
             return;
         }
 
-        printk("%s dump midi\n", self()->get_name());
+        LOG_INF("%s dump midi\n", self()->get_name());
         for (uint8_t i = 0; i < COUNT; i++) {
             for (uint8_t j = 0; j < PARAM_COUNT; j++) {
                 const uint8_t value = preset_values_[i][j];
