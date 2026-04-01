@@ -104,9 +104,6 @@ public:
 
         LOG_MODULE_DECLARE(UI_BLOCK, LOG_LEVEL_INF);
         mod_viewer_mode_ ^= 1U;
-        if (osc_) {
-            osc_->set_viewer_mode(mod_viewer_mode_);
-        }
         LOG_INF("mod_viewer mode changed %d", mod_viewer_mode_);
     }
 
@@ -128,32 +125,12 @@ public:
         return 0U;
     }
 
-    /**
-     * @brief Stores a routing amount for the selected source and destination.
-     */
-    void set_current_preset_value(uint8_t /*index*/, uint8_t value) {
-        if (mod_viewer_mode_) {
-            return;
-        }
 
-        const uint8_t src = get_current_instance();
-        const uint8_t dst = actual_mod_dest;
-
-        if (dst < MOD_FIRST_FLT_DEST) {
-            if (osc_) {
-                osc_->set_preset_mod_value(src, dst, value);
-            }
-        } else if (filter_) {
-            filter_->set_preset_mod_value(src, static_cast<uint8_t>(dst - MOD_FIRST_FLT_DEST), value);
-        }
-    }
 
     /**
      * @brief Sends the new routing amount as MIDI when the knob changes.
      */
     void knob_val_changed(uint8_t /*index*/, uint8_t value_scaled) {
-        set_current_preset_value(0U, value_scaled);
-
         if (mod_viewer_mode_) {
             return;
         }

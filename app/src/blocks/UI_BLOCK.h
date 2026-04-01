@@ -348,7 +348,7 @@ public:
      * @param value_scaled Clamped knob value in the range `[0, 127]`.
      */
     void knob_val_changed(uint8_t index, uint8_t value_scaled) {
-        set_current_preset_value(index, value_scaled);
+        self()->set_current_preset_value(index, value_scaled);
         if (midi_) {
             midi_->send_cc(self()->get_current_instance_midi_nr(index),
                            value_scaled,
@@ -500,14 +500,14 @@ private:
         current_instance_ = index;
 
         for (uint8_t j = 0; j < KNOB_COUNT; j++) {
-            knobs_[j].set_value(get_current_preset_value(j));
+            knobs_[j].set_value(self()->get_current_preset_value(j));
         }
 
         if (!mod_viewer_mode) {
             if constexpr (PARAM_COUNT > KNOB_COUNT) {
                 constexpr uint8_t special_count = PARAM_COUNT - KNOB_COUNT;
                 for (uint8_t i = 0; i < special_count; i++) {
-                    const uint8_t val = get_current_preset_value(KNOB_COUNT + i);
+                    const uint8_t val = self()->get_current_preset_value(KNOB_COUNT + i);
                     self()->force_function(val);
                     LOG_INF("%s %d special param %d %d",
                             self()->get_name(), current_instance_,
