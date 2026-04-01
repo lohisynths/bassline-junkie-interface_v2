@@ -159,6 +159,22 @@ public:
         render_value_(value_scaled);
     }
 
+    /**
+     * @brief Synchronizes the displayed preset number and the encoder state.
+     *
+     * This is used after preset load/save/browse restore so the next encoder
+     * movement resumes from the currently active slot rather than the last
+     * browsed value.
+     */
+    void sync_preset_value(uint8_t value_scaled) {
+        set_display_value(value_scaled);
+
+        auto &knobs = get_knobs();
+        if (!knobs.empty()) {
+            (void)knobs[0].set_value(value_scaled);
+        }
+    }
+
     /** @brief No function buttons exist on the display block. */
     void select_function(uint8_t /*index*/) {}
 
