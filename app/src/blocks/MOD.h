@@ -13,6 +13,8 @@
 #include "OSC.h"
 #include "FLT.h"
 
+#include <zephyr/kernel.h>
+
 /** @brief Number of encoder knobs in the MOD block. */
 static constexpr uint8_t MOD_KNOB_COUNT = 1U;
 
@@ -39,8 +41,13 @@ static constexpr uint8_t MOD_DEST_COUNT = MOD_FIRST_FLT_DEST + FLT_KNOB_COUNT;
 
 class MOD : public UI_BLOCK<MOD, MOD_KNOB_COUNT, MOD_BUTTON_COUNT, MOD_PARAM_COUNT, MOD_COUNT> {
 public:
+    using ui_block = UI_BLOCK<MOD, MOD_KNOB_COUNT, MOD_BUTTON_COUNT, MOD_PARAM_COUNT, MOD_COUNT>;
+
     /** @brief LED arc length for the MOD amount knob. */
     static constexpr uint8_t knob_led_count_ = 10U;
+
+    /** @brief Hold time required to enter the MOD viewer. */
+    static constexpr uint32_t viewer_hold_ms_ = 1000U;
 
     /** @brief Mux/LED bindings for the six MOD source selector buttons. */
     static constexpr std::array button_configs_ = {
@@ -89,6 +96,18 @@ public:
 
     /** @brief MIDI channel used for all MOD control-change messages. */
     uint8_t get_midi_ch() { return MOD_MIDI_CHANNEL; }
+
+    /**
+     * @brief Polls the base block and manages the temporary MOD viewer.
+     *
+     * Holding MOD button 0 for longer than one second overlays the OSC and
+     * FLT knob LEDs with the current MOD matrix values for the active source.
+     */
+    ui_block::ret_value update() {
+        const ui_block::ret_value ret = ui_block::update();
+        update_viewer_state_();
+        return ret;
+    }
 
     /* ------------------------------------------------------------------ */
     /*  CRTP hook overrides                                               */
@@ -183,7 +202,95 @@ public:
         return actual_mod_dest;
     }
 
+    /**
+     * @brief Returns whether the MOD viewer overlay is currently active.
+     */
+    bool is_viewer_active() const {
+        return mod_viewer_active_;
+    }
+
 private:
+    /**
+     * @brief Refreshes the OSC and FLT knob LEDs from the MOD matrix.
+     */
+    void refresh_viewer_() {
+        const uint8_t source = get_current_instance();
+
+        if (osc_) {
+            osc_->show_mod_view(source);
+        }
+        if (filter_) {
+            filter_->show_mod_view(source);
+        }
+    }
+
+    /**
+     * @brief Restores OSC and FLT knob LEDs to their normal preset values.
+     */
+    void clear_viewer_() {
+        if (osc_) {
+            osc_->clear_mod_view();
+        }
+        if (filter_) {
+            filter_->clear_mod_view();
+        }
+    }
+
+    /**
+     * @brief Tracks any MOD selector button and toggles the viewer after a 1 second hold.
+     */
+    void update_viewer_state_() {
+        LOG_MODULE_DECLARE(UI_BLOCK, LOG_LEVEL_INF);
+
+        const int8_t pressed_button = get_pressed_button_();
+        if (pressed_button < 0) {
+            if (viewer_button_pressed_) {
+                viewer_button_pressed_ = false;
+                viewer_button_index_ = -1;
+                viewer_button_pressed_at_ms_ = 0U;
+            }
+
+            if (mod_viewer_active_) {
+                mod_viewer_active_ = false;
+                clear_viewer_();
+                LOG_INF("%s viewer off", get_name());
+            }
+            return;
+        }
+
+        const uint32_t now = k_uptime_get_32();
+        if ((viewer_button_index_ != pressed_button) || !viewer_button_pressed_) {
+            viewer_button_pressed_ = true;
+            viewer_button_index_ = pressed_button;
+            viewer_button_pressed_at_ms_ = now;
+        }
+
+        if (!mod_viewer_active_) {
+            const uint32_t held_ms = now - viewer_button_pressed_at_ms_;
+            if (held_ms >= viewer_hold_ms_) {
+                mod_viewer_active_ = true;
+                LOG_INF("%s viewer on", get_name());
+            }
+        }
+
+        if (mod_viewer_active_) {
+            refresh_viewer_();
+        }
+    }
+
+    /**
+     * @brief Returns the first currently pressed MOD selector button, or `-1`.
+     */
+    int8_t get_pressed_button_() {
+        const auto &buttons = get_buttons();
+        for (uint8_t i = 0U; i < MOD_BUTTON_COUNT; i++) {
+            if (buttons[i].get_state()) {
+                return static_cast<int8_t>(i);
+            }
+        }
+        return -1;
+    }
+
     /**
      * @brief Persists the current routing amount into the active OSC or FLT mod table.
      */
@@ -204,6 +311,10 @@ private:
     }
 
     uint8_t actual_mod_dest = 0U;
+    bool mod_viewer_active_ = false;
+    bool viewer_button_pressed_ = false;
+    int8_t viewer_button_index_ = -1;
+    uint32_t viewer_button_pressed_at_ms_ = 0U;
 
     OSC *osc_ = nullptr;
     FLT *filter_ = nullptr;

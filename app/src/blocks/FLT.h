@@ -199,6 +199,27 @@ public:
 
     /** @brief Returns the currently active filter type index. */
     uint8_t get_current_filter_type() { return get_current_preset_value(FLT_TYPE); }
+
+    /**
+     * @brief Shows one MOD routing row on the three FLT knob LEDs.
+     *
+     * Only the knob LEDs are previewed; the filter-type selector buttons stay
+     * on the normal FLT preset state.
+     */
+    void show_mod_view(uint8_t source) {
+        auto &knobs = get_knobs();
+
+        for (uint8_t i = 0U; i < FLT_KNOB_COUNT; i++) {
+            knobs[i].show_preview_value(get_preset_mod_value(source, i));
+        }
+    }
+
+    /**
+     * @brief Restores the FLT knob LEDs to the block's real preset values.
+     */
+    void clear_mod_view() {
+        reset();
+    }
 };
 
 #endif /* APP_SRC_BLOCKS_FLT_H_ */
