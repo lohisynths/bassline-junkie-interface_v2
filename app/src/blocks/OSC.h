@@ -125,6 +125,29 @@ public:
 
     /** @brief Returns the currently selected oscillator bank index. */
     uint8_t get_current_osc() { return get_current_instance(); }
+
+    /**
+     * @brief Shows one MOD routing row on the five OSC knob LEDs.
+     *
+     * The preview uses the currently selected OSC bank as the destination
+     * range and only changes the knob LEDs, not the stored knob values.
+     */
+    void show_mod_view(uint8_t source) {
+        const uint8_t bank = get_current_instance();
+        auto &knobs = get_knobs();
+
+        for (uint8_t i = 0U; i < OSC_KNOB_COUNT; i++) {
+            const uint8_t dst = static_cast<uint8_t>(bank * OSC_KNOB_COUNT + i);
+            knobs[i].show_preview_value(get_preset_mod_value(source, dst));
+        }
+    }
+
+    /**
+     * @brief Restores the OSC knob LEDs to the block's real preset values.
+     */
+    void clear_mod_view() {
+        reset();
+    }
 };
 
 #endif /* APP_SRC_BLOCKS_OSC_H_ */
