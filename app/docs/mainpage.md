@@ -28,7 +28,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - `FLT`: owns three radio buttons and three knobs, stores their configuration tables, initializes them against shared `InputController` and `LEDSController` objects, applies radio-button LED updates, and emits the current transition logs
 - `LED_DISP`: owns one knob plus one three-digit active-low seven-segment display, stores the preset-selector knob configuration plus the legacy digit segment patterns, initializes itself against shared `InputController`, `LEDSController`, `PresetStore`, and block objects, renders blank-leading preset numbers on the display, uses a reduced-resolution encoder step for preset browsing, saves on hold timeout, and handles temporary blink feedback for save confirmation and browse-timeout restore
 - `LFO`: owns three selector buttons, five radio buttons, and one knob, stores their configuration tables plus three banked knob-value sets and per-bank radio-button selections, initializes them against shared `InputController` and `LEDSController` objects, applies selector LED updates, and emits the current transition logs
-- `MOD`: owns six selector buttons and one knob, stores their configuration tables plus six selector groups with seventeen virtual target banks each, remembers one linked target offset per group, tracks long-press preview state for every selector button, initializes them against shared `InputController`, `LEDSController`, and optional `MIDI` objects, applies selector LED updates, emits MOD MIDI Control Change messages, and emits the current transition logs
+- `MOD`: owns six selector buttons and one knob, stores their configuration tables plus six selector groups with seventeen virtual target banks each, remembers one linked target offset per group, tracks long-press preview state for every selector button, previews the current `mod_preset_values` row on the OSC and FLT knob LEDs after a 1000 ms hold, initializes them against shared `InputController`, `LEDSController`, and optional `MIDI` objects, applies selector LED updates, emits MOD MIDI Control Change messages, and emits the current transition logs
 - `OSC`: owns three selector buttons and five knobs, stores their configuration tables plus three banked knob-value sets, initializes them against shared `InputController` and `LEDSController` objects, applies selector LED updates, and emits the current transition logs
 - `Encoder`: binds to one cached mux state, samples two configured channels as quadrature phase A/B, and reports per-update delta plus accumulated position
 - `GPIO`: wraps the configured discrete GPIO inputs and exposes per-pin and bitmask reads
@@ -42,14 +42,14 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - `MIDI`: binds to one initialized `UART` transport and emits Note On, Note Off, and Control Change channel messages
 - `utils`: provides shared helpers such as 16-bit mask-to-binary-string formatting used by debug logging
 - `cd4067`: out-of-tree Zephyr module providing the CD4067 GPIO multiplexer driver
-- `main.cpp`: initializes the board LED, starts an input thread that constructs `InputController`, `LEDSController`, one `ADSR` block, one `FLT` block, one `LFO` block, one `MOD` block, one `OSC` block, one `PresetStore`, and one `LED_DISP` block as plain locals, and runs the block update loop alongside the heartbeat LED
+- `main.cpp`: initializes the board LED, starts an input thread that constructs `UART`, `MIDI`, `InputController`, `LEDSController`, one `ADSR` block, one `FLT` block, one `LFO` block, one `MOD` block, one `OSC` block, one `PresetStore`, and one `LED_DISP` block as plain locals, and runs the block update loop alongside the heartbeat LED
 
 ## Runtime Overview
 
 - The application uses the onboard `led0` as a heartbeat and emits status logs over the ST-LINK virtual serial port at `1000000` baud.
 - The application also owns a separate polling UART transport on `USART1` using `PA9` for TX and `PA10` for RX at `115200` baud.
 - `main.cpp` initializes `UART` during boot and sends `Bassline Junkie Interface UART1 ready` on `USART1`.
-- A dedicated input thread builds `InputController`, `LEDSController`, the `ADSR`, `FLT`, `LFO`, `MOD`, and `OSC` control blocks, the `PresetStore`, and the `LED_DISP` preset selector, then repeatedly refreshes inputs and updates all blocks.
+- A dedicated input thread builds `UART`, `MIDI`, `InputController`, `LEDSController`, the `ADSR`, `FLT`, `LFO`, `MOD`, and `OSC` control blocks, the `PresetStore`, and the `LED_DISP` preset selector, then repeatedly refreshes inputs and updates all blocks.
 - `InputController` merges the CD4067 mux scans and discrete GPIO reads into one cached state table. `Button`, `Encoder`, and `Knob` build on that cache to provide reusable input primitives.
 - `ADSR`, `LFO`, and `OSC` expose banked controls. `MOD` exposes six selector groups, each of which recalls one remembered virtual target bank when the group changes.
 - ADSR knob value changes emit MIDI Control Change messages on channel `0`, and the banked ADSR latch emits `0` or `127`.
@@ -60,7 +60,7 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 - While the MOD knob is held, newly pressed OSC knobs map onto MOD target offsets `0..14`, FLT knob `0` maps to offset `15`, FLT knob `1` maps to offset `16`, and FLT knob `2` is ignored.
 - Each MOD selector group stores one remembered target offset and one MOD knob value for every virtual bank `((group * 17) + target_offset)`.
 - Preset loads also resend the full MOD MIDI Control Change snapshot, including all 102 MOD virtual banks.
-- Long-pressing any MOD selector button for `1000 ms` temporarily previews that group's MOD values on the OSC knob LEDs for the current OSC bank and on FLT knobs `0` and `1`; the preview changes LEDs only and does not mutate stored values.
+- Long-pressing any MOD selector button for `1000 ms` temporarily previews that selector group's `mod_preset_values` row on the OSC knob LEDs for the current OSC bank and on FLT knobs `0` and `1`; the preview changes LEDs only and does not mutate stored values.
 - Preset loads also resend the LFO MIDI Control Change snapshot.
 - Preset loads also resend the FLT MIDI Control Change snapshot.
 - Preset loads also resend the full ADSR MIDI Control Change snapshot, including all three ADSR banks.
@@ -78,10 +78,10 @@ Zephyr firmware for the STM32 Nucleo-F411RE that combines:
 
 ## Developer Notes
 
-- ADSR block composition is implemented in `src/blocks/ADSR.cpp` and declared in `src/blocks/ADSR.h`.
-- FLT block composition is implemented in `src/blocks/FLT.cpp` and declared in `src/blocks/FLT.h`.
-- LED display block composition is implemented in `src/blocks/LED_DISP.cpp` and declared in `src/blocks/LED_DISP.h`.
-- LFO block composition is implemented in `src/blocks/LFO.cpp` and declared in `src/blocks/LFO.h`.
+- ADSR block composition is declared in `src/blocks/ADSR.h`.
+- FLT block composition is declared in `src/blocks/FLT.h`.
+- LED display block composition is declared in `src/blocks/LED_DISP.h`.
+- LFO block composition is declared in `src/blocks/LFO.h`.
 - MOD block composition is implemented in `src/blocks/MOD.cpp` and declared in `src/blocks/MOD.h`.
 - OSC block composition is implemented in `src/blocks/OSC.cpp` and declared in `src/blocks/OSC.h`.
 - Button decoding is implemented in `src/Button.cpp` and declared in `src/Button.h`.
