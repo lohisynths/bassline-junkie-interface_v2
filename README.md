@@ -138,7 +138,7 @@ The main application sources are:
 
 - `app/src/blocks/ADSR.h`: reusable block that owns the current standalone button set and knob set, including its config tables, three banked knob-value sets, selector LED updates, and transition logging
 - `app/src/blocks/FLT.h`: reusable block that owns three radio buttons and three standalone knobs, including its config tables, radio-selection LED updates, and transition logging
-- `app/src/blocks/LED_DISP.h`: reusable block that owns the preset-selector knob plus one active-low three-digit seven-segment display, including the knob config table, timeout-triggered preset save/load gesture handling, temporary blink feedback, browse timeout restore, full-surface snapshot capture/application, blank-leading decimal rendering, and transition logging
+- `app/src/blocks/LED_DISP.h`: reusable block that owns the preset-selector knob plus one active-low three-digit seven-segment display, including the knob config table, timeout-triggered preset save/load gesture handling, temporary blanking blink feedback, browse timeout restore, full-surface snapshot capture/application, blank-leading decimal rendering, and transition logging
 - `app/src/blocks/LFO.h`: reusable block that owns one knob plus three bank-selector buttons and five radio buttons, including its config tables, three banked knob-value sets, per-bank radio selection, selector LED updates, and transition logging
 - `app/src/blocks/MOD.h` and `app/src/blocks/MOD.cpp`: reusable block that owns one knob plus six bank-selector buttons, including their config tables, six selector groups with seventeen virtual target banks each, remembered per-group link targets, selector LED updates, long-press preview tracking, MOD MIDI CC emission, and transition logging
 - `app/src/blocks/OSC.h` and `app/src/blocks/OSC.cpp`: reusable block that owns five knobs plus three bank-selector buttons, including their config tables, three banked knob-value sets, selector LED updates, and transition logging
@@ -256,8 +256,8 @@ When the application is flashed and running on the board:
 - the `LED_DISP` block shows the currently selected preset number in the range `0..127` with blank leading digits
 - the preset encoder uses a coarser step size than the other knobs so pressing it is less likely to move the displayed preset number
 - preset `0` is auto-loaded on boot, short display-knob presses load the selected preset on release, and holding the display knob for `1000 ms` saves immediately on timeout
-- after a hold-triggered save, the display blinks briefly as confirmation
-- browsing to another preset without loading or saving for `5000 ms` causes the display to blink, then snap back to the active preset number
+- after a hold-triggered save, the display blanks briefly as confirmation
+- browsing to another preset without loading or saving for `5000 ms` causes the display to blank briefly, then snap back to the active preset number
 - presets restore bank contents but keep the currently selected bank in `ADSR`, `LFO`, `MOD`, and `OSC`
 - preset saves now use format version `5`, which treats older preset records as incompatible and writes the expanded MOD virtual-bank layout on the next save
 - loading an unsaved preset slot applies the default all-zero surface state until the slot is explicitly saved
