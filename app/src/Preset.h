@@ -87,6 +87,18 @@ private:
     void apply_snapshot_(const PresetSnapshot &snapshot);
 
     /**
+     * @brief Returns true when a loaded snapshot matches the current block schema.
+     *
+     * This guards against stale flash records from older firmware layouts
+     * before they are applied to live UI blocks.
+     *
+     * @param snapshot Snapshot loaded from storage.
+     * @retval true The snapshot is compatible with the current parameter layout.
+     * @retval false One or more special parameters are outside their valid range.
+     */
+    bool snapshot_is_compatible_(const PresetSnapshot &snapshot) const;
+
+    /**
      * @brief Sends the snapshot modulation matrix to the MIDI backend.
      *
      * @param snapshot Snapshot containing the modulation routing values.
