@@ -58,7 +58,7 @@ ssize_t MIDI::write(const void *buffer, uint8_t length) {
 }
 
 int MIDI::send_note_on(uint8_t key, uint8_t velocity, uint8_t channel) {
-    LOG_INF("NoteOn key:%u velocity:%u channel:%u",
+    LOG_DBG("NoteOn key:%u velocity:%u channel:%u",
             key & 0x7FU, velocity & 0x7FU, channel & 0x0FU);
 
     uint8_t msg[3];
@@ -75,7 +75,7 @@ int MIDI::send_note_on(uint8_t key, uint8_t velocity, uint8_t channel) {
 }
 
 int MIDI::send_note_off(uint8_t key, uint8_t velocity, uint8_t channel) {
-    LOG_INF("NoteOff key:%u velocity:%u channel:%u",
+    LOG_DBG("NoteOff key:%u velocity:%u channel:%u",
             key & 0x7FU, velocity & 0x7FU, channel & 0x0FU);
 
     uint8_t msg[3];
@@ -92,7 +92,7 @@ int MIDI::send_note_off(uint8_t key, uint8_t velocity, uint8_t channel) {
 }
 
 int MIDI::send_cc(uint8_t control, uint8_t value, uint8_t channel) {
-    LOG_INF("ControlChange control:%u value:%u channel:%u",
+    LOG_DBG("ControlChange control:%u value:%u channel:%u",
             control & 0x7FU, value & 0x7FU, channel & 0x0FU);
 
     uint8_t msg[3];
