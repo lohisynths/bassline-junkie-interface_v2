@@ -109,8 +109,6 @@ static void input_thread(void *p1, void *, void *) {
 int main(void)
 {
     int ret;
-    uint32_t blink_count = 0U;
-
 
     if (!gpio_is_ready_dt(&led)) {
         LOG_ERR("LED GPIO device is not ready");
@@ -147,11 +145,6 @@ int main(void)
         if (ret < 0) {
             LOG_ERR("Failed to toggle LED: %d", ret);
             return 0;
-        }
-
-        blink_count++;
-        if ((blink_count % 10U) == 0U) {
-            LOG_INF("Heartbeat: LED blink running");
         }
 
         k_msleep(1000);
