@@ -98,7 +98,7 @@ static void input_thread(void *p1, void *, void *) {
         lfo.update();
         flt.update();
         mod.update();
-        mod.update2();
+        mod.poll_mod_destination_selection();
         led_disp.update();
         preset.update();
 
