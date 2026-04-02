@@ -67,27 +67,25 @@ void Preset::update()
             save_fired_ = true;
             save_succeeded_ = save_slot_(saved_slot_);
         }
-    } else {
-        if (display_pressed_) {
-            const uint32_t held_ms = now - display_pressed_at_ms_;
-            display_pressed_ = false;
-            display_pressed_at_ms_ = 0U;
+    } else if (display_pressed_) {
+        const bool short_press = !save_fired_ && ((now - display_pressed_at_ms_) < save_hold_ms);
+        const bool completed_save = save_fired_ && save_succeeded_;
 
-            if (!save_fired_) {
-                if (held_ms < save_hold_ms) {
-                    (void)load_slot_(current_display);
-                }
-            } else if (save_succeeded_) {
-                active_slot_ = saved_slot_;
-                displayed_slot_ = saved_slot_;
-            }
+        display_pressed_ = false;
+        display_pressed_at_ms_ = 0U;
 
-            save_fired_ = false;
-            save_succeeded_ = false;
-            saved_slot_ = current_display;
-            browse_timeout_started_at_ms_ = 0U;
-            return;
+        if (short_press) {
+            (void)load_slot_(current_display);
+        } else if (completed_save) {
+            active_slot_ = saved_slot_;
+            displayed_slot_ = saved_slot_;
         }
+
+        save_fired_ = false;
+        save_succeeded_ = false;
+        saved_slot_ = current_display;
+        browse_timeout_started_at_ms_ = 0U;
+        return;
     }
 
     if (blink_active_) {
@@ -116,10 +114,15 @@ uint8_t Preset::get_active_slot() const
     return active_slot_;
 }
 
+bool Preset::is_ready_() const
+{
+    return (eeprom_ != nullptr) && (display_ != nullptr) && (adsr_ != nullptr) && (flt_ != nullptr) &&
+           (lfo_ != nullptr) && (mod_ != nullptr) && (osc_ != nullptr);
+}
+
 bool Preset::load_slot_(uint8_t slot)
 {
-    if ((eeprom_ == nullptr) || (display_ == nullptr) || (adsr_ == nullptr) || (flt_ == nullptr) ||
-        (lfo_ == nullptr) || (mod_ == nullptr) || (osc_ == nullptr)) {
+    if (!is_ready_()) {
         return false;
     }
 
@@ -146,8 +149,7 @@ bool Preset::load_slot_(uint8_t slot)
 
 bool Preset::save_slot_(uint8_t slot)
 {
-    if ((eeprom_ == nullptr) || (display_ == nullptr) || (adsr_ == nullptr) || (flt_ == nullptr) ||
-        (lfo_ == nullptr) || (mod_ == nullptr) || (osc_ == nullptr)) {
+    if (!is_ready_()) {
         return false;
     }
 
@@ -201,12 +203,10 @@ void Preset::send_mod_matrix_(const PresetSnapshot &snapshot)
 
     for (uint8_t src = 0U; src < mod_source_count; ++src) {
         for (uint8_t dst = 0U; dst < mod_dest_count; ++dst) {
-            uint8_t value = 0U;
-            if (dst < (OSC_PARAM_COUNT * OSC_COUNT)) {
-                value = snapshot.osc_mod[src][dst];
-            } else {
-                value = snapshot.flt_mod[src][static_cast<size_t>(dst - (OSC_PARAM_COUNT * OSC_COUNT))];
-            }
+            const bool is_osc_dest = dst < osc_mod_dest_count;
+            const uint8_t value = is_osc_dest
+                ? snapshot.osc_mod[src][dst]
+                : snapshot.flt_mod[src][static_cast<size_t>(dst - osc_mod_dest_count)];
 
             osc_->get_midi()->send_cc(mod_->get_midi_nr(src, dst),
                                       value,

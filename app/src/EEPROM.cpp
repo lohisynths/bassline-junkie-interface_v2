@@ -119,30 +119,15 @@ bool validate_record(const uint8_t *buffer, size_t storage_size, uint8_t &kind, 
         return false;
     }
 
-    size_t crc_offset = 0U;
-    switch (read_kind) {
-    case record_kind_preset:
-        if (reserved != 0U) {
-            return false;
-        }
-        crc_offset = record_prefix_size;
-        if (storage_size < (record_prefix_size + sizeof(stored_crc))) {
-            return false;
-        }
-        break;
-    case record_kind_startup_slot:
-        if (reserved != 0U) {
-            return false;
-        }
-        crc_offset = record_startup_prefix_size;
-        if (storage_size < (record_startup_prefix_size + sizeof(stored_crc))) {
-            return false;
-        }
-        break;
-    default:
+    const size_t crc_offset = (read_kind == record_kind_preset)
+        ? record_prefix_size
+        : (read_kind == record_kind_startup_slot)
+              ? record_startup_prefix_size
+              : 0U;
+    if ((crc_offset == 0U) || (reserved != 0U) ||
+        (storage_size < (crc_offset + sizeof(stored_crc)))) {
         return false;
     }
-
     memcpy(&stored_crc, buffer + crc_offset, sizeof(stored_crc));
 
     kind = read_kind;
@@ -150,6 +135,24 @@ bool validate_record(const uint8_t *buffer, size_t storage_size, uint8_t &kind, 
 
     const uint32_t computed_crc = record_crc(buffer, crc_offset);
     return computed_crc == stored_crc;
+}
+
+void write_record_header(uint8_t *buffer, uint8_t kind, uint8_t slot, size_t &write_offset)
+{
+    const uint32_t magic = record_magic;
+    const uint16_t version = record_version;
+    const uint8_t reserved = 0U;
+
+    memcpy(buffer + write_offset, &magic, sizeof(magic));
+    write_offset += sizeof(magic);
+    memcpy(buffer + write_offset, &version, sizeof(version));
+    write_offset += sizeof(version);
+    memcpy(buffer + write_offset, &kind, sizeof(kind));
+    write_offset += sizeof(kind);
+    memcpy(buffer + write_offset, &slot, sizeof(slot));
+    write_offset += sizeof(slot);
+    memcpy(buffer + write_offset, &reserved, sizeof(reserved));
+    write_offset += sizeof(reserved);
 }
 
 void unpack_snapshot(const uint8_t *buffer, PresetSnapshot &snapshot)
@@ -172,20 +175,8 @@ int write_preset_record(const struct flash_area *flash_area,
     buffer.fill(flash_area_erased_val(flash_area));
 
     size_t write_offset = 0U;
-    const uint32_t magic = record_magic;
-    const uint16_t version = record_version;
     const uint8_t kind = record_kind_preset;
-    const uint8_t reserved = 0U;
-    memcpy(buffer.data() + write_offset, &magic, sizeof(magic));
-    write_offset += sizeof(magic);
-    memcpy(buffer.data() + write_offset, &version, sizeof(version));
-    write_offset += sizeof(version);
-    memcpy(buffer.data() + write_offset, &kind, sizeof(kind));
-    write_offset += sizeof(kind);
-    memcpy(buffer.data() + write_offset, &slot, sizeof(slot));
-    write_offset += sizeof(slot);
-    memcpy(buffer.data() + write_offset, &reserved, sizeof(reserved));
-    write_offset += sizeof(reserved);
+    write_record_header(buffer.data(), kind, slot, write_offset);
     memcpy(buffer.data() + write_offset, &snapshot, sizeof(snapshot));
 
     const uint32_t crc = record_crc(buffer.data(), record_prefix_size);
@@ -208,20 +199,8 @@ int write_startup_record(const struct flash_area *flash_area, size_t offset, uin
     buffer.fill(flash_area_erased_val(flash_area));
 
     size_t write_offset = 0U;
-    const uint32_t magic = record_magic;
-    const uint16_t version = record_version;
     const uint8_t kind = record_kind_startup_slot;
-    const uint8_t reserved = 0U;
-    memcpy(buffer.data() + write_offset, &magic, sizeof(magic));
-    write_offset += sizeof(magic);
-    memcpy(buffer.data() + write_offset, &version, sizeof(version));
-    write_offset += sizeof(version);
-    memcpy(buffer.data() + write_offset, &kind, sizeof(kind));
-    write_offset += sizeof(kind);
-    memcpy(buffer.data() + write_offset, &slot, sizeof(slot));
-    write_offset += sizeof(slot);
-    memcpy(buffer.data() + write_offset, &reserved, sizeof(reserved));
-    write_offset += sizeof(reserved);
+    write_record_header(buffer.data(), kind, slot, write_offset);
 
     const uint32_t crc = record_crc(buffer.data(), record_startup_prefix_size);
     memcpy(buffer.data() + record_startup_prefix_size, &crc, sizeof(crc));
@@ -267,6 +246,20 @@ int compact_log(const struct flash_area *flash_area)
     next_record_offset = offset;
     needs_compaction = false;
     return 0;
+}
+
+int ensure_append_space(const struct flash_area *flash_area, size_t storage_size)
+{
+    const bool has_space = (next_record_offset + storage_size) <= flash_area->fa_size;
+    if (!needs_compaction && has_space) {
+        return 0;
+    }
+
+    const int ret = compact_log(flash_area);
+    if (ret < 0) {
+        LOG_ERR("Failed to compact preset log: %d", ret);
+    }
+    return ret;
 }
 
 } // namespace
@@ -355,21 +348,15 @@ int EEPROM::save(uint8_t index, const PresetSnapshot &snapshot)
     }
 
     const size_t storage_size = record_storage_size(flash_area_);
-    const bool has_space = (next_record_offset + storage_size) <= flash_area_->fa_size;
-
-    int ret = 0;
-    if (needs_compaction || !has_space) {
-        ret = compact_log(flash_area_);
-        if (ret < 0) {
-            LOG_ERR("Failed to compact preset log: %d", ret);
-            return ret;
-        }
+    const int ret = ensure_append_space(flash_area_, storage_size);
+    if (ret < 0) {
+        return ret;
     }
 
-    ret = write_preset_record(flash_area_, next_record_offset, index, snapshot);
-    if (ret < 0) {
-        LOG_ERR("Failed to append preset record: %d", ret);
-        return ret;
+    const int write_ret = write_preset_record(flash_area_, next_record_offset, index, snapshot);
+    if (write_ret < 0) {
+        LOG_ERR("Failed to append preset record: %d", write_ret);
+        return write_ret;
     }
 
     cache.snapshots[index] = snapshot;
@@ -404,21 +391,15 @@ int EEPROM::save_startup_slot(uint8_t slot)
     }
 
     const size_t storage_size = record_storage_size(flash_area_);
-    const bool has_space = (next_record_offset + storage_size) <= flash_area_->fa_size;
-
-    int ret = 0;
-    if (needs_compaction || !has_space) {
-        ret = compact_log(flash_area_);
-        if (ret < 0) {
-            LOG_ERR("Failed to compact preset log: %d", ret);
-            return ret;
-        }
+    const int ret = ensure_append_space(flash_area_, storage_size);
+    if (ret < 0) {
+        return ret;
     }
 
-    ret = write_startup_record(flash_area_, next_record_offset, slot);
-    if (ret < 0) {
-        LOG_ERR("Failed to append startup slot record: %d", ret);
-        return ret;
+    const int write_ret = write_startup_record(flash_area_, next_record_offset, slot);
+    if (write_ret < 0) {
+        LOG_ERR("Failed to append startup slot record: %d", write_ret);
+        return write_ret;
     }
 
     cache.startup_slot = slot;
