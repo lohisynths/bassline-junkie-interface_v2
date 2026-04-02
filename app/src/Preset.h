@@ -50,6 +50,11 @@ public:
 
 private:
     /**
+     * @brief Returns true when all borrowed blocks have been bound.
+     */
+    bool is_ready_() const;
+
+    /**
      * @brief Loads one preset slot from storage and applies it to every bound block.
      *
      * @param slot Preset slot to restore.
