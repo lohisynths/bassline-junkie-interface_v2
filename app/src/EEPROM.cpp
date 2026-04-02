@@ -92,7 +92,16 @@ bool read_record(const struct flash_area *flash_area,
     return !is_erased_bytes(buffer, storage_size, erased_value);
 }
 
-bool validate_record(const uint8_t *buffer, size_t storage_size, uint8_t &kind, uint8_t &slot)
+enum class record_validation_result : uint8_t {
+    valid,
+    old_version,
+    invalid,
+};
+
+record_validation_result validate_record(const uint8_t *buffer,
+                                         size_t storage_size,
+                                         uint8_t &kind,
+                                         uint8_t &slot)
 {
     uint32_t magic = 0U;
     uint16_t version = 0U;
@@ -113,9 +122,12 @@ bool validate_record(const uint8_t *buffer, size_t storage_size, uint8_t &kind, 
     memcpy(&reserved, buffer + offset, sizeof(reserved));
     offset += sizeof(reserved);
 
-    if ((magic != record_magic) || (version != record_version) ||
-        (read_slot >= EEPROM::preset_count)) {
-        return false;
+    if ((magic != record_magic) || (read_slot >= EEPROM::preset_count)) {
+        return record_validation_result::invalid;
+    }
+
+    if (version != record_version) {
+        return record_validation_result::old_version;
     }
 
     const size_t crc_offset = (read_kind == record_kind_preset)
@@ -125,7 +137,7 @@ bool validate_record(const uint8_t *buffer, size_t storage_size, uint8_t &kind, 
               : 0U;
     if ((crc_offset == 0U) || (reserved != 0U) ||
         (storage_size < (crc_offset + sizeof(stored_crc)))) {
-        return false;
+        return record_validation_result::invalid;
     }
     memcpy(&stored_crc, buffer + crc_offset, sizeof(stored_crc));
 
@@ -133,7 +145,9 @@ bool validate_record(const uint8_t *buffer, size_t storage_size, uint8_t &kind, 
     slot = read_slot;
 
     const uint32_t computed_crc = record_crc(buffer, crc_offset);
-    return computed_crc == stored_crc;
+    return (computed_crc == stored_crc)
+        ? record_validation_result::valid
+        : record_validation_result::invalid;
 }
 
 void write_record_header(uint8_t *buffer, uint8_t kind, uint8_t slot, size_t &write_offset)
@@ -293,6 +307,8 @@ int EEPROM::init()
 
     std::array<uint8_t, max_record_storage_size> buffer = {};
     const uint8_t erased_value = flash_area_erased_val(flash_area_);
+    size_t old_version_records = 0U;
+    size_t invalid_records = 0U;
 
     for (size_t offset = 0U; (offset + storage_size) <= flash_area_->fa_size; offset += storage_size) {
         if (!read_record(flash_area_, offset, storage_size, erased_value, buffer.data())) {
@@ -301,8 +317,16 @@ int EEPROM::init()
 
         uint8_t kind = 0U;
         uint8_t slot = 0U;
-        if (!validate_record(buffer.data(), storage_size, kind, slot)) {
+        const record_validation_result validation =
+            validate_record(buffer.data(), storage_size, kind, slot);
+        if (validation != record_validation_result::valid) {
             needs_compaction = true;
+
+            if (validation == record_validation_result::old_version) {
+                ++old_version_records;
+            } else {
+                ++invalid_records;
+            }
             continue;
         }
 
@@ -314,6 +338,21 @@ int EEPROM::init()
             cache.startup_slot_valid = true;
         }
         next_record_offset = offset + storage_size;
+    }
+
+    if (needs_compaction) {
+        if ((old_version_records > 0U) || (invalid_records > 0U)) {
+            LOG_WRN("Compacting preset log, skipping %u old-version and %u invalid records",
+                    static_cast<unsigned int>(old_version_records),
+                    static_cast<unsigned int>(invalid_records));
+        }
+
+        ret = compact_log(flash_area_);
+        if (ret < 0) {
+            LOG_ERR("Failed to compact preset log during init: %d", ret);
+            clear_cache();
+            return ret;
+        }
     }
 
     initialized_ = true;
