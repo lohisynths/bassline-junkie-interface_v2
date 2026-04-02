@@ -19,11 +19,10 @@ constexpr uint32_t record_magic = 0x42535052U;
 constexpr uint16_t record_version = PresetSnapshot::version;
 constexpr uint8_t record_kind_preset = 0U;
 constexpr uint8_t record_kind_startup_slot = 1U;
-constexpr size_t record_prefix_size = sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint8_t) +
-                                      sizeof(uint8_t) + sizeof(PresetSnapshot);
-constexpr size_t record_startup_prefix_size = sizeof(uint32_t) + sizeof(uint16_t) +
-                                              sizeof(uint8_t) + sizeof(uint8_t) +
-                                              sizeof(uint8_t);
+constexpr size_t record_header_size = sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint8_t) +
+                                      sizeof(uint8_t) + sizeof(uint8_t);
+constexpr size_t record_prefix_size = record_header_size + sizeof(PresetSnapshot);
+constexpr size_t record_startup_prefix_size = record_header_size;
 constexpr size_t min_record_storage_size = record_prefix_size + sizeof(uint32_t);
 constexpr size_t max_record_storage_size = 1024U;
 
@@ -157,7 +156,7 @@ void write_record_header(uint8_t *buffer, uint8_t kind, uint8_t slot, size_t &wr
 
 void unpack_snapshot(const uint8_t *buffer, PresetSnapshot &snapshot)
 {
-    size_t offset = sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t);
+    const size_t offset = record_header_size;
     memcpy(&snapshot, buffer + offset, sizeof(PresetSnapshot));
 }
 
