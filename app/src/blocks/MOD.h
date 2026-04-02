@@ -161,7 +161,7 @@ public:
      * The current FLT block exposes three knobs, so the MOD destination range
      * includes the filter envelope amount as well.
      */
-    void update2() {
+    void poll_mod_destination_selection() {
         if (osc_) {
             const int ret = osc_->get_first_knob_sw_pushed();
             if (ret > -1) {
