@@ -20,6 +20,40 @@ constexpr uint8_t mod_source_count = 6U;
 constexpr uint8_t osc_mod_dest_count = static_cast<uint8_t>(OSC_PARAM_COUNT * OSC_COUNT);
 constexpr uint8_t mod_dest_count = static_cast<uint8_t>(osc_mod_dest_count + FLT_KNOB_COUNT);
 
+bool adsr_snapshot_valid(const ADSR::preset &preset)
+{
+    for (uint8_t instance = 0U; instance < ADSR_COUNT; ++instance) {
+        if (preset[instance][ADSR_LOOP] > 1U) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool flt_snapshot_valid(const FLT::preset &preset)
+{
+    for (uint8_t instance = 0U; instance < FLT_COUNT; ++instance) {
+        if (preset[instance][FLT_TYPE] >= FLT_TYPE_COUNT) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool lfo_snapshot_valid(const LFO::preset &preset)
+{
+    for (uint8_t instance = 0U; instance < LFO_COUNT; ++instance) {
+        if ((preset[instance][LFO_SHAPE] >= LFO_SHAPE_COUNT) ||
+            (preset[instance][LFO_SYNC] > 1U)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 } // namespace
 
 int Preset::init(EEPROM &eeprom, LED_DISP &display, ADSR &adsr, FLT &flt, LFO &lfo, MOD &mod, OSC &osc)
@@ -133,6 +167,12 @@ bool Preset::load_slot_(uint8_t slot)
         return false;
     }
 
+    if (!snapshot_is_compatible_(snapshot)) {
+        LOG_WRN("Preset %u is incompatible with the current layout, loading defaults",
+                static_cast<unsigned int>(slot));
+        snapshot = default_preset_snapshot();
+    }
+
     apply_snapshot_(snapshot);
     active_slot_ = slot;
     displayed_slot_ = slot;
@@ -193,6 +233,13 @@ void Preset::apply_snapshot_(const PresetSnapshot &snapshot)
     osc_->get_mod_preset() = snapshot.osc_mod;
     flt_->get_mod_preset() = snapshot.flt_mod;
     send_mod_matrix_(snapshot);
+}
+
+bool Preset::snapshot_is_compatible_(const PresetSnapshot &snapshot) const
+{
+    return adsr_snapshot_valid(snapshot.adsr) &&
+           flt_snapshot_valid(snapshot.flt) &&
+           lfo_snapshot_valid(snapshot.lfo);
 }
 
 void Preset::send_mod_matrix_(const PresetSnapshot &snapshot)
