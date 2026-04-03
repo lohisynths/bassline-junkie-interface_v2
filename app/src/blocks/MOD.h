@@ -36,8 +36,11 @@ static constexpr uint8_t MOD_PARAM_COUNT = 0U;
 /** @brief First MOD destination routed through the filter block. */
 static constexpr uint8_t MOD_FIRST_FLT_DEST = OSC_PARAM_COUNT * OSC_COUNT;
 
+/** @brief Number of FLT destinations exposed through MOD. */
+static constexpr uint8_t MOD_FLT_DEST_COUNT = 2U;
+
 /** @brief Total number of MOD destinations. */
-static constexpr uint8_t MOD_DEST_COUNT = MOD_FIRST_FLT_DEST + FLT_KNOB_COUNT;
+static constexpr uint8_t MOD_DEST_COUNT = MOD_FIRST_FLT_DEST + MOD_FLT_DEST_COUNT;
 
 class MOD : public UI_BLOCK<MOD, MOD_KNOB_COUNT, MOD_BUTTON_COUNT, MOD_PARAM_COUNT, MOD_COUNT> {
 public:
@@ -157,9 +160,8 @@ public:
     /**
      * @brief Polls OSC and FLT knob push-buttons to select the active MOD destination.
      *
-     * OSC destinations map to `[0, 14]` and FLT destinations map to `[15, 17]`.
-     * The current FLT block exposes three knobs, so the MOD destination range
-     * includes the filter envelope amount as well.
+     * OSC destinations map to `[0, 14]` and FLT destinations map to `[15, 16]`.
+     * The filter keyboard-tracking knob is intentionally excluded from MOD.
      */
     void poll_mod_destination_selection() {
         if (osc_) {
@@ -171,7 +173,7 @@ public:
 
         if (filter_) {
             const int ret = filter_->get_first_knob_sw_pushed();
-            if (ret > -1) {
+            if ((ret > -1) && (ret < MOD_FLT_DEST_COUNT)) {
                 select_MOD_dest(static_cast<uint8_t>(ret + MOD_FIRST_FLT_DEST));
             }
         }

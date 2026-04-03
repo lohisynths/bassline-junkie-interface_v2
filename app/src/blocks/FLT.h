@@ -11,7 +11,7 @@
 
 #include "UI_BLOCK.h"
 
-/** @brief Number of encoder knobs in the FLT block (frequency, resonance, envelope amount). */
+/** @brief Number of encoder knobs in the FLT block (frequency, resonance, keyboard tracking). */
 static constexpr uint8_t FLT_KNOB_COUNT = 3U;
 
 /** @brief Number of buttons in the FLT block (3 filter-type selectors). */
@@ -36,7 +36,7 @@ static constexpr uint8_t FLT_MIDI_OFFSET = 33U;
 enum FLT_PARAMS {
     FLT_FREQ,
     FLT_RES,
-    FLT_ENV,
+    FLT_KBTRACK,
     FLT_TYPE,
     FLT_PARAM_COUNT
 };
@@ -66,12 +66,15 @@ enum FLT_TYPES {
  * display consistent when a preset is loaded.
  *
  * MIDI CC numbers are `FLT_MIDI_OFFSET + index`, giving CC `33` (FREQ),
- * `34` (RES), `35` (ENV), and `36` (TYPE), all on MIDI channel `1`.
+ * `34` (RES), `35` (KBTRACK), and `36` (TYPE), all on MIDI channel `1`.
  */
 class FLT : public UI_BLOCK<FLT, FLT_KNOB_COUNT, FLT_BUTTON_COUNT, FLT_PARAM_COUNT, FLT_COUNT> {
 public:
     /** @brief LED arc length for the resonance knob. */
     static constexpr uint8_t knob_led_count_ = 10U;
+
+    /** @brief Number of FLT knobs shown in the MOD viewer. */
+    static constexpr uint8_t mod_knob_count_ = 2U;
 
     /** @brief Mux/LED bindings for the three filter-type selector buttons. */
     static constexpr std::array button_configs_ = {
@@ -121,7 +124,7 @@ public:
     /**
      * @brief Maps a parameter index to a MIDI CC number.
      *
-     * Layout: CC `33` (FREQ), `34` (RES), `35` (ENV), `36` (TYPE).
+     * Layout: CC `33` (FREQ), `34` (RES), `35` (KBTRACK), `36` (TYPE).
      * The @p instance argument is unused since the FLT block is not banked.
      */
     uint8_t get_midi_nr(uint8_t /*instance*/, uint8_t index) {
@@ -193,15 +196,15 @@ public:
     uint8_t get_current_filter_type() { return get_current_preset_value(FLT_TYPE); }
 
     /**
-     * @brief Shows one MOD routing row on the three FLT knob LEDs.
+     * @brief Shows one MOD routing row on the FREQ and RES FLT knob LEDs.
      *
-     * Only the knob LEDs are previewed; the filter-type selector buttons stay
-     * on the normal FLT preset state.
+     * Only the FREQ and RES knob LEDs are previewed; the KBTRACK knob and
+     * filter-type selector buttons stay on the normal FLT preset state.
      */
     void show_mod_view(uint8_t source) {
         auto &knobs = get_knobs();
 
-        for (uint8_t i = 0U; i < FLT_KNOB_COUNT; i++) {
+        for (uint8_t i = 0U; i < mod_knob_count_; i++) {
             knobs[i].show_preview_value(get_preset_mod_value(source, i));
         }
     }

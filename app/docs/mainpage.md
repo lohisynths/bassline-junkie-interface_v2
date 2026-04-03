@@ -10,7 +10,8 @@ flash, and sends MIDI over an app-owned UART transport.
 - `UI_BLOCK`: CRTP base template that wires banked knobs and buttons, stores
   preset values, and dumps MIDI for the control-surface blocks
 - `ADSR`: four-knob envelope block with three bank selectors and a LOOP toggle
-- `FLT`: three-knob filter block with three filter-type buttons
+- `FLT`: frequency, resonance, and keyboard-tracking filter block with three
+  filter-type buttons
 - `LED_DISP`: preset browse/save block with one encoder and a three-digit
   seven-segment display
 - `LFO`: one-knob LFO block with three bank selectors, four waveform buttons,
@@ -52,7 +53,7 @@ flash, and sends MIDI over an app-owned UART transport.
 - `EEPROM` provides 128 preset slots plus startup-slot metadata in the dedicated
   flash partition.
 - `ADSR`, `FLT`, `LFO`, and `OSC` emit MIDI Control Change messages on channel
-  `1`.
+  `1`. `FLT` uses CC `33..36`, and `LFO` starts at CC `37`.
 - The display encoder uses a reduced step size so a button press is less likely
   to move the selected preset slot.
 
