@@ -55,8 +55,8 @@ The main application sources are:
   MIDI
 - `app/src/blocks/ADSR.h`: envelope block with four knobs, three bank selectors,
   and a LOOP toggle
-- `app/src/blocks/FLT.h`: filter block with three knobs and three filter-type
-  buttons
+- `app/src/blocks/FLT.h`: filter block with frequency, resonance, and keyboard
+  tracking knobs plus three filter-type buttons
 - `app/src/blocks/LED_DISP.h`: preset browse/save block with one encoder and a
   three-digit seven-segment display
 - `app/src/blocks/LFO.h`: LFO block with one knob, three bank selectors, four
@@ -162,7 +162,7 @@ west flash -d build/app
 - `UI_BLOCK`-based control surfaces keep banked knob and button state in sync
   with the LED outputs.
 - `ADSR`, `FLT`, `LFO`, and `OSC` send MIDI Control Change messages on channel
-  `1`.
+  `1`. `FLT` uses CC `33..36`, and `LFO` now starts at CC `37`.
 - `MOD` sends its routing Control Change messages on channel `2` and can
   temporarily preview the current modulation row on the OSC and FLT LEDs while a
   selector button is held.

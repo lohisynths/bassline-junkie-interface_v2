@@ -18,7 +18,7 @@ namespace {
 
 constexpr uint8_t mod_source_count = 6U;
 constexpr uint8_t osc_mod_dest_count = static_cast<uint8_t>(OSC_PARAM_COUNT * OSC_COUNT);
-constexpr uint8_t mod_dest_count = static_cast<uint8_t>(osc_mod_dest_count + FLT_KNOB_COUNT);
+constexpr uint8_t mod_dest_count = static_cast<uint8_t>(osc_mod_dest_count + MOD_FLT_DEST_COUNT);
 
 bool adsr_snapshot_valid(const ADSR::preset &preset)
 {

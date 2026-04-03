@@ -24,7 +24,7 @@ static constexpr uint8_t LFO_COUNT = 3U;
 static constexpr uint8_t LFO_SHAPE_COUNT = 4U;
 
 /** @brief MIDI CC offset for the LFO block. */
-static constexpr uint8_t LFO_MIDI_OFFSET = 36U;
+static constexpr uint8_t LFO_MIDI_OFFSET = 37U;
 
 /**
  * @brief Logical parameter indices for one LFO bank.
@@ -70,8 +70,8 @@ enum LFO_SHAPES {
  * each call, making it idempotent regardless of call order.
  *
  * MIDI CC numbers are laid out as
- * `LFO_MIDI_OFFSET + instance * LFO_PARAM_COUNT + index`, giving CC `36..38`
- * for bank 0, `39..41` for bank 1, and `42..44` for bank 2, all on MIDI
+ * `LFO_MIDI_OFFSET + instance * LFO_PARAM_COUNT + index`, giving CC `37..39`
+ * for bank 0, `40..42` for bank 1, and `43..45` for bank 2, all on MIDI
  * channel `1`.
  */
 class LFO : public UI_BLOCK<LFO, LFO_KNOB_COUNT, LFO_BUTTON_COUNT, LFO_PARAM_COUNT, LFO_COUNT> {
@@ -114,7 +114,7 @@ public:
     /**
      * @brief Maps a bank and parameter index to a MIDI CC number.
      *
-     * Layout: CC `36..38` for bank 0, `39..41` for bank 1, `42..44` for
+     * Layout: CC `37..39` for bank 0, `40..42` for bank 1, `43..45` for
      * bank 2.
      */
     uint8_t get_midi_nr(uint8_t instance, uint8_t index) {
