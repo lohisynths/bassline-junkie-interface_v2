@@ -223,3 +223,25 @@
 &usart2 {
     current-speed = <1000000>;
 };
+
+&usbotg_fs {
+    pinctrl-0 = <&usb_otg_fs_dm_pa11 &usb_otg_fs_dp_pa12>;
+    pinctrl-names = "default";
+    status = "okay";
+};
+
+/ {
+    usb_midi: usb_midi {
+        compatible = "zephyr,midi2-device";
+        status = "okay";
+        #address-cells = <1>;
+        #size-cells = <1>;
+        label = "Bassline Junkie Interface";
+
+        midi_in_out@0 {
+            reg = <0 1>;
+            protocol = "midi1-up-to-128b";
+            label = "MIDI";
+        };
+    };
+};

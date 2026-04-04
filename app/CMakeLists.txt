@@ -23,4 +23,6 @@ target_sources(app PRIVATE
     src/LEDS.cpp
     src/MUX.cpp
     src/UART.cpp
+    src/USB_MIDI.cpp
+    src/usb_midi_init.c
     src/utils.cpp)
