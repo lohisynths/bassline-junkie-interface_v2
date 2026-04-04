@@ -15,6 +15,7 @@
 #include "LEDS.h"
 #include "MIDI.h"
 #include "UART.h"
+#include "USB_MIDI.h"
 
 LOG_MODULE_REGISTER(app, LOG_LEVEL_INF);
 
@@ -38,6 +39,7 @@ static int input_thread_status = 0;
 static void input_thread(void *p1, void *, void *) {
     UART uart1;
     MIDI midi;
+    USB_MIDI usb_midi;
     InputController inputs;
     LEDSController leds;
     OSC osc;
@@ -67,6 +69,11 @@ static void input_thread(void *p1, void *, void *) {
         if (ret < 0) {
             LOG_ERR("Failed to initialize MIDI transport: %d", ret);
         }
+    }
+
+    ret = usb_midi.init();
+    if (ret < 0) {
+        LOG_ERR("Failed to initialize USB MIDI: %d", ret);
     }
 
     input_thread_status = ret;
@@ -101,6 +108,26 @@ static void input_thread(void *p1, void *, void *) {
         mod.poll_mod_destination_selection();
         led_disp.update();
         preset.update();
+
+        USB_MIDI::Message usb_msg;
+        while (usb_midi.receive(&usb_msg) == 0) {
+            switch (usb_msg.command) {
+            case 0x9U:
+                midi.send_note_on(usb_msg.data1, usb_msg.data2,
+                                  usb_msg.channel);
+                break;
+            case 0x8U:
+                midi.send_note_off(usb_msg.data1, usb_msg.data2,
+                                   usb_msg.channel);
+                break;
+            case 0xBU:
+                midi.send_cc(usb_msg.data1, usb_msg.data2,
+                             usb_msg.channel);
+                break;
+            default:
+                break;
+            }
+        }
 
         k_msleep(input_poll_interval_ms);
     }
