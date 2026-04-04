@@ -1,5 +1,5 @@
 PROJECT_NAME           = "Bassline Junkie Interface"
-PROJECT_BRIEF          = "Zephyr firmware for the Nucleo-F411RE with a 1000000-baud ST-LINK console, app-owned USART1 MIDI transport, CD4067 mux scanning, PCA9685 LED outputs, flash-backed 128-slot presets, startup-slot metadata, and UI_BLOCK-based ADSR/FLT/LED_DISP/LFO/MOD/OSC control surfaces."
+PROJECT_BRIEF          = "Zephyr firmware for the Nucleo-F411RE with a 1000000-baud ST-LINK console, protocol-only USART1 MIDI transport shared with the Raspberry Pi DSP, CD4067 mux scanning, PCA9685 LED outputs, flash-backed 128-slot presets, startup-slot metadata, a reserved MIDI CC preset-dump request path, and UI_BLOCK-based ADSR/FLT/LED_DISP/LFO/MOD/OSC control surfaces."
 OUTPUT_DIRECTORY       = app/docs/doxygen
 CREATE_SUBDIRS         = NO
 OUTPUT_LANGUAGE        = English
@@ -33,6 +33,8 @@ INPUT                  = README.md \
                          app/src/LEDS.cpp \
                          app/src/Preset.h \
                          app/src/Preset.cpp \
+                         app/src/PresetDumpRequestListener.h \
+                         app/src/PresetDumpRequestListener.cpp \
                          app/src/PresetSnapshot.h \
                          app/src/MUX.h \
                          app/src/MUX.cpp \

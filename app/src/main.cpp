@@ -14,6 +14,7 @@
 #include "InputController.h"
 #include "LEDS.h"
 #include "MIDI.h"
+#include "PresetDumpRequestListener.h"
 #include "UART.h"
 #include "USB_MIDI.h"
 
@@ -50,6 +51,7 @@ static void input_thread(void *p1, void *, void *) {
     LED_DISP led_disp;
     EEPROM eeprom;
     Preset preset;
+    PresetDumpRequestListener preset_dump_request_listener;
 
     int ret = inputs.init();
     if (ret == 0) {
@@ -60,11 +62,6 @@ static void input_thread(void *p1, void *, void *) {
     if (ret < 0) {
         LOG_ERR("Failed to initialize UART1: %d", ret);
     } else {
-        ret = uart1.write("Bassline Junkie Interface UART1 ready\r\n");
-        if (ret < 0) {
-            LOG_ERR("Failed to write UART1 startup banner: %d", ret);
-        }
-
         ret = midi.init(uart1);
         if (ret < 0) {
             LOG_ERR("Failed to initialize MIDI transport: %d", ret);
@@ -92,8 +89,11 @@ static void input_thread(void *p1, void *, void *) {
     mod.init(midi, leds, inputs);
     led_disp.init(midi, leds, inputs);
     preset.init(eeprom, led_disp, adsr, flt, lfo, mod, osc);
+    preset_dump_request_listener.init(uart1, preset);
 
     while (1) {
+        preset_dump_request_listener.poll();
+
         ret = inputs.update();
         if (ret < 0) {
             LOG_ERR("Failed to read inputs: %d", ret);

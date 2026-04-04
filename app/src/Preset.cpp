@@ -262,6 +262,33 @@ void Preset::send_mod_matrix_(const PresetSnapshot &snapshot)
     }
 }
 
+void Preset::dump_mod_matrix_()
+{
+    if (!is_ready_()) {
+        return;
+    }
+
+    PresetSnapshot snapshot = default_preset_snapshot();
+    snapshot.osc_mod = osc_->get_mod_preset();
+    snapshot.flt_mod = flt_->get_mod_preset();
+    send_mod_matrix_(snapshot);
+}
+
+void Preset::dump_active_slot()
+{
+    if (!is_ready_()) {
+        return;
+    }
+
+    LOG_INF("Dumping live active state for preset %u on UART request",
+            static_cast<unsigned int>(active_slot_));
+    adsr_->dump_active_state();
+    flt_->dump_active_state();
+    lfo_->dump_active_state();
+    osc_->dump_active_state();
+    dump_mod_matrix_();
+}
+
 void Preset::start_blink_(uint8_t restore_slot)
 {
     if (display_ == nullptr) {

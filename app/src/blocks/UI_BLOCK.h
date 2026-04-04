@@ -274,6 +274,13 @@ public:
     /** @brief Returns a mutable reference to the full mod-routing preset. */
     mod_preset &get_mod_preset() { return mod_preset_values; }
 
+    /**
+     * @brief Sends the block's current full parameter state as MIDI CC.
+     */
+    void dump_active_state() {
+        dump_midi();
+    }
+
     /* ------------------------------------------------------------------ */
     /*  Update result helpers                                             */
     /* ------------------------------------------------------------------ */

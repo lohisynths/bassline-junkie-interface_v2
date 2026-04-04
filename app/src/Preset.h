@@ -48,6 +48,11 @@ public:
     /** @brief Returns the currently active preset slot. */
     uint8_t get_active_slot() const;
 
+    /**
+     * @brief Dumps the current live active state over MIDI CC.
+     */
+    void dump_active_slot();
+
 private:
     /**
      * @brief Returns true when all borrowed blocks have been bound.
@@ -104,6 +109,11 @@ private:
      * @param snapshot Snapshot containing the modulation routing values.
      */
     void send_mod_matrix_(const PresetSnapshot &snapshot);
+
+    /**
+     * @brief Sends the live modulation matrix to the MIDI backend.
+     */
+    void dump_mod_matrix_();
 
     /**
      * @brief Starts the temporary display blink before restoring one slot number.

@@ -3,7 +3,8 @@
 Zephyr firmware for the ST Nucleo-F411RE. The application scans CD4067
 multiplexers and discrete GPIO inputs, drives PCA9685 LED outputs, exposes a
 banked control surface built on the `UI_BLOCK` CRTP template, stores presets in
-flash, and sends MIDI over an app-owned UART transport.
+flash, and sends MIDI over an app-owned UART transport shared with the Raspberry
+Pi DSP.
 
 The repository is split into three main pieces:
 
@@ -82,6 +83,9 @@ The main application sources are:
 - `app/src/EEPROM.h` and `app/src/EEPROM.cpp`: flash-backed preset storage
 - `app/src/Preset.h` and `app/src/Preset.cpp`: high-level preset load/save
   controller for `LED_DISP`
+- `app/src/PresetDumpRequestListener.h` and
+  `app/src/PresetDumpRequestListener.cpp`: reserved MIDI CC listener that asks
+  `Preset` to re-dump the active state over the shared UART
 - `app/src/PresetSnapshot.h`: durable preset schema for ADSR, FLT, LFO, OSC,
   and the MOD routing matrices
 - `app/src/utils.h` and `app/src/utils.cpp`: shared utility helpers
@@ -155,8 +159,8 @@ west flash -d build/app
 ## Runtime Behavior
 
 - The onboard LD2 LED toggles every second as a heartbeat.
-- The app-owned `USART1` transport prints `Bassline Junkie Interface UART1 ready`
-  during boot.
+- `USART1` is reserved for protocol traffic between the STM32 interface and the
+  Raspberry Pi DSP. Zephyr logs stay on the ST-LINK `USART2` console.
 - `InputController` caches the mux and discrete GPIO inputs for the control
   blocks.
 - `UI_BLOCK`-based control surfaces keep banked knob and button state in sync
@@ -169,6 +173,10 @@ west flash -d build/app
 - `Preset` restores the last active slot on boot, falls back to slot `0` if no
   startup slot has been stored yet, and uses the display encoder for browse/load
   and save gestures.
+- When the DSP sends reserved MIDI `CC 127 = 127` on channel `16`, the
+  interface re-dumps the currently active state over `USART1`. Regular block
+  parameters come from `UI_BLOCK::dump_active_state()`, while the modulation
+  matrix is emitted separately from the live OSC and FLT mod-routing arrays.
 - `EEPROM` stores 128 preset slots plus startup-slot metadata in the dedicated
   flash partition.
 - The preset display uses a reduced encoder step so presses are less likely to
