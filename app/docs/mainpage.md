@@ -3,8 +3,8 @@
 Zephyr firmware for the STM32 Nucleo-F411RE. The application scans CD4067
 multiplexers and discrete GPIO inputs, drives PCA9685 LED outputs, exposes a
 banked control surface through the `UI_BLOCK` CRTP template, stores presets in
-flash, and sends MIDI over an app-owned UART transport shared with the
-Raspberry Pi DSP.
+flash, and sends MIDI over a dedicated `USART1` transport while also exposing a
+USB MIDI device for host traffic.
 
 ## Modules
 
@@ -30,6 +30,10 @@ Raspberry Pi DSP.
 - `MUX`: CD4067 multiplexer wrapper
 - `UART`: polling UART facade for `USART1`
 - `MIDI`: channel-message helper layered on top of `UART`
+- `USB_MIDI`: USB MIDI facade that receives host channel-voice messages and
+  sends Note On/Off/CC messages back to the host
+- `usb_midi_init`: USB device-stack helpers and the message queue behind the
+  USB MIDI facade
 - `EEPROM`: flash-backed preset storage
 - `Preset`: preset load/save controller for the display encoder
 - `PresetDumpRequestListener`: polled UART listener for the reserved MIDI CC
@@ -37,13 +41,15 @@ Raspberry Pi DSP.
 - `PresetSnapshot`: durable schema for ADSR, FLT, LFO, OSC, and the MOD routing
   matrices
 - `utils`: shared helper functions
-- `main.cpp`: application entry point and input-thread setup
+- `main.cpp`: application entry point, USB MIDI forwarding, and input-thread
+  setup
 - `cd4067`: out-of-tree Zephyr module that provides the CD4067 GPIO mux driver
 
 ## Runtime Overview
 
 - `USART1` is protocol-only and carries MIDI traffic between the STM32 and the
-  Raspberry Pi DSP. Logs stay on the ST-LINK `USART2` console.
+  Raspberry Pi DSP. `USART2` stays on the ST-LINK console, and USB MIDI bridges
+  host messages into the same UART-backed MIDI path.
 - `InputController` caches the CD4067 scans and discrete GPIO reads so the
   button, encoder, and knob helpers can consume a stable input snapshot.
 - `ADSR`, `LFO`, and `OSC` expose banked parameters, with LEDs reflecting the
@@ -57,8 +63,8 @@ Raspberry Pi DSP.
 - `PresetDumpRequestListener` watches `USART1` for reserved MIDI `CC 127 = 127`
   on channel `16` and triggers a re-dump of the live active state when the DSP
   restarts.
-- `EEPROM` provides 128 preset slots plus startup-slot metadata in the dedicated
-  flash partition.
+- `EEPROM` provides 128 preset slots plus startup-slot metadata in the
+  dedicated flash partition.
 - `ADSR`, `FLT`, `LFO`, and `OSC` emit MIDI Control Change messages on channel
   `1`. `FLT` uses CC `33..36`, and `LFO` starts at CC `37`.
 - The modulation matrix is not part of the generic `UI_BLOCK` preset dump loop.

@@ -1,15 +1,15 @@
 # Bassline Junkie Interface
 
-Zephyr firmware for the ST Nucleo-F411RE. The application scans CD4067
-multiplexers and discrete GPIO inputs, drives PCA9685 LED outputs, exposes a
-banked control surface built on the `UI_BLOCK` CRTP template, stores presets in
-flash, and sends MIDI over an app-owned UART transport shared with the Raspberry
-Pi DSP.
+Zephyr firmware for the STM32 Nucleo-F411RE. The application scans four CD4067
+multiplexers and discrete GPIO inputs, drives PCA9685 LED outputs, exposes
+banked control surfaces through the `UI_BLOCK` CRTP template, stores 128
+presets in flash, talks to a Raspberry Pi DSP over a dedicated `USART1`
+transport, and exposes a USB MIDI device for host traffic.
 
 The repository is split into three main pieces:
 
-- `app/`: the application, control-surface blocks, preset storage, and board
-  configuration
+- `app/`: the application, control-surface blocks, preset storage, USB MIDI
+  setup, and board configuration
 - `cd4067/`: the out-of-tree Zephyr module that provides the custom CD4067 GPIO
   mux driver
 - `app/docs/`: the Doxygen landing page and generated API documentation
@@ -39,13 +39,14 @@ The board overlay in `app/app.overlay` defines the runtime wiring:
   - `ENC14SW` -> `PC0`
   - `ENC14B` -> `PC1`
   - `ENC14A` -> `PH0`
-- App-owned UART pins:
+- App-owned serial and USB endpoints:
   - `USART1_TX` -> `PA9`
   - `USART1_RX` -> `PA10`
-- Serial transports:
-  - `USART1` on `PA9`/`PA10`: app-owned UART transport at `1000000` baud
-  - `USART2` on the ST-LINK virtual COM port: Zephyr console and logs at
-    `1000000` baud
+  - `USB OTG FS` -> `PA11`/`PA12`
+- Runtime transports:
+  - `USART1` on `PA9`/`PA10`: app-owned UART transport for the DSP link
+  - `USART2` on the ST-LINK virtual COM port: Zephyr console and logs
+  - USB MIDI on `PA11`/`PA12`: host-facing MIDI device
 
 ## Core Modules
 
@@ -53,7 +54,7 @@ The main application sources are:
 
 - `app/src/blocks/UI_BLOCK.h` and `app/src/blocks/UI_BLOCK.cpp`: CRTP base
   template that wires banked knobs and buttons, stores preset values, and dumps
-  MIDI
+  MIDI for the control-surface blocks
 - `app/src/blocks/ADSR.h`: envelope block with four knobs, three bank selectors,
   and a LOOP toggle
 - `app/src/blocks/FLT.h`: filter block with frequency, resonance, and keyboard
@@ -80,6 +81,11 @@ The main application sources are:
 - `app/src/UART.h` and `app/src/UART.cpp`: polling UART wrapper for `USART1`
 - `app/src/MIDI.h` and `app/src/MIDI.cpp`: MIDI channel-message helper on top of
   `UART`
+- `app/src/USB_MIDI.h` and `app/src/USB_MIDI.cpp`: USB MIDI facade that
+  receives host channel-voice messages and sends Note On/Off/CC messages back
+  to the host
+- `app/src/usb_midi_init.h` and `app/src/usb_midi_init.c`: USB device-stack
+  setup and the message queue behind the USB MIDI facade
 - `app/src/EEPROM.h` and `app/src/EEPROM.cpp`: flash-backed preset storage
 - `app/src/Preset.h` and `app/src/Preset.cpp`: high-level preset load/save
   controller for `LED_DISP`
@@ -89,7 +95,8 @@ The main application sources are:
 - `app/src/PresetSnapshot.h`: durable preset schema for ADSR, FLT, LFO, OSC,
   and the MOD routing matrices
 - `app/src/utils.h` and `app/src/utils.cpp`: shared utility helpers
-- `app/src/main.cpp`: entry point, LED heartbeat, and input-thread setup
+- `app/src/main.cpp`: entry point, LED heartbeat, USB MIDI forwarding, and
+  input-thread setup
 
 ## Requirements
 
@@ -159,14 +166,15 @@ west flash -d build/app
 ## Runtime Behavior
 
 - The onboard LD2 LED toggles every second as a heartbeat.
-- `USART1` is reserved for protocol traffic between the STM32 interface and the
-  Raspberry Pi DSP. Zephyr logs stay on the ST-LINK `USART2` console.
+- `USART1` carries protocol traffic between the STM32 interface and the
+  Raspberry Pi DSP. `USART2` stays on the ST-LINK console, and USB MIDI bridges
+  host messages into the same UART-backed MIDI path.
 - `InputController` caches the mux and discrete GPIO inputs for the control
   blocks.
 - `UI_BLOCK`-based control surfaces keep banked knob and button state in sync
   with the LED outputs.
 - `ADSR`, `FLT`, `LFO`, and `OSC` send MIDI Control Change messages on channel
-  `1`. `FLT` uses CC `33..36`, and `LFO` now starts at CC `37`.
+  `1`. `FLT` uses CC `33..36`, and `LFO` starts at CC `37`.
 - `MOD` sends its routing Control Change messages on channel `2` and can
   temporarily preview the current modulation row on the OSC and FLT LEDs while a
   selector button is held.
