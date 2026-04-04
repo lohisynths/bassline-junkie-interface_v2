@@ -9,4 +9,5 @@
 
 #include <zephyr/logging/log.h>
 
+/** @brief Zephyr log module for the UI_BLOCK template base. */
 LOG_MODULE_REGISTER(UI_BLOCK, LOG_LEVEL_INF);

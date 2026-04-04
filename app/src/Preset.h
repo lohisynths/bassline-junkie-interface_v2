@@ -13,7 +13,10 @@ class OSC;
 class LED_DISP;
 
 /**
- * @brief High-level preset controller for the LED_DISP encoder.
+ * @brief High-level preset controller for browsing, saving, restoring, and dump requests.
+ *
+ * The controller owns preset browsing, load/save gestures, startup-slot
+ * restore logic, and the MIDI dump request path used by the DSP.
  */
 class Preset {
 public:
@@ -35,27 +38,40 @@ public:
     /**
      * @brief Binds the preset controller to the storage backend and UI blocks.
      *
+     * @param eeprom Persistent storage backend.
+     * @param display LED display block used for browsing feedback.
+     * @param adsr ADSR block restored from snapshots.
+     * @param flt FLT block restored from snapshots.
+     * @param lfo LFO block restored from snapshots.
+     * @param mod MOD block restored from snapshots.
+     * @param osc OSC block restored from snapshots.
      * @retval 0 The controller is ready.
      * @retval negative Error propagated from the EEPROM backend.
      */
     int init(EEPROM &eeprom, LED_DISP &display, ADSR &adsr, FLT &flt, LFO &lfo, MOD &mod, OSC &osc);
 
     /**
-     * @brief Advances the preset save/load state machine.
+     * @brief Advances the preset browse/save state machine and display restore timing.
      */
     void update();
 
-    /** @brief Returns the currently active preset slot. */
+    /**
+     * @brief Returns the currently active preset slot.
+     *
+     * @return Active preset slot index.
+     */
     uint8_t get_active_slot() const;
 
     /**
-     * @brief Dumps the current live active state over MIDI CC.
+     * @brief Dumps the current live active state over MIDI CC messages.
      */
     void dump_active_slot();
 
 private:
     /**
      * @brief Returns true when all borrowed blocks have been bound.
+     *
+     * @return `true` when the controller is fully initialized.
      */
     bool is_ready_() const;
 

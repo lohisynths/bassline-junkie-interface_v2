@@ -118,7 +118,11 @@ public:
     /*  Required CRTP hooks                                               */
     /* ------------------------------------------------------------------ */
 
-    /** @brief Returns the block name used in log output. */
+    /**
+     * @brief Returns the block name used in log output.
+     *
+     * @return Block name.
+     */
     const char *get_name() { return "FLT"; }
 
     /**
@@ -126,12 +130,21 @@ public:
      *
      * Layout: CC `33` (FREQ), `34` (RES), `35` (KBTRACK), `36` (TYPE).
      * The @p instance argument is unused since the FLT block is not banked.
+     *
+     * @param instance Unused bank index.
+     * @param index Parameter index.
+     * @return MIDI CC number for the parameter.
      */
-    uint8_t get_midi_nr(uint8_t /*instance*/, uint8_t index) {
+    uint8_t get_midi_nr(uint8_t instance, uint8_t index) {
+        (void)instance;
         return static_cast<uint8_t>(FLT_MIDI_OFFSET + index);
     }
 
-    /** @brief MIDI channel used for all FLT control-change messages. */
+    /**
+     * @brief MIDI channel used for all FLT control-change messages.
+     *
+     * @return MIDI channel number.
+     */
     uint8_t get_midi_ch() { return 1U; }
 
     /* ------------------------------------------------------------------ */
@@ -192,7 +205,11 @@ public:
         }
     }
 
-    /** @brief Returns the currently active filter type index. */
+    /**
+     * @brief Returns the currently active filter type index.
+     *
+     * @return Current filter type.
+     */
     uint8_t get_current_filter_type() { return get_current_preset_value(FLT_TYPE); }
 
     /**
@@ -200,6 +217,8 @@ public:
      *
      * Only the FREQ and RES knob LEDs are previewed; the KBTRACK knob and
      * filter-type selector buttons stay on the normal FLT preset state.
+     *
+     * @param source MOD source bank whose routing row should be previewed.
      */
     void show_mod_view(uint8_t source) {
         auto &knobs = get_knobs();

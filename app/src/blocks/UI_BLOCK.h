@@ -1,7 +1,7 @@
 /**
  * @file UI_BLOCK.h
  * @brief CRTP base template providing banked knob/button wiring,
- *        preset storage, and MIDI dump for control-surface blocks.
+ *        preset storage, and MIDI CC dump for control-surface blocks.
  *
  * Created on: Mar 29, 2026
  *     Author: alax
@@ -22,8 +22,8 @@
 #include <zephyr/logging/log.h>
 
 /**
- * @brief CRTP base class providing banked knob/button wiring, preset storage,
- *        and MIDI dump logic.
+ * @brief CRTP base class providing banked control wiring, preset storage,
+ *        and MIDI CC dump logic.
  *
  * Each derived class supplies its own hardware configuration by defining two
  * public static constexpr arrays named @c knob_configs_ and
@@ -36,17 +36,17 @@
  * | Signature                                                       | Purpose                                     |
  * |-----------------------------------------------------------------|---------------------------------------------|
  * | `const char *get_name()`                                        | Block name used in log output               |
- * | `uint8_t get_midi_nr(uint8_t instance, uint8_t index)`          | Maps bank + param index to MIDI CC number   |
+ * | `uint8_t get_midi_nr(uint8_t instance, uint8_t index)`          | Maps bank and parameter index to a MIDI CC number |
  * | `uint8_t get_midi_ch()`                                         | MIDI channel used for CC emission           |
  *
  * ## Optional derived-class overrides (shadowed via CRTP, defaults provided)
  *
  * | Signature                                                       | Default behaviour                                            |
  * |-----------------------------------------------------------------|--------------------------------------------------------------|
- * | `void knob_val_changed(uint8_t index, uint8_t value_scaled)`    | Stores value in current bank and sends MIDI CC               |
- * | `void knob_sw_changed(uint8_t index, bool state)`               | Empty                                                        |
- * | `void select_function(uint8_t index)`                           | Empty                                                        |
- * | `void force_function(uint8_t value)`                            | Empty                                                        |
+ * | `void knob_val_changed(uint8_t index, uint8_t value_scaled)`    | Stores the value in the current bank and sends MIDI CC |
+ * | `void knob_sw_changed(uint8_t index, bool state)`               | No-op                                                        |
+ * | `void select_function(uint8_t index)`                           | No-op                                                        |
+ * | `void force_function(uint8_t value)`                            | No-op                                                        |
  *
  * @tparam Derived      Concrete block type (CRTP), must expose
  *                      @c knob_configs_ and @c button_configs_.
@@ -59,13 +59,13 @@ template<typename Derived, uint8_t KNOB_COUNT, uint8_t BUTTON_COUNT,
          uint8_t PARAM_COUNT, uint8_t COUNT>
 class UI_BLOCK {
 public:
-    /** @brief Number of modulation source groups used by the mod preset layout. */
+    /** @brief Number of modulation source groups used by the routing preset layout. */
     static constexpr uint8_t MOD_SRC_COUNT = 6U;
 
     /** @brief Banked preset storage: @c COUNT banks of @c PARAM_COUNT parameters each. */
     using preset = std::array<std::array<uint8_t, PARAM_COUNT>, COUNT>;
 
-    /** @brief Mod-routing preset storage indexed by source group and destination. */
+    /** @brief Modulation-routing preset storage indexed by source group and destination. */
     using mod_preset = std::array<std::array<uint8_t, PARAM_COUNT * MOD_SRC_COUNT>, MOD_SRC_COUNT>;
 
     /** @brief Alias for the block's owned button storage. */
@@ -116,7 +116,7 @@ public:
         }
     };
 
-    /** @brief Mod-routing preset values (public for direct access by MOD block). */
+    /** @brief Modulation-routing preset values (public for direct access by the MOD block). */
     mod_preset mod_preset_values = {};
 
     UI_BLOCK() = default;
@@ -129,7 +129,7 @@ public:
      * @c Derived::button_configs_ at compile time, so no config arrays
      * need to be passed at the call site.
      *
-     * @param midi   MIDI transport used for control-change emission (may be @c nullptr).
+     * @param midi   MIDI transport used for CC emission (may be @c nullptr).
      * @param leds   Shared LED controller for indicator output.
      * @param inputs Shared input controller holding the cached input masks.
      */
@@ -162,17 +162,29 @@ public:
     /*  Bank / instance accessors                                         */
     /* ------------------------------------------------------------------ */
 
-    /** @brief Returns the currently selected bank index. */
+    /**
+     * @brief Returns the currently selected bank index.
+     *
+     * @return Current bank index.
+     */
     uint8_t get_current_instance() const {
         return current_instance_;
     }
 
-    /** @brief Turns off the LED of the button at @p index. */
+    /**
+     * @brief Turns off the LED of the button at @p index.
+     *
+     * @param index Button index to update.
+     */
     void turn_off_sw(uint8_t index) {
         buttons_[index].set_led_val(0);
     }
 
-    /** @brief Turns on the LED of the button at @p index to full brightness. */
+    /**
+     * @brief Turns on the LED of the button at @p index to full brightness.
+     *
+     * @param index Button index to update.
+     */
     void turn_on_sw(uint8_t index) {
         buttons_[index].set_led_val(100);
     }
@@ -191,42 +203,70 @@ public:
     /*  Preset value accessors                                            */
     /* ------------------------------------------------------------------ */
 
-    /** @brief Returns the value of parameter @p index in the current bank. */
+    /**
+     * @brief Returns the value of parameter @p index in the current bank.
+     *
+     * @param index Parameter index in the current bank.
+     * @return Stored parameter value.
+     */
     uint8_t get_current_preset_value(uint8_t index) {
         return get_preset_value(current_instance_, index);
     }
 
-    /** @brief Returns one parameter value from the specified bank. */
+    /**
+     * @brief Returns one parameter value from the specified bank.
+     *
+     * @param instance Bank index to read.
+     * @param index Parameter index to read.
+     * @return Stored parameter value.
+     */
     uint8_t get_preset_value(uint8_t instance, uint8_t index) {
         return preset_values_[instance][index];
     }
 
-    /** @brief Stores one parameter value in the current bank. */
+    /**
+     * @brief Stores one parameter value in the current bank.
+     *
+     * @param index Parameter index to update.
+     * @param value New value to store.
+     */
     void set_current_preset_value(uint8_t index, uint8_t value) {
         set_preset_value(current_instance_, index, value);
     }
 
-    /** @brief Stores one parameter value in the specified bank. */
+    /**
+     * @brief Stores one parameter value in the specified bank.
+     *
+     * @param instance Bank index to update.
+     * @param index Parameter index to update.
+     * @param value New value to store.
+     */
     void set_preset_value(uint8_t instance, uint8_t index, uint8_t value) {
         preset_values_[instance][index] = value;
     }
 
     /* ------------------------------------------------------------------ */
-    /*  Mod-routing value accessors                                       */
+    /*  Modulation routing value accessors                                */
     /* ------------------------------------------------------------------ */
 
     /**
-     * @brief Returns one mod-routing value addressed by @p src and @p dst.
+     * @brief Returns one modulation routing value addressed by @p src and @p dst.
      *
      * @param src Modulation source group index in `[0, MOD_SRC_COUNT)`.
      * @param dst Destination parameter index in `[0, PARAM_COUNT * MOD_SRC_COUNT)`.
-     * @return    The stored mod-routing value in the range `[0, 255]`.
+     * @return    The stored modulation routing value in the range `[0, 255]`.
      */
     uint8_t get_preset_mod_value(uint8_t src, uint8_t dst) {
         return mod_preset_values[src][dst];
     }
 
-    /** @brief Stores one mod-routing value addressed by @p src and @p dst. */
+    /**
+     * @brief Stores one modulation routing value addressed by @p src and @p dst.
+     *
+     * @param src Modulation source group index.
+     * @param dst Destination parameter index.
+     * @param value New routing amount to store.
+     */
     void set_preset_mod_value(uint8_t src, uint8_t dst, uint8_t value) {
         mod_preset_values[src][dst] = value;
     }
@@ -235,13 +275,25 @@ public:
     /*  Component accessors                                               */
     /* ------------------------------------------------------------------ */
 
-    /** @brief Returns a reference to the owned button array. */
+    /**
+     * @brief Returns a reference to the owned button array.
+     *
+     * @return Mutable button storage.
+     */
     button_array &get_buttons() { return buttons_; }
 
-    /** @brief Returns a reference to the owned knob array. */
+    /**
+     * @brief Returns a reference to the owned knob array.
+     *
+     * @return Mutable knob storage.
+     */
     knob_array &get_knobs() { return knobs_; }
 
-    /** @brief Returns the borrowed MIDI transport pointer. */
+    /**
+     * @brief Returns the borrowed MIDI transport pointer.
+     *
+     * @return Borrowed MIDI transport, or `nullptr` if uninitialized.
+     */
     MIDI *get_midi() { return midi_; }
 
     /* ------------------------------------------------------------------ */
@@ -249,8 +301,10 @@ public:
     /* ------------------------------------------------------------------ */
 
     /**
-     * @brief Loads a full preset, re-selects the current bank, and dumps
-     *        all parameters as MIDI CC.
+     * @brief Loads a full preset, reselects the current bank, and dumps
+     *        all parameters as MIDI CC messages.
+     *
+     * @param input Full preset snapshot to apply.
      */
     void set_preset(const preset &input) {
         preset_values_ = input;
@@ -259,8 +313,10 @@ public:
     }
 
     /**
-     * @brief Loads a full mod-routing preset, re-selects the current bank,
-     *        and dumps all parameters as MIDI CC.
+     * @brief Loads a full modulation routing preset, reselects the current bank,
+     *        and dumps all parameters as MIDI CC messages.
+     *
+     * @param input Full modulation routing snapshot to apply.
      */
     void set_mod_preset(const mod_preset &input) {
         mod_preset_values = input;
@@ -268,14 +324,22 @@ public:
         dump_midi();
     }
 
-    /** @brief Returns a mutable reference to the full banked preset storage. */
+    /**
+     * @brief Returns a mutable reference to the full banked preset storage.
+     *
+     * @return Banked preset storage.
+     */
     preset &get_preset() { return preset_values_; }
 
-    /** @brief Returns a mutable reference to the full mod-routing preset. */
+    /**
+     * @brief Returns a mutable reference to the full modulation routing preset.
+     *
+     * @return Modulation routing preset storage.
+     */
     mod_preset &get_mod_preset() { return mod_preset_values; }
 
     /**
-     * @brief Sends the block's current full parameter state as MIDI CC.
+     * @brief Sends the block's current full parameter state as MIDI CC messages.
      */
     void dump_active_state() {
         dump_midi();
@@ -299,7 +363,11 @@ public:
         return -1;
     }
 
-    /** @brief Returns @c true if any knob value changed in the last @ref update. */
+    /**
+     * @brief Returns @c true if any knob value changed in the last @ref update.
+     *
+     * @return `true` when any knob value changed.
+     */
     bool get_knob_changed() const { return last_ret_.knobs_changed; }
 
     /* ------------------------------------------------------------------ */
@@ -315,7 +383,12 @@ public:
     /*  MIDI helpers                                                      */
     /* ------------------------------------------------------------------ */
 
-    /** @brief Maps parameter @p index in the current bank to a MIDI CC number. */
+    /**
+     * @brief Maps parameter @p index in the current bank to a MIDI CC number.
+     *
+     * @param index Parameter index in the current bank.
+     * @return MIDI CC number for that parameter.
+     */
     uint8_t get_current_instance_midi_nr(uint8_t index) {
         return self()->get_midi_nr(get_current_instance(), index);
     }
@@ -328,8 +401,8 @@ public:
      * @brief Called when a knob value changes during @ref update.
      *
      * The default implementation stores the value in the current bank
-     * preset and sends a MIDI CC message. Derived classes may shadow
-     * this method through CRTP to change or extend the behaviour.
+     * preset and sends a MIDI CC message. Derived classes may
+     * shadow this method through CRTP to change or extend the behaviour.
      *
      * @param index        Knob index in the range `[0, KNOB_COUNT)`.
      * @param value_scaled Clamped knob value in the range `[0, 127]`.
@@ -351,33 +424,50 @@ public:
      * @param index Knob index in the range `[0, KNOB_COUNT)`.
      * @param state @c true when the button transitioned to pressed.
      */
-    void knob_sw_changed(uint8_t /*index*/, bool /*state*/) {}
+    void knob_sw_changed(uint8_t index, bool state) {
+        (void)index;
+        (void)state;
+    }
 
     /**
      * @brief Called when a non-selector button is pressed.
      *
      * Buttons whose index is `>= COUNT` are routed here with
-     * `index - COUNT` as the argument. The default implementation
-     * is intentionally empty.
+     * `index - COUNT` as the argument. The default implementation is a
+     * no-op.
      *
      * @param index Function button index (offset from @c COUNT).
      */
-    void select_function(uint8_t /*index*/) {}
+    void select_function(uint8_t index) {
+        (void)index;
+    }
 
     /**
      * @brief Called during bank recall for each special parameter.
      *
      * Special parameters are those whose index is `>= KNOB_COUNT`
      * (i.e. non-knob parameters stored in the preset). The default
-     * implementation is intentionally empty.
+     * implementation is a no-op.
      *
      * @param value Recalled parameter value.
      */
-    void force_function(uint8_t /*value*/) {}
+    void force_function(uint8_t value) {
+        (void)value;
+    }
 
 private:
-    /** @brief CRTP self-cast to the concrete derived type. */
-    Derived       *self()       { return static_cast<Derived *>(this); }
+    /**
+     * @brief CRTP self-cast to the concrete derived type.
+     *
+     * @return Mutable derived instance.
+     */
+    Derived *self() { return static_cast<Derived *>(this); }
+
+    /**
+     * @brief CRTP self-cast to the concrete derived type.
+     *
+     * @return Const derived instance.
+     */
     const Derived *self() const { return static_cast<const Derived *>(this); }
 
     /* ------------------------------------------------------------------ */
@@ -389,6 +479,8 @@ private:
      *
      * Value changes are forwarded to the CRTP-dispatched
      * @c knob_val_changed and button-state changes to @c knob_sw_changed.
+     *
+     * @param ret Update result structure to populate.
      */
     void update_knobs(ret_value &ret) {
         LOG_MODULE_DECLARE(UI_BLOCK, LOG_LEVEL_INF);
@@ -425,6 +517,8 @@ private:
     /**
      * @brief Polls every button and routes pressed events through
      *        @ref button_changed.
+     *
+     * @param ret Update result structure to populate.
      */
     void update_buttons(ret_value &ret) {
         LOG_MODULE_DECLARE(UI_BLOCK, LOG_LEVEL_INF);
@@ -453,6 +547,12 @@ private:
      * Otherwise, buttons @c [0, COUNT) are selectors and the rest
      * are function buttons.
      */
+    /**
+     * @brief Routes a pressed button to either a bank change or function callback.
+     *
+     * @param index Button index that changed.
+     * @param state `true` when the button is pressed.
+     */
     void button_changed(uint8_t index, bool state) {
         if (!state) {
             return;
@@ -476,6 +576,11 @@ private:
     /**
      * @brief Switches to bank @p index, updates selector LEDs, recalls
      *        all knob values, and applies special parameters.
+     */
+    /**
+     * @brief Switches to bank @p index and recalls its stored state.
+     *
+     * @param index Bank index to select.
      */
     void select_instance(uint8_t index) {
         LOG_MODULE_DECLARE(UI_BLOCK, LOG_LEVEL_INF);
@@ -509,7 +614,7 @@ private:
     /* ------------------------------------------------------------------ */
 
     /**
-     * @brief Sends every parameter in every bank as a MIDI CC message.
+     * @brief Sends every parameter in every bank as MIDI CC messages.
      */
     void dump_midi() {
         LOG_MODULE_DECLARE(UI_BLOCK, LOG_LEVEL_INF);

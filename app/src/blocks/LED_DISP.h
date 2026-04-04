@@ -34,7 +34,7 @@ static constexpr uint8_t LED_DISP_SEGMENTS = 8U;
 /** @brief Number of digits in the display. */
 static constexpr uint8_t LED_DISP_DIGIT_COUNT = 3U;
 
-/** @brief MIDI channel used for legacy compatibility. */
+/** @brief MIDI channel used for display compatibility. */
 static constexpr uint8_t LED_DISP_MIDI_CHANNEL = 1U;
 
 /**
@@ -55,9 +55,9 @@ enum LED_DISP_PARAMS {
  *
  * The display value is stored in the single preset parameter and rendered on
  * a 3-digit seven-segment LED bank starting at @c LED_DISP_FIRST_LED.
- * The block keeps the old helper methods (@ref get_long_push,
- * @ref preset_changed, and @ref get_actual_preset_nr) so legacy polling code
- * can still use the same control flow.
+ * The block keeps compatibility helpers (@ref get_long_push,
+ * @ref preset_changed, and @ref get_actual_preset_nr) so polling code can
+ * keep the same control flow.
  */
 class LED_DISP : public UI_BLOCK<LED_DISP, LED_DISP_KNOB_COUNT, LED_DISP_BUTTON_COUNT, LED_DISP_PARAM_COUNT, LED_DISP_COUNT> {
 public:
@@ -78,7 +78,7 @@ public:
         },
     };
 
-    /** @brief Legacy seven-segment bitmaps for digits 0..9. */
+    /** @brief Seven-segment bitmaps for digits 0..9. */
     static constexpr std::array<std::array<uint8_t, LED_DISP_SEGMENTS>, 10U> digits_ = {{
         {{1U, 1U, 1U, 1U, 1U, 1U, 0U, 0U}},
         {{0U, 1U, 1U, 0U, 0U, 0U, 0U, 0U}},
@@ -92,19 +92,39 @@ public:
         {{1U, 1U, 1U, 1U, 0U, 1U, 1U, 0U}},
     }};
 
-    /** @brief Returns the block name used in log output. */
+    /**
+     * @brief Returns the block name used in log output.
+     *
+     * @return Block name.
+     */
     const char *get_name() { return "Disp"; }
 
-    /** @brief Maps the single parameter to a legacy MIDI CC number. */
-    uint8_t get_midi_nr(uint8_t /*instance*/, uint8_t /*index*/) {
+    /**
+     * @brief Maps the single parameter to a compatibility MIDI CC number.
+     *
+     * @param instance Unused bank index from the base CRTP interface.
+     * @param index Unused parameter index from the base CRTP interface.
+     * @return Compatibility MIDI CC number.
+     */
+    uint8_t get_midi_nr(uint8_t instance, uint8_t index) {
+        (void)instance;
+        (void)index;
         return LED_DISP_MIDI_CHANNEL;
     }
 
-    /** @brief MIDI channel used for legacy compatibility. */
+    /**
+     * @brief MIDI channel used for display compatibility.
+     *
+     * @return MIDI channel number.
+     */
     uint8_t get_midi_ch() { return LED_DISP_MIDI_CHANNEL; }
 
     /**
      * @brief Binds the block and caches the LED controller for direct segment writes.
+     *
+     * @param midi MIDI transport used for display compatibility.
+     * @param leds Shared LED controller for direct segment writes.
+     * @param inputs Shared input controller used by the base class.
      */
     void init(MIDI &midi, LEDSController &leds, InputController &inputs) {
         leds_ = &leds;
@@ -116,6 +136,8 @@ public:
 
     /**
      * @brief Loads a full preset and refreshes the LED display after the base class applies it.
+     *
+     * @param input Preset snapshot to apply.
      */
     void set_preset(const preset &input) {
         UI_BLOCK<LED_DISP, LED_DISP_KNOB_COUNT, LED_DISP_BUTTON_COUNT, LED_DISP_PARAM_COUNT, LED_DISP_COUNT>::set_preset(input);
@@ -123,7 +145,9 @@ public:
     }
 
     /**
-     * @brief Loads a full mod-routing preset and refreshes the display.
+     * @brief Loads a full modulation-routing preset and refreshes the display.
+     *
+     * @param input Modulation routing preset snapshot to apply.
      */
     void set_mod_preset(const mod_preset &input) {
         UI_BLOCK<LED_DISP, LED_DISP_KNOB_COUNT, LED_DISP_BUTTON_COUNT, LED_DISP_PARAM_COUNT, LED_DISP_COUNT>::set_mod_preset(input);
@@ -139,14 +163,20 @@ public:
     }
 
     /**
-     * @brief Stores the current display value, updates the LED digits, and keeps legacy state in sync.
+     * @brief Stores the current display value, updates the LED digits, and keeps compatibility state in sync.
+     *
+     * @param index Unused knob index from the base CRTP interface.
+     * @param value_scaled Display value to store.
      */
-    void knob_val_changed(uint8_t /*index*/, uint8_t value_scaled) {
+    void knob_val_changed(uint8_t index, uint8_t value_scaled) {
+        (void)index;
         set_display_value(value_scaled);
     }
 
     /**
      * @brief Updates the displayed preset slot without generating MIDI.
+     *
+     * @param value_scaled Value to display, clamped to the valid slot range.
      */
     void set_display_value(uint8_t value_scaled) {
         if (value_scaled > 127U) {
@@ -165,6 +195,8 @@ public:
      * This is used after preset load/save/browse restore so the next encoder
      * movement resumes from the currently active slot rather than the last
      * browsed value.
+     *
+     * @param value_scaled Preset slot to display and mirror into the encoder.
      */
     void sync_preset_value(uint8_t value_scaled) {
         set_display_value(value_scaled);
@@ -175,18 +207,30 @@ public:
         }
     }
 
-    /** @brief No function buttons exist on the display block. */
-    void select_function(uint8_t /*index*/) {}
-
-    /** @brief No special preset parameters need explicit restoration. */
-    void force_function(uint8_t /*value*/) {}
+    /**
+     * @brief No function buttons exist on the display block.
+     *
+     * @param index Unused function-button index from the base CRTP interface.
+     */
+    void select_function(uint8_t index) {
+        (void)index;
+    }
 
     /**
-     * @brief Returns the first pressed knob switch and classifies the hold length.
+     * @brief No special preset parameters need explicit restoration.
+     *
+     * @param value Unused special-parameter value from the base CRTP interface.
+     */
+    void force_function(uint8_t value) {
+        (void)value;
+    }
+
+    /**
+     * @brief Reports the encoder push-switch hold classification.
      *
      * @retval -1 Nothing was released yet.
-     * @retval 1  The encoder switch was held longer than the legacy threshold.
-     * @retval 2  The encoder switch was released before the legacy threshold.
+     * @retval 1  The encoder switch was held longer than the configured threshold.
+     * @retval 2  The encoder switch was released before the configured threshold.
      */
     int get_long_push() {
         const bool pushed = get_knobs()[0].get_state();
@@ -211,6 +255,8 @@ public:
 
     /**
      * @brief Reports whether the displayed preset value changed during the last update.
+     *
+     * @return New preset slot number, or `-1` if nothing changed.
      */
     int preset_changed() {
         if (!get_knob_changed()) {
@@ -227,7 +273,9 @@ public:
     }
 
     /**
-     * @brief Returns the currently stored display value.
+     * @brief Returns the value currently shown on the display.
+     *
+     * @return Displayed preset slot number.
      */
     uint8_t get_actual_preset_nr() {
         return actual_preset_value_;
@@ -235,6 +283,8 @@ public:
 
     /**
      * @brief Updates every display LED to the same brightness.
+     *
+     * @param val Brightness percentage in the range `[0, 100]`.
      */
     void set_all(uint16_t val) {
         if (leds_ == nullptr) {
@@ -261,6 +311,9 @@ private:
 
     /**
      * @brief Renders one digit of the display.
+     *
+     * @param digit_nr Digit position in the range `[0, LED_DISP_DIGIT_COUNT)`.
+     * @param digit Decimal digit in the range `[0, 9]`.
      */
     void set_digit(uint8_t digit_nr, uint8_t digit) {
         if (leds_ == nullptr || digit_nr >= LED_DISP_DIGIT_COUNT || digit > 9U) {
@@ -280,6 +333,8 @@ private:
 
     /**
      * @brief Splits the value into three digits and updates the LED bank.
+     *
+     * @param value_scaled Value to render as a three-digit number.
      */
     void render_value_(uint8_t value_scaled) {
         actual_preset_value_ = value_scaled;
@@ -302,13 +357,13 @@ private:
     /** @brief Hold threshold in milliseconds. */
     static constexpr uint32_t long_push_ms_ = 1000U;
 
-    /** @brief Legacy press timestamp for the encoder push-switch. */
+    /** @brief Press timestamp for the encoder push-switch. */
     uint32_t last_disp_pressed_at_ms_ = 0U;
 
-    /** @brief Legacy edge detector for the encoder push-switch. */
+    /** @brief Edge detector for the encoder push-switch. */
     bool last_disp_pushed_ = false;
 
-    /** @brief Legacy preset-change guard. */
+    /** @brief Preset-change guard. */
     int last_preset_selected_ = 0;
 };
 

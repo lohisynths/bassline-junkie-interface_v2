@@ -2,9 +2,8 @@
  * @file PresetDumpRequestListener.h
  * @brief UART-side listener for DSP preset-dump requests.
  *
- * The DSP requests a full state resend by sending one reserved MIDI Control
- * Change message over the shared UART link. This helper owns the small parser
- * state required to recognize that message and dispatches the request to the
+ * The DSP requests a full state resend by sending one reserved MIDI CC message over the shared UART link. This helper owns the small parser
+ * state required to recognize that message and dispatch the request to the
  * preset controller.
  */
 
@@ -60,8 +59,9 @@ public:
 
 private:
     /**
-     * @brief Feeds one byte into the MIDI CC request parser.
+     * @brief Feeds one byte into the request parser.
      *
+     * @param byte Byte read from the shared UART stream.
      * @retval true The request message has been fully received.
      * @retval false More data is needed or the byte was unrelated.
      */

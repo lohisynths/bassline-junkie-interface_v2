@@ -9,4 +9,5 @@
 
 #include <zephyr/logging/log.h>
 
+/** @brief Zephyr log module for the MOD control-surface block. */
 LOG_MODULE_REGISTER(MOD, LOG_LEVEL_INF);

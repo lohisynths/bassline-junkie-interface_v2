@@ -59,7 +59,7 @@ enum LFO_SHAPES {
  * consumed automatically by @ref UI_BLOCK::init through CRTP.
  *
  * Buttons `[0, LFO_COUNT)` are bank selectors. The remaining five buttons
- * are function buttons routed through @ref select_function:
+ * are function buttons routed through @ref select_function.
  * - Function indices `0..3` select waveform shapes (SIN/SAW/TRI/SQR).
  * - Function index `4` toggles SYNC mode.
  *
@@ -108,7 +108,11 @@ public:
     /*  Required CRTP hooks                                               */
     /* ------------------------------------------------------------------ */
 
-    /** @brief Returns the block name used in log output. */
+    /**
+     * @brief Returns the block name used in log output.
+     *
+     * @return Block name.
+     */
     const char *get_name() { return "LFO"; }
 
     /**
@@ -116,12 +120,20 @@ public:
      *
      * Layout: CC `37..39` for bank 0, `40..42` for bank 1, `43..45` for
      * bank 2.
+     *
+     * @param instance Bank index.
+     * @param index Parameter index.
+     * @return MIDI CC number for the parameter.
      */
     uint8_t get_midi_nr(uint8_t instance, uint8_t index) {
         return static_cast<uint8_t>(LFO_MIDI_OFFSET + instance * LFO_PARAM_COUNT + index);
     }
 
-    /** @brief MIDI channel used for all LFO control-change messages. */
+    /**
+     * @brief MIDI channel used for all LFO control-change messages.
+     *
+     * @return MIDI channel number.
+     */
     uint8_t get_midi_ch() { return 1U; }
 
     /* ------------------------------------------------------------------ */
@@ -140,7 +152,8 @@ public:
      * @param value Recalled special-parameter value (unused; full state is
      *              read directly from the preset on every invocation).
      */
-    void force_function(uint8_t /*value*/) {
+    void force_function(uint8_t value) {
+        (void)value;
         const uint8_t shape = get_current_preset_value(LFO_SHAPE);
         for (uint8_t i = 0U; i < LFO_SHAPE_COUNT; i++) {
             set_sw_state(LFO_COUNT + i, i == shape);
@@ -193,8 +206,8 @@ public:
 
     /**
      * @brief Toggles the SYNC state for the current bank, updates the SYNC
-     *        button LED, stores the new value in the preset, and sends a
-     *        MIDI CC.
+     *        button LED, stores the new value in the preset, and sends MIDI
+     *        CC.
      */
     void toggle_sync() {
         const uint8_t sync = get_current_preset_value(LFO_SYNC) ^ 1U;
@@ -207,7 +220,11 @@ public:
         }
     }
 
-    /** @brief Returns the currently selected LFO bank index. */
+    /**
+     * @brief Returns the currently selected LFO bank index.
+     *
+     * @return Current LFO bank index.
+     */
     uint8_t get_current_lfo() { return get_current_instance(); }
 };
 
