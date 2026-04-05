@@ -17,6 +17,8 @@ INPUT                  = README.md \
                          app/src/blocks/OSC.cpp \
                          app/src/blocks/UI_BLOCK.h \
                          app/src/blocks/UI_BLOCK.cpp \
+                         app/src/blocks/VOL.h \
+                         app/src/blocks/VOL.cpp \
                          app/src/Button.h \
                          app/src/Button.cpp \
                          app/src/EEPROM.h \
@@ -31,19 +33,29 @@ INPUT                  = README.md \
                          app/src/Knob.cpp \
                          app/src/LEDS.h \
                          app/src/LEDS.cpp \
+                         app/src/MIDI.h \
+                         app/src/MIDI.cpp \
                          app/src/Preset.h \
                          app/src/Preset.cpp \
                          app/src/PresetSnapshot.h \
                          app/src/MUX.h \
                          app/src/MUX.cpp \
+                         app/src/UART.h \
+                         app/src/UART.cpp \
+                         app/src/USB_MIDI.h \
+                         app/src/USB_MIDI.cpp \
+                         app/src/usb_midi_init.h \
+                         app/src/usb_midi_init.c \
                          app/src/utils.h \
                          app/src/utils.cpp \
                          app/src/main.cpp \
                          app/app.overlay \
-                         cd4067/include/zephyr/drivers/mux/cd4067.h
+                         cd4067/include/zephyr/drivers/mux/cd4067.h \
+                         cd4067/drivers/cd4067/cd4067.c
 FILE_PATTERNS          = *.md \
                          *.overlay \
                          *.h \
+                         *.c \
                          *.cpp
 RECURSIVE              = NO
 EXCLUDE_SYMBOLS        = cd4067_driver_api
