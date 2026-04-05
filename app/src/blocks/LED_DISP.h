@@ -70,10 +70,10 @@ public:
     static constexpr std::array<Knob::Config, LED_DISP_KNOB_COUNT> knob_configs_ = {
         Knob::Config{
             .button_mux_index = 4U,
-            .button_pin = 3U,
+            .button_pin = 6U,
             .encoder_mux_index = 4U,
-            .encoder_pin_a = 4U,
-            .encoder_pin_b = 5U,
+            .encoder_pin_a = 7U,
+            .encoder_pin_b = 8U,
             .first_led = 0U,
             .led_count = 0U,
             .encoder_step_divider = 4U,
