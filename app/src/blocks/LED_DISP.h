@@ -61,6 +61,8 @@ enum LED_DISP_PARAMS {
  */
 class LED_DISP : public UI_BLOCK<LED_DISP, LED_DISP_KNOB_COUNT, LED_DISP_BUTTON_COUNT, LED_DISP_PARAM_COUNT, LED_DISP_COUNT> {
 public:
+    using ui_block = UI_BLOCK<LED_DISP, LED_DISP_KNOB_COUNT, LED_DISP_BUTTON_COUNT, LED_DISP_PARAM_COUNT, LED_DISP_COUNT>;
+
     /** @brief Mux/LED bindings for the zero display buttons. */
     static constexpr std::array<Button::Config, LED_DISP_BUTTON_COUNT> button_configs_ = {};
 
@@ -128,10 +130,19 @@ public:
      */
     void init(MIDI &midi, LEDSController &leds, InputController &inputs) {
         leds_ = &leds;
-        UI_BLOCK<LED_DISP, LED_DISP_KNOB_COUNT, LED_DISP_BUTTON_COUNT, LED_DISP_PARAM_COUNT, LED_DISP_COUNT>::init(midi,
-                                                                                                                     leds,
-                                                                                                                     inputs);
+        ui_block::init(midi, leds, inputs);
         refresh_display();
+    }
+
+    /**
+     * @brief Polls the encoder and expires any active temporary overlay.
+     *
+     * @return Change flags from this update cycle.
+     */
+    ui_block::ret_value update() {
+        const auto ret = ui_block::update();
+        update_temporary_value_();
+        return ret;
     }
 
     /**
@@ -140,7 +151,8 @@ public:
      * @param input Preset snapshot to apply.
      */
     void set_preset(const preset &input) {
-        UI_BLOCK<LED_DISP, LED_DISP_KNOB_COUNT, LED_DISP_BUTTON_COUNT, LED_DISP_PARAM_COUNT, LED_DISP_COUNT>::set_preset(input);
+        cancel_temporary_value_();
+        ui_block::set_preset(input);
         refresh_display();
     }
 
@@ -150,7 +162,8 @@ public:
      * @param input Modulation routing preset snapshot to apply.
      */
     void set_mod_preset(const mod_preset &input) {
-        UI_BLOCK<LED_DISP, LED_DISP_KNOB_COUNT, LED_DISP_BUTTON_COUNT, LED_DISP_PARAM_COUNT, LED_DISP_COUNT>::set_mod_preset(input);
+        cancel_temporary_value_();
+        ui_block::set_mod_preset(input);
         refresh_display();
     }
 
@@ -158,7 +171,8 @@ public:
      * @brief Re-applies the current bank selection and refreshes the display.
      */
     void reset() {
-        UI_BLOCK<LED_DISP, LED_DISP_KNOB_COUNT, LED_DISP_BUTTON_COUNT, LED_DISP_PARAM_COUNT, LED_DISP_COUNT>::reset();
+        cancel_temporary_value_();
+        ui_block::reset();
         refresh_display();
     }
 
@@ -183,6 +197,7 @@ public:
             value_scaled = 127U;
         }
 
+        cancel_temporary_value_();
         actual_preset_value_ = value_scaled;
         set_current_preset_value(LED_DISP_VALUE, value_scaled);
         last_preset_selected_ = static_cast<int>(value_scaled);
@@ -205,6 +220,24 @@ public:
         if (!knobs.empty()) {
             (void)knobs[0].set_value(value_scaled);
         }
+    }
+
+    /**
+     * @brief Temporarily overlays the display with a non-preset value.
+     *
+     * The stored preset slot and encoder state stay unchanged; after a short
+     * timeout the display returns to the real preset number automatically.
+     *
+     * @param value_scaled Value to preview on the seven-segment display.
+     */
+    void show_temporary_value(uint8_t value_scaled) {
+        if (value_scaled > 127U) {
+            value_scaled = 127U;
+        }
+
+        temporary_value_active_ = true;
+        temporary_value_expires_at_ms_ = k_uptime_get_32() + temporary_value_hold_ms_;
+        render_value_(value_scaled);
     }
 
     /**
@@ -310,6 +343,31 @@ private:
     }
 
     /**
+     * @brief Restores the preset-slot display once a temporary overlay expires.
+     */
+    void update_temporary_value_() {
+        if (!temporary_value_active_) {
+            return;
+        }
+
+        const uint32_t now = k_uptime_get_32();
+        if ((int32_t)(now - temporary_value_expires_at_ms_) < 0) {
+            return;
+        }
+
+        cancel_temporary_value_();
+        refresh_display();
+    }
+
+    /**
+     * @brief Clears any active temporary overlay without changing the preset.
+     */
+    void cancel_temporary_value_() {
+        temporary_value_active_ = false;
+        temporary_value_expires_at_ms_ = 0U;
+    }
+
+    /**
      * @brief Renders one digit of the display.
      *
      * @param digit_nr Digit position in the range `[0, LED_DISP_DIGIT_COUNT)`.
@@ -365,6 +423,15 @@ private:
 
     /** @brief Preset-change guard. */
     int last_preset_selected_ = 0;
+
+    /** @brief Temporary overlay hold time in milliseconds. */
+    static constexpr uint32_t temporary_value_hold_ms_ = 750U;
+
+    /** @brief Tracks whether a non-preset display overlay is active. */
+    bool temporary_value_active_ = false;
+
+    /** @brief Deadline for restoring the preset-slot display after an overlay. */
+    uint32_t temporary_value_expires_at_ms_ = 0U;
 };
 
 #endif /* APP_SRC_BLOCKS_LED_DISP_H_ */

@@ -10,6 +10,7 @@
 #define APP_SRC_BLOCKS_FLT_H_
 
 #include "UI_BLOCK.h"
+#include "LED_DISP.h"
 
 /** @brief Number of encoder knobs in the FLT block (frequency, resonance, keyboard tracking). */
 static constexpr uint8_t FLT_KNOB_COUNT = 3U;
@@ -147,9 +148,37 @@ public:
      */
     uint8_t get_midi_ch() { return 1U; }
 
+    /**
+     * @brief Attaches the display block used for temporary keyboard-track previews.
+     *
+     * @param display Seven-segment display block.
+     */
+    void bind_display(LED_DISP &display) {
+        display_ = &display;
+    }
+
     /* ------------------------------------------------------------------ */
     /*  CRTP hook overrides                                               */
     /* ------------------------------------------------------------------ */
+
+    /**
+     * @brief Stores a knob value, sends its MIDI CC, and previews KBTRACK on the display.
+     *
+     * @param index Changed knob index.
+     * @param value_scaled Clamped knob value in the range `[0, 127]`.
+     */
+    void knob_val_changed(uint8_t index, uint8_t value_scaled) {
+        set_current_preset_value(index, value_scaled);
+        if (get_midi()) {
+            get_midi()->send_cc(get_current_instance_midi_nr(index),
+                                value_scaled,
+                                get_midi_ch());
+        }
+
+        if ((index == FLT_KBTRACK) && (display_ != nullptr)) {
+            display_->show_temporary_value(value_scaled);
+        }
+    }
 
     /**
      * @brief Restores filter-type button LED state during recall.
@@ -234,6 +263,10 @@ public:
     void clear_mod_view() {
         reset();
     }
+
+private:
+    /** @brief Borrowed display block used for temporary KBTRACK readout. */
+    LED_DISP *display_ = nullptr;
 };
 
 #endif /* APP_SRC_BLOCKS_FLT_H_ */
