@@ -124,7 +124,8 @@ public:
      * @brief Temporarily renders one preview value on the knob LED segment.
      *
      * This updates only the LED display. The logical knob value, encoder state,
-     * and pending encoder steps are unchanged.
+     * and pending encoder steps are unchanged. A preview value of `0` clears the
+     * whole LED segment instead of lighting the first LED.
      *
      * @param value Preview value to project onto the configured LED range.
      *
