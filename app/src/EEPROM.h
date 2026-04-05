@@ -74,6 +74,30 @@ public:
      */
     int save_startup_slot(uint8_t slot);
 
+    /**
+     * @brief Loads the persisted master volume value.
+     *
+     * If no volume has been stored yet, this returns `0`.
+     *
+     * @param volume Receives the stored master volume.
+     *
+     * @retval 0 The master volume was returned successfully.
+     */
+    int load_master_volume(uint8_t &volume) const;
+
+    /**
+     * @brief Stores the master volume value independently of preset snapshots.
+     *
+     * This appends a metadata record to the same flash journal used by
+     * preset snapshots and the startup preset slot.
+     *
+     * @param volume Master volume value to persist.
+     *
+     * @retval 0 The volume was written successfully.
+     * @retval negative Error propagated from the flash driver.
+     */
+    int save_master_volume(uint8_t volume);
+
 private:
     /** @brief Open flash area backing the preset image. */
     const struct flash_area *flash_area_ = nullptr;

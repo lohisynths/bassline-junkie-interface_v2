@@ -11,6 +11,7 @@ class LFO;
 class MOD;
 class OSC;
 class LED_DISP;
+class VOL;
 
 /**
  * @brief High-level preset controller for browsing, saving, restoring, and dump requests.
@@ -32,6 +33,9 @@ public:
     /** @brief Brief display blink duration used for save and restore feedback. */
     static constexpr uint32_t blink_ms = 120U;
 
+    /** @brief Idle time before one changed global volume value is flushed to flash. */
+    static constexpr uint32_t volume_save_delay_ms = 1000U;
+
     /** @brief Constructs an uninitialized preset controller. */
     Preset() = default;
 
@@ -45,10 +49,11 @@ public:
      * @param lfo LFO block restored from snapshots.
      * @param mod MOD block restored from snapshots.
      * @param osc OSC block restored from snapshots.
+     * @param vol VOL block whose value is persisted independently of preset snapshots.
      * @retval 0 The controller is ready.
      * @retval negative Error propagated from the EEPROM backend.
      */
-    int init(EEPROM &eeprom, LED_DISP &display, ADSR &adsr, FLT &flt, LFO &lfo, MOD &mod, OSC &osc);
+    int init(EEPROM &eeprom, LED_DISP &display, ADSR &adsr, FLT &flt, LFO &lfo, MOD &mod, OSC &osc, VOL &vol);
 
     /**
      * @brief Advances the preset browse/save state machine and display restore timing.
@@ -139,6 +144,16 @@ private:
     void start_blink_(uint8_t restore_slot);
 
     /**
+     * @brief Restores the persisted global master volume after EEPROM init.
+     */
+    void restore_master_volume_();
+
+    /**
+     * @brief Tracks volume changes and flushes them to EEPROM after an idle delay.
+     */
+    void update_volume_persistence_();
+
+    /**
      * @brief Restores the display after a blink timeout has elapsed.
      */
     void update_display_restore_();
@@ -163,6 +178,9 @@ private:
 
     /** @brief Borrowed oscillator block restored from preset snapshots. */
     OSC *osc_ = nullptr;
+
+    /** @brief Borrowed volume block persisted independently of preset snapshots. */
+    VOL *vol_ = nullptr;
 
     /** @brief Slot number of the currently active preset. */
     uint8_t active_slot_ = 0U;
@@ -196,6 +214,15 @@ private:
 
     /** @brief Timestamp when the blink feedback should end. */
     uint32_t blink_ends_at_ms_ = 0U;
+
+    /** @brief Tracks whether the global master volume needs to be flushed to flash. */
+    bool volume_dirty_ = false;
+
+    /** @brief Most recent global master volume value pending persistence. */
+    uint8_t pending_volume_ = 0U;
+
+    /** @brief Timestamp when the most recent volume change was observed. */
+    uint32_t volume_changed_at_ms_ = 0U;
 };
 
 #endif /* SRC_PRESET_H_ */

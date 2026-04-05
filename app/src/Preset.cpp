@@ -6,6 +6,7 @@
 #include "blocks/LFO.h"
 #include "blocks/MOD.h"
 #include "blocks/OSC.h"
+#include "blocks/VOL.h"
 
 #include <errno.h>
 
@@ -56,7 +57,7 @@ bool lfo_snapshot_valid(const LFO::preset &preset)
 
 } // namespace
 
-int Preset::init(EEPROM &eeprom, LED_DISP &display, ADSR &adsr, FLT &flt, LFO &lfo, MOD &mod, OSC &osc)
+int Preset::init(EEPROM &eeprom, LED_DISP &display, ADSR &adsr, FLT &flt, LFO &lfo, MOD &mod, OSC &osc, VOL &vol)
 {
     eeprom_ = &eeprom;
     display_ = &display;
@@ -65,6 +66,7 @@ int Preset::init(EEPROM &eeprom, LED_DISP &display, ADSR &adsr, FLT &flt, LFO &l
     lfo_ = &lfo;
     mod_ = &mod;
     osc_ = &osc;
+    vol_ = &vol;
 
     const int ret = eeprom_->init();
     if (ret < 0) {
@@ -73,6 +75,7 @@ int Preset::init(EEPROM &eeprom, LED_DISP &display, ADSR &adsr, FLT &flt, LFO &l
 
     uint8_t startup_slot = 0U;
     (void)eeprom_->load_startup_slot(startup_slot);
+    restore_master_volume_();
     (void)load_slot_(startup_slot);
     return 0;
 }
@@ -83,6 +86,7 @@ void Preset::update()
         return;
     }
 
+    update_volume_persistence_();
     update_display_restore_();
 
     const uint8_t current_display = display_->get_actual_preset_nr();
@@ -151,7 +155,7 @@ uint8_t Preset::get_active_slot() const
 bool Preset::is_ready_() const
 {
     return (eeprom_ != nullptr) && (display_ != nullptr) && (adsr_ != nullptr) && (flt_ != nullptr) &&
-           (lfo_ != nullptr) && (mod_ != nullptr) && (osc_ != nullptr);
+           (lfo_ != nullptr) && (mod_ != nullptr) && (osc_ != nullptr) && (vol_ != nullptr);
 }
 
 bool Preset::load_slot_(uint8_t slot)
@@ -286,6 +290,7 @@ void Preset::dump_active_slot()
     flt_->dump_active_state();
     lfo_->dump_active_state();
     osc_->dump_active_state();
+    vol_->dump_active_state();
     dump_mod_matrix_();
 }
 
@@ -299,6 +304,61 @@ void Preset::start_blink_(uint8_t restore_slot)
     blink_restore_slot_ = restore_slot;
     blink_ends_at_ms_ = k_uptime_get_32() + blink_ms;
     display_->set_all(0U);
+}
+
+void Preset::restore_master_volume_()
+{
+    if ((eeprom_ == nullptr) || (vol_ == nullptr)) {
+        return;
+    }
+
+    uint8_t volume = 0U;
+    const int ret = eeprom_->load_master_volume(volume);
+    if (ret < 0) {
+        LOG_WRN("Failed to load master volume: %d", ret);
+        return;
+    }
+
+    VOL::preset preset = {};
+    preset[0U][VOL_LEVEL] = volume;
+    vol_->set_preset(preset);
+    pending_volume_ = volume;
+    volume_dirty_ = false;
+    volume_changed_at_ms_ = 0U;
+}
+
+void Preset::update_volume_persistence_()
+{
+    if ((eeprom_ == nullptr) || (vol_ == nullptr)) {
+        return;
+    }
+
+    const uint32_t now = k_uptime_get_32();
+    const uint8_t current_volume = vol_->get_current_preset_value(VOL_LEVEL);
+
+    if (vol_->get_knob_changed()) {
+        pending_volume_ = current_volume;
+        volume_changed_at_ms_ = now;
+        volume_dirty_ = true;
+    }
+
+    if (!volume_dirty_) {
+        return;
+    }
+
+    if ((now - volume_changed_at_ms_) < volume_save_delay_ms) {
+        return;
+    }
+
+    const int ret = eeprom_->save_master_volume(pending_volume_);
+    if (ret < 0) {
+        LOG_WRN("Failed to persist master volume %u: %d",
+                static_cast<unsigned int>(pending_volume_), ret);
+        volume_changed_at_ms_ = now;
+        return;
+    }
+
+    volume_dirty_ = false;
 }
 
 void Preset::update_display_restore_()

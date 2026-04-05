@@ -9,6 +9,7 @@
 #include "blocks/FLT.h"
 #include "blocks/MOD.h"
 #include "blocks/LED_DISP.h"
+#include "blocks/VOL.h"
 #include "EEPROM.h"
 #include "Preset.h"
 #include "InputController.h"
@@ -49,6 +50,7 @@ static void input_thread(void *p1, void *, void *) {
     FLT flt;
     MOD mod;
     LED_DISP led_disp;
+    VOL vol;
     EEPROM eeprom;
     Preset preset;
     PresetDumpRequestListener preset_dump_request_listener;
@@ -88,8 +90,10 @@ static void input_thread(void *p1, void *, void *) {
     mod.bind_sources(osc, flt);
     mod.init(midi, leds, inputs);
     led_disp.init(midi, leds, inputs);
+    vol.init(midi, leds, inputs);
     flt.bind_display(led_disp);
-    preset.init(eeprom, led_disp, adsr, flt, lfo, mod, osc);
+    vol.bind_display(led_disp);
+    preset.init(eeprom, led_disp, adsr, flt, lfo, mod, osc, vol);
     preset_dump_request_listener.init(uart1, preset);
 
     while (1) {
@@ -108,6 +112,7 @@ static void input_thread(void *p1, void *, void *) {
         mod.update();
         mod.poll_mod_destination_selection();
         led_disp.update();
+        vol.update();
         preset.update();
 
         USB_MIDI::Message usb_msg;
