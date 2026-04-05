@@ -95,6 +95,7 @@ static void input_thread(void *p1, void *, void *) {
     vol.init(midi, leds, inputs);
     led_disp.init(midi, leds, inputs);
     flt.bind_display(led_disp);
+    vol.bind_display(led_disp);
     preset.init(eeprom, led_disp, adsr, flt, lfo, mod, osc);
 
     while (1) {
