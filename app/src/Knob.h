@@ -126,6 +126,9 @@ public:
      * This updates only the LED display. The logical knob value, encoder state,
      * and pending encoder steps are unchanged.
      *
+     * A preview value of `0` clears the segment entirely so viewer overlays can
+     * represent an absent routing amount with no lit LED.
+     *
      * @param value Preview value to project onto the configured LED range.
      *
      * @retval 0 The preview LED was updated successfully.

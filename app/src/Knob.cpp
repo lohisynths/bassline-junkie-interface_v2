@@ -136,6 +136,20 @@ int Knob::show_preview_value(uint8_t value)
         value = knob_max_value;
     }
 
+    if (value == 0U) {
+        if (displayed_led_index_ >= led_count_) {
+            return 0;
+        }
+
+        const int ret = leds_->set_channel_percent(first_led_ + displayed_led_index_, 0U);
+        if (ret < 0) {
+            return ret;
+        }
+
+        displayed_led_index_ = led_count_;
+        return 0;
+    }
+
     return render_led_index_(led_index_(value));
 }
 
