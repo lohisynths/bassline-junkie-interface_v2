@@ -108,22 +108,38 @@ public:
     /*  Required CRTP hooks                                               */
     /* ------------------------------------------------------------------ */
 
-    /** @brief Returns the block name used in log output. */
+    /**
+     * @brief Returns the block name used in log output.
+     *
+     * @return Static block name string.
+     */
     const char *get_name() { return "OSC"; }
 
     /**
      * @brief Maps a bank and parameter index to a MIDI CC number.
      *
      * Layout: CC `0..4` for bank 0, `5..9` for bank 1, `10..14` for bank 2.
+     *
+     * @param instance Oscillator bank index.
+     * @param index Parameter index within the selected bank.
+     * @return MIDI CC number for the requested OSC parameter.
      */
     uint8_t get_midi_nr(uint8_t instance, uint8_t index) {
         return static_cast<uint8_t>(OSC_MIDI_OFFSET + instance * OSC_PARAM_COUNT + index);
     }
 
-    /** @brief MIDI channel used for all OSC control-change messages. */
+    /**
+     * @brief MIDI channel used for all OSC control-change messages.
+     *
+     * @return Fixed OSC MIDI channel number.
+     */
     uint8_t get_midi_ch() { return 1U; }
 
-    /** @brief Returns the currently selected oscillator bank index. */
+    /**
+     * @brief Returns the currently selected oscillator bank index.
+     *
+     * @return Active OSC bank index.
+     */
     uint8_t get_current_osc() { return get_current_instance(); }
 
     /**
@@ -131,6 +147,8 @@ public:
      *
      * The preview uses the currently selected OSC bank as the destination
      * range and only changes the knob LEDs, not the stored knob values.
+     *
+     * @param source MOD source index to preview.
      */
     void show_mod_view(uint8_t source) {
         const uint8_t bank = get_current_instance();

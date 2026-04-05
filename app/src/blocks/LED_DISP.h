@@ -61,6 +61,7 @@ enum LED_DISP_PARAMS {
  */
 class LED_DISP : public UI_BLOCK<LED_DISP, LED_DISP_KNOB_COUNT, LED_DISP_BUTTON_COUNT, LED_DISP_PARAM_COUNT, LED_DISP_COUNT> {
 public:
+    /** @brief Shorthand for the CRTP base class used by LED_DISP. */
     using ui_block = UI_BLOCK<LED_DISP, LED_DISP_KNOB_COUNT, LED_DISP_BUTTON_COUNT, LED_DISP_PARAM_COUNT, LED_DISP_COUNT>;
     /** @brief Mux/LED bindings for the zero display buttons. */
     static constexpr std::array<Button::Config, LED_DISP_BUTTON_COUNT> button_configs_ = {};
@@ -93,19 +94,39 @@ public:
         {{1U, 1U, 1U, 1U, 0U, 1U, 1U, 0U}},
     }};
 
-    /** @brief Returns the block name used in log output. */
+    /**
+     * @brief Returns the block name used in log output.
+     *
+     * @return Static block name string.
+     */
     const char *get_name() { return "Disp"; }
 
-    /** @brief Maps the single parameter to a legacy MIDI CC number. */
-    uint8_t get_midi_nr(uint8_t /*instance*/, uint8_t /*index*/) {
+    /**
+     * @brief Maps the single parameter to a legacy MIDI CC number.
+     *
+     * @param instance Unused display bank index placeholder.
+     * @param index Unused display parameter index placeholder.
+     * @return Legacy MIDI CC number used by the display block.
+     */
+    uint8_t get_midi_nr(uint8_t instance, uint8_t index) {
+        (void)instance;
+        (void)index;
         return LED_DISP_MIDI_CHANNEL;
     }
 
-    /** @brief MIDI channel used for legacy compatibility. */
+    /**
+     * @brief MIDI channel used for legacy compatibility.
+     *
+     * @return Fixed display MIDI channel number.
+     */
     uint8_t get_midi_ch() { return LED_DISP_MIDI_CHANNEL; }
 
     /**
      * @brief Binds the block and caches the LED controller for direct segment writes.
+     *
+     * @param midi MIDI backend borrowed by the CRTP base block.
+     * @param leds LED controller used both by the base block and direct digit rendering.
+     * @param inputs Input controller used to initialize the display encoder.
      */
     void init(MIDI &midi, LEDSController &leds, InputController &inputs) {
         leds_ = &leds;
@@ -115,6 +136,8 @@ public:
 
     /**
      * @brief Loads a full preset and refreshes the LED display after the base class applies it.
+     *
+     * @param input Full banked display preset to load.
      */
     void set_preset(const preset &input) {
         ui_block::set_preset(input);
@@ -124,6 +147,8 @@ public:
 
     /**
      * @brief Loads a full mod-routing preset and refreshes the display.
+     *
+     * @param input Full mod-routing preset to load.
      */
     void set_mod_preset(const mod_preset &input) {
         ui_block::set_mod_preset(input);
@@ -142,6 +167,8 @@ public:
 
     /**
      * @brief Polls the base UI block and restores the preset slot after a short preview timeout.
+     *
+     * @return Aggregated update flags from the CRTP base block.
      */
     ui_block::ret_value update() {
         const ui_block::ret_value ret = ui_block::update();
@@ -151,13 +178,19 @@ public:
 
     /**
      * @brief Stores the current display value, updates the LED digits, and keeps legacy state in sync.
+     *
+     * @param index Unused knob index placeholder.
+     * @param value_scaled New display value in the range `[0, 127]`.
      */
-    void knob_val_changed(uint8_t /*index*/, uint8_t value_scaled) {
+    void knob_val_changed(uint8_t index, uint8_t value_scaled) {
+        (void)index;
         set_display_value(value_scaled);
     }
 
     /**
      * @brief Updates the displayed preset slot without generating MIDI.
+     *
+     * @param value_scaled New preset slot number to show and store.
      */
     void set_display_value(uint8_t value_scaled) {
         if (value_scaled > 127U) {
@@ -176,6 +209,8 @@ public:
      *
      * This is used by other blocks to preview parameter values while leaving the preset browsing
      * state untouched.
+     *
+     * @param value_scaled Temporary preview value to render.
      */
     void show_preview_value(uint8_t value_scaled) {
         if (value_scaled > 127U) {
@@ -193,6 +228,8 @@ public:
      * This is used after preset load/save/browse restore so the next encoder
      * movement resumes from the currently active slot rather than the last
      * browsed value.
+     *
+     * @param value_scaled Preset slot value to synchronize into the encoder and display.
      */
     void sync_preset_value(uint8_t value_scaled) {
         set_display_value(value_scaled);
@@ -239,6 +276,8 @@ public:
 
     /**
      * @brief Reports whether the displayed preset value changed during the last update.
+     *
+     * @return New preset number when it changed, otherwise `-1`.
      */
     int preset_changed() {
         if (!get_knob_changed()) {
@@ -256,6 +295,8 @@ public:
 
     /**
      * @brief Returns the currently stored display value.
+     *
+     * @return Last committed preset number shown by the display.
      */
     uint8_t get_actual_preset_nr() {
         return actual_preset_value_;
@@ -263,6 +304,8 @@ public:
 
     /**
      * @brief Updates every display LED to the same brightness.
+     *
+     * @param val Brightness percentage to apply to all display segments.
      */
     void set_all(uint16_t val) {
         if (leds_ == nullptr) {
@@ -289,6 +332,9 @@ private:
 
     /**
      * @brief Renders one digit of the display.
+     *
+     * @param digit_nr Zero-based digit index to update.
+     * @param digit Decimal digit value in the range `[0, 9]`.
      */
     void set_digit(uint8_t digit_nr, uint8_t digit) {
         if (leds_ == nullptr || digit_nr >= LED_DISP_DIGIT_COUNT || digit > 9U) {
@@ -308,6 +354,8 @@ private:
 
     /**
      * @brief Splits the value into three digits and updates the LED bank.
+     *
+     * @param value_scaled Display value to render and store.
      */
     void render_value_(uint8_t value_scaled) {
         actual_preset_value_ = value_scaled;
@@ -316,6 +364,8 @@ private:
 
     /**
      * @brief Renders the numeric digits without touching the stored preset value.
+     *
+     * @param value_scaled Display value to render temporarily.
      */
     void render_digits_(uint8_t value_scaled) {
         const uint8_t ones = static_cast<uint8_t>(value_scaled % 10U);

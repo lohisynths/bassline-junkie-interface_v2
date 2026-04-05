@@ -42,8 +42,18 @@ static constexpr uint8_t MOD_FLT_DEST_COUNT = 2U;
 /** @brief Total number of MOD destinations. */
 static constexpr uint8_t MOD_DEST_COUNT = MOD_FIRST_FLT_DEST + MOD_FLT_DEST_COUNT;
 
+/**
+ * @brief Mod-routing block with six source selectors and one amount knob.
+ *
+ * Each MOD source is represented as one bank. The single knob edits the routing
+ * amount for the currently selected source and destination. Destinations are
+ * borrowed from the OSC and FLT blocks so this block can persist modulation
+ * amounts into their mod matrices and temporarily preview the routing table on
+ * their knob LEDs.
+ */
 class MOD : public UI_BLOCK<MOD, MOD_KNOB_COUNT, MOD_BUTTON_COUNT, MOD_PARAM_COUNT, MOD_COUNT> {
 public:
+    /** @brief Shorthand for the CRTP base class used by MOD. */
     using ui_block = UI_BLOCK<MOD, MOD_KNOB_COUNT, MOD_BUTTON_COUNT, MOD_PARAM_COUNT, MOD_COUNT>;
 
     /** @brief LED arc length for the MOD amount knob. */
@@ -75,7 +85,12 @@ public:
         },
     };
 
-    /** @brief Attach the OSC and FLT blocks used for destination lookups. */
+    /**
+     * @brief Attach the OSC and FLT blocks used for destination lookups.
+     *
+     * @param osc OSC block providing oscillator destinations and mod storage.
+     * @param filter FLT block providing filter destinations and mod storage.
+     */
     void bind_sources(OSC &osc, FLT &filter) {
         osc_ = &osc;
         filter_ = &filter;
@@ -85,19 +100,31 @@ public:
     /*  Required CRTP hooks                                               */
     /* ------------------------------------------------------------------ */
 
-    /** @brief Returns the block name used in log output. */
+    /**
+     * @brief Returns the block name used in log output.
+     *
+     * @return Static block name string.
+     */
     const char *get_name() { return "MOD"; }
 
     /**
      * @brief Maps a source bank and destination index to a MIDI CC number.
      *
      * Layout matches the legacy MOD class: `source + destination * MOD_COUNT`.
+     *
+     * @param instance MOD source index.
+     * @param index MOD destination index.
+     * @return MIDI CC number for the requested MOD route.
      */
     uint8_t get_midi_nr(uint8_t instance, uint8_t index) {
         return static_cast<uint8_t>(MOD_MIDI_OFFSET + instance + (index * MOD_COUNT));
     }
 
-    /** @brief MIDI channel used for all MOD control-change messages. */
+    /**
+     * @brief MIDI channel used for all MOD control-change messages.
+     *
+     * @return Fixed MOD MIDI channel number.
+     */
     uint8_t get_midi_ch() { return MOD_MIDI_CHANNEL; }
 
     /**
@@ -105,6 +132,8 @@ public:
      *
      * Holding MOD button 0 for longer than one second overlays the OSC and
      * FLT knob LEDs with the current MOD matrix values for the active source.
+     *
+     * @return Aggregated update flags from the CRTP base block.
      */
     ui_block::ret_value update() {
         const ui_block::ret_value ret = ui_block::update();
@@ -118,8 +147,12 @@ public:
 
     /**
      * @brief Returns the current routing amount for the selected source and destination.
+     *
+     * @param index Unused placeholder required by the CRTP interface.
+     * @return Stored routing amount for the active source/destination pair.
      */
-    uint8_t get_current_preset_value(uint8_t /*index*/) {
+    uint8_t get_current_preset_value(uint8_t index) {
+        (void)index;
         const uint8_t src = get_current_instance();
         const uint8_t dst = actual_mod_dest;
 
@@ -136,8 +169,12 @@ public:
 
     /**
      * @brief Sends the new routing amount as MIDI when the knob changes.
+     *
+     * @param index Unused knob index placeholder.
+     * @param value_scaled New routing amount in MIDI range.
      */
-    void knob_val_changed(uint8_t /*index*/, uint8_t value_scaled) {
+    void knob_val_changed(uint8_t index, uint8_t value_scaled) {
+        (void)index;
         store_current_preset_value(value_scaled);
 
         if (get_midi()) {
@@ -181,6 +218,8 @@ public:
 
     /**
      * @brief Selects which destination the MOD knob edits.
+     *
+     * @param index MOD destination index to activate.
      */
     void select_MOD_dest(uint8_t index) {
         if (index >= MOD_DEST_COUNT) {
@@ -199,13 +238,19 @@ public:
         LOG_INF("%s dst %d selected", get_name(), index);
     }
 
-    /** @brief Returns the currently selected MOD destination index. */
+    /**
+     * @brief Returns the currently selected MOD destination index.
+     *
+     * @return Active MOD destination index.
+     */
     uint8_t get_current_mod_dest() const {
         return actual_mod_dest;
     }
 
     /**
      * @brief Returns whether the MOD viewer overlay is currently active.
+     *
+     * @return @c true when the viewer overlay is active.
      */
     bool is_viewer_active() const {
         return mod_viewer_active_;
@@ -282,6 +327,8 @@ private:
 
     /**
      * @brief Returns the first currently pressed MOD selector button, or `-1`.
+     *
+     * @return Index of the first pressed selector button, or `-1` if none are pressed.
      */
     int8_t get_pressed_button_() {
         const auto &buttons = get_buttons();
@@ -295,6 +342,8 @@ private:
 
     /**
      * @brief Persists the current routing amount into the active OSC or FLT mod table.
+     *
+     * @param value Routing amount to store.
      */
     void store_current_preset_value(uint8_t value) {
         const uint8_t src = get_current_instance();
@@ -312,13 +361,25 @@ private:
         }
     }
 
+    /** @brief Currently selected modulation destination. */
     uint8_t actual_mod_dest = 0U;
+
+    /** @brief True while the MOD matrix viewer overlay is active. */
     bool mod_viewer_active_ = false;
+
+    /** @brief True while any MOD source selector button is being held. */
     bool viewer_button_pressed_ = false;
+
+    /** @brief Index of the selector button currently being tracked for viewer hold detection. */
     int8_t viewer_button_index_ = -1;
+
+    /** @brief Timestamp captured when the current viewer candidate button was pressed. */
     uint32_t viewer_button_pressed_at_ms_ = 0U;
 
+    /** @brief Borrowed OSC block used for destination previews and routing storage. */
     OSC *osc_ = nullptr;
+
+    /** @brief Borrowed FLT block used for destination previews and routing storage. */
     FLT *filter_ = nullptr;
 };
 
