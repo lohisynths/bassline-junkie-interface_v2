@@ -10,6 +10,23 @@
 class ModMatrixCapture {
 public:
     /**
+     * @brief Returns whether the MOD viewer overlay is currently active.
+     *
+     * @retval true The OSC/FLT knobs are being borrowed by the MOD viewer.
+     * @retval false Normal OSC/FLT LED rendering is active.
+     */
+    virtual bool is_mod_viewer_active() const = 0;
+
+    /**
+     * @brief Reapplies the current MOD viewer overlay immediately.
+     *
+     * This is used when another block changes visible context, such as an OSC
+     * bank switch, and the borrowed knob LEDs must be repainted in the same
+     * update cycle to avoid showing the underlying preset state.
+     */
+    virtual void refresh_mod_viewer() = 0;
+
+    /**
      * @brief Attempts to consume one OSC knob value for MOD-matrix editing.
      *
      * @param osc_bank Active OSC bank whose visible knob changed.

@@ -46,6 +46,7 @@
  * | `void knob_val_changed(uint8_t index, uint8_t value_scaled)`    | Stores value in current bank and sends MIDI CC               |
  * | `void knob_sw_changed(uint8_t index, bool state)`               | Empty                                                        |
  * | `void select_function(uint8_t index)`                           | Empty                                                        |
+ * | `bool handle_selector_press(uint8_t index)`                     | Returns `false` so bank buttons use the default recall path  |
  * | `void force_function(uint8_t value)`                            | Empty                                                        |
  *
  * @tparam Derived      Concrete block type (CRTP), must expose
@@ -143,7 +144,7 @@ public:
             buttons_[i].init(inputs, Derived::button_configs_[i], leds);
         }
 
-        select_instance(current_instance_);
+        select_instance_(current_instance_, true);
     }
 
     /**
@@ -308,7 +309,7 @@ public:
      */
     void set_preset(const preset &input) {
         preset_values_ = input;
-        select_instance(current_instance_);
+        select_instance_(current_instance_, true);
         dump_midi();
     }
 
@@ -320,7 +321,7 @@ public:
      */
     void set_mod_preset(const mod_preset &input) {
         mod_preset_values = input;
-        select_instance(current_instance_);
+        select_instance_(current_instance_, true);
         dump_midi();
     }
 
@@ -370,7 +371,7 @@ public:
 
     /** @brief Re-applies the current bank selection without changing it. */
     void reset() {
-        select_instance(current_instance_);
+        select_instance_(current_instance_, true);
     }
 
     /* ------------------------------------------------------------------ */
@@ -434,6 +435,23 @@ public:
      */
     void select_function(uint8_t index) {
         (void)index;
+    }
+
+    /**
+     * @brief Called when a selector button is pressed before the default bank recall runs.
+     *
+     * Returning `true` suppresses the built-in selector handling, allowing a
+     * derived block to swap context in a custom way such as a silent recall for
+     * temporary overlays.
+     *
+     * @param index Raw selector button index in the range `[0, COUNT)`.
+     *
+     * @retval true The derived block fully handled the selector press.
+     * @retval false The base class should run the normal bank recall path.
+     */
+    bool handle_selector_press(uint8_t index) {
+        (void)index;
+        return false;
     }
 
     /**
@@ -551,7 +569,9 @@ private:
 
         if constexpr (COUNT != 1) {
             if (index < COUNT) {
-                select_instance(index);
+                if (!self()->handle_selector_press(index)) {
+                    select_instance_(index, true);
+                }
             } else {
                 self()->select_function(index - COUNT);
             }
@@ -570,7 +590,20 @@ private:
      *
      * @param index Bank index to activate.
      */
-    void select_instance(uint8_t index) {
+protected:
+    /**
+     * @brief Re-applies one bank and optionally redraws the owned knob LEDs.
+     *
+     * @param index Bank index to activate.
+     * @param render_knobs `true` redraws knob LEDs, `false` only synchronizes
+     *        the stored knob values.
+     */
+    void recall_instance(uint8_t index, bool render_knobs = true) {
+        select_instance_(index, render_knobs);
+    }
+
+private:
+    void select_instance_(uint8_t index, bool render_knobs) {
         LOG_MODULE_DECLARE(UI_BLOCK, LOG_LEVEL_INF);
         if constexpr (BUTTON_COUNT > 0) {
             set_sw_state(current_instance_, false);
@@ -580,7 +613,11 @@ private:
         current_instance_ = index;
 
         for (uint8_t j = 0; j < KNOB_COUNT; j++) {
-            knobs_[j].set_value(self()->get_current_preset_value(j));
+            if (render_knobs) {
+                knobs_[j].set_value(self()->get_current_preset_value(j));
+            } else {
+                knobs_[j].set_value_silent(self()->get_current_preset_value(j));
+            }
         }
 
         if constexpr (PARAM_COUNT > KNOB_COUNT) {

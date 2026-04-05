@@ -262,6 +262,19 @@ public:
         return mod_viewer_active_;
     }
 
+    bool is_mod_viewer_active() const override {
+        return mod_viewer_active_;
+    }
+
+    void refresh_mod_viewer() override {
+        if (!mod_viewer_active_) {
+            return;
+        }
+
+        sync_viewer_knobs_();
+        refresh_viewer_();
+    }
+
     /**
      * @brief Consumes one OSC knob change as a MOD route edit when the viewer
      *        is active.

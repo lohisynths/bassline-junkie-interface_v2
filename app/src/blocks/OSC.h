@@ -154,6 +154,30 @@ public:
     uint8_t get_current_osc() { return get_current_instance(); }
 
     /**
+     * @brief Handles OSC bank-selector presses while the MOD viewer borrows
+     *        the OSC knobs.
+     *
+     * The bank switch updates the visible OSC destination range, so during MOD
+     * viewer mode the new bank is recalled silently and the viewer overlay is
+     * repainted immediately instead of briefly rendering the underlying preset
+     * values.
+     *
+     * @param index Raw selector button index.
+     *
+     * @retval true The selector press was handled here.
+     * @retval false The base class should run the normal selector path.
+     */
+    bool handle_selector_press(uint8_t index) {
+        if ((mod_capture_ == nullptr) || !mod_capture_->is_mod_viewer_active()) {
+            return false;
+        }
+
+        recall_instance(index, false);
+        mod_capture_->refresh_mod_viewer();
+        return true;
+    }
+
+    /**
      * @brief Stores a knob change or forwards it into the active MOD viewer.
      *
      * @param index Knob index that changed.
