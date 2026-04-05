@@ -20,7 +20,7 @@ flash, and sends MIDI over an app-owned UART transport.
   temporary viewer overlay for OSC and FLT routing values
 - `OSC`: five-knob oscillator block with three bank selectors
 - `VOL`: single volume knob that sends MIDI CC `95` and previews on the LED
-  display
+  display, with a global value restored on boot
 - `Button`: active-low button decoder with optional LED control
 - `Encoder`: quadrature decoder for muxed encoder inputs
 - `GPIO`: discrete GPIO input wrapper
@@ -57,7 +57,8 @@ flash, and sends MIDI over an app-owned UART transport.
 - `ADSR`, `FLT`, `LFO`, and `OSC` emit MIDI Control Change messages on channel
   `1`. `FLT` uses CC `33..36`, and `LFO` starts at CC `37`.
 - `VOL` emits MIDI Control Change message `95` on channel `1` and previews its
-  current value on the LED display.
+  current value on the LED display. Its value is stored globally and restored
+  on boot, independent of preset slots.
 - The display encoder uses a reduced step size so a button press is less likely
   to move the selected preset slot.
 

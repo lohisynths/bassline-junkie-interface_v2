@@ -9,6 +9,7 @@
 #ifndef APP_SRC_BLOCKS_VOL_H_
 #define APP_SRC_BLOCKS_VOL_H_
 
+#include "EEPROM.h"
 #include "LED_DISP.h"
 #include "UI_BLOCK.h"
 
@@ -70,6 +71,19 @@ public:
         display_ = &display;
     }
 
+    /** @brief Binds the persistent storage used for the global volume value. */
+    void bind_storage(EEPROM &storage) {
+        storage_ = &storage;
+    }
+
+    /**
+     * @brief Initializes the block and restores the last stored volume value.
+     */
+    void init(MIDI &midi, LEDSController &leds, InputController &inputs) {
+        ui_block::init(midi, leds, inputs);
+        restore_persistent_value_();
+    }
+
     /** @brief Returns the block name used in log output. */
     const char *get_name() { return "VOL"; }
 
@@ -91,14 +105,67 @@ public:
     void knob_val_changed(uint8_t index, uint8_t value_scaled) {
         ui_block::knob_val_changed(index, value_scaled);
 
+        store_persistent_value_(value_scaled);
+
         if (display_ != nullptr) {
             display_->show_preview_value(value_scaled);
         }
     }
 
+    /**
+     * @brief Re-applies the persisted global value after a manual reset.
+     */
+    void reset() {
+        ui_block::reset();
+        restore_persistent_value_();
+    }
+
 private:
+    /**
+     * @brief Loads the stored value and synchronizes the knob state with it.
+     */
+    void restore_persistent_value_() {
+        uint8_t value = 0U;
+        if (storage_ != nullptr) {
+            (void)storage_->load_global_vol(value);
+        }
+
+        ui_block::set_current_preset_value(VOL_LEVEL, value);
+        get_knobs()[0].set_value(value);
+        emit_current_value_();
+    }
+
+    /**
+     * @brief Persists the current value if flash storage is available.
+     */
+    void store_persistent_value_(uint8_t value) {
+        LOG_MODULE_DECLARE(VOL, LOG_LEVEL_INF);
+        if (storage_ != nullptr) {
+            const int ret = storage_->save_global_vol(value);
+            if (ret < 0) {
+                LOG_WRN("Failed to persist VOL value %u: %d",
+                        static_cast<unsigned int>(value),
+                        ret);
+            }
+        }
+    }
+
+    /**
+     * @brief Re-sends the current value as MIDI if a transport is available.
+     */
+    void emit_current_value_() {
+        if (get_midi() != nullptr) {
+            get_midi()->send_cc(get_current_instance_midi_nr(VOL_LEVEL),
+                                get_current_preset_value(VOL_LEVEL),
+                                get_midi_ch());
+        }
+    }
+
     /** @brief Borrowed display used to preview volume changes. */
     LED_DISP *display_ = nullptr;
+
+    /** @brief Borrowed storage used to persist the global volume value. */
+    EEPROM *storage_ = nullptr;
 };
 
 #endif /* APP_SRC_BLOCKS_VOL_H_ */

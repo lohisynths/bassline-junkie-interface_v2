@@ -74,6 +74,30 @@ public:
      */
     int save_startup_slot(uint8_t slot);
 
+    /**
+     * @brief Loads the global VOL knob value.
+     *
+     * If no value has been stored yet, this returns `0`.
+     *
+     * @param value Receives the stored VOL value.
+     *
+     * @retval 0 The VOL value was returned successfully.
+     */
+    int load_global_vol(uint8_t &value) const;
+
+    /**
+     * @brief Stores the global VOL knob value.
+     *
+     * This appends a small metadata record to the same flash journal used by
+     * preset snapshots.
+     *
+     * @param value Global VOL value to restore on the next boot.
+     *
+     * @retval 0 The VOL value was written successfully.
+     * @retval negative Error propagated from the flash driver.
+     */
+    int save_global_vol(uint8_t value);
+
 private:
     /** @brief Open flash area backing the preset image. */
     const struct flash_area *flash_area_ = nullptr;
