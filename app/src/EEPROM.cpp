@@ -19,10 +19,12 @@ constexpr uint32_t record_magic = 0x42535052U;
 constexpr uint16_t record_version = PresetSnapshot::version;
 constexpr uint8_t record_kind_preset = 0U;
 constexpr uint8_t record_kind_startup_slot = 1U;
+constexpr uint8_t record_kind_global_vol = 2U;
 constexpr size_t record_header_size = sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint8_t) +
                                       sizeof(uint8_t) + sizeof(uint8_t);
 constexpr size_t record_prefix_size = record_header_size + sizeof(PresetSnapshot);
 constexpr size_t record_startup_prefix_size = record_header_size;
+constexpr size_t record_global_vol_prefix_size = record_header_size;
 constexpr size_t min_record_storage_size = record_prefix_size + sizeof(uint32_t);
 constexpr size_t max_record_storage_size = 1024U;
 
@@ -31,6 +33,8 @@ struct SlotCache {
     std::array<uint8_t, EEPROM::preset_count / 8U> valid_mask = {};
     uint8_t startup_slot = 0U;
     bool startup_slot_valid = false;
+    uint8_t global_vol = 0U;
+    bool global_vol_valid = false;
 };
 
 static SlotCache cache = {};
@@ -134,7 +138,9 @@ record_validation_result validate_record(const uint8_t *buffer,
         ? record_prefix_size
         : (read_kind == record_kind_startup_slot)
               ? record_startup_prefix_size
-              : 0U;
+              : (read_kind == record_kind_global_vol)
+                    ? record_global_vol_prefix_size
+                    : 0U;
     if ((crc_offset == 0U) || (reserved != 0U) ||
         (storage_size < (crc_offset + sizeof(stored_crc)))) {
         return record_validation_result::invalid;
@@ -224,6 +230,29 @@ int write_startup_record(const struct flash_area *flash_area, size_t offset, uin
                             storage_size);
 }
 
+int write_global_vol_record(const struct flash_area *flash_area, size_t offset, uint8_t value)
+{
+    const size_t storage_size = record_storage_size(flash_area);
+    if (storage_size > max_record_storage_size) {
+        return -ENOTSUP;
+    }
+
+    std::array<uint8_t, max_record_storage_size> buffer = {};
+    buffer.fill(flash_area_erased_val(flash_area));
+
+    size_t write_offset = 0U;
+    const uint8_t kind = record_kind_global_vol;
+    write_record_header(buffer.data(), kind, value, write_offset);
+
+    const uint32_t crc = record_crc(buffer.data(), record_global_vol_prefix_size);
+    memcpy(buffer.data() + record_global_vol_prefix_size, &crc, sizeof(crc));
+
+    return flash_area_write(flash_area,
+                            static_cast<off_t>(offset),
+                            buffer.data(),
+                            storage_size);
+}
+
 int compact_log(const struct flash_area *flash_area)
 {
     int ret = flash_area_erase(flash_area, 0, flash_area->fa_size);
@@ -249,6 +278,15 @@ int compact_log(const struct flash_area *flash_area)
 
     if (cache.startup_slot_valid) {
         ret = write_startup_record(flash_area, offset, cache.startup_slot);
+        if (ret < 0) {
+            return ret;
+        }
+
+        offset += storage_size;
+    }
+
+    if (cache.global_vol_valid) {
+        ret = write_global_vol_record(flash_area, offset, cache.global_vol);
         if (ret < 0) {
             return ret;
         }
@@ -297,7 +335,7 @@ int EEPROM::init()
 
     const size_t storage_size = record_storage_size(flash_area_);
     if ((storage_size == 0U) || (storage_size > max_record_storage_size) ||
-        (storage_size * (EEPROM::preset_count + 1U) > flash_area_->fa_size)) {
+        (storage_size * (EEPROM::preset_count + 2U) > flash_area_->fa_size)) {
         LOG_ERR("Preset record size is invalid for partition");
         clear_cache();
         return -ENOSPC;
@@ -336,6 +374,9 @@ int EEPROM::init()
         } else if (kind == record_kind_startup_slot) {
             cache.startup_slot = slot;
             cache.startup_slot_valid = true;
+        } else if (kind == record_kind_global_vol) {
+            cache.global_vol = slot;
+            cache.global_vol_valid = true;
         }
         next_record_offset = offset + storage_size;
     }
@@ -442,6 +483,45 @@ int EEPROM::save_startup_slot(uint8_t slot)
 
     cache.startup_slot = slot;
     cache.startup_slot_valid = true;
+    next_record_offset += storage_size;
+    return 0;
+}
+
+int EEPROM::load_global_vol(uint8_t &value) const
+{
+    value = cache.global_vol_valid ? cache.global_vol : 0U;
+    if (cache.global_vol_valid) {
+        LOG_INF("Global VOL value %u loaded from flash", static_cast<unsigned int>(value));
+    } else {
+        LOG_INF("Global VOL value not stored yet, using 0");
+    }
+    return 0;
+}
+
+int EEPROM::save_global_vol(uint8_t value)
+{
+    if (!initialized_) {
+        return -EACCES;
+    }
+
+    if (cache.global_vol_valid && (cache.global_vol == value)) {
+        return 0;
+    }
+
+    const size_t storage_size = record_storage_size(flash_area_);
+    const int ret = ensure_append_space(flash_area_, storage_size);
+    if (ret < 0) {
+        return ret;
+    }
+
+    const int write_ret = write_global_vol_record(flash_area_, next_record_offset, value);
+    if (write_ret < 0) {
+        LOG_ERR("Failed to append global VOL record: %d", write_ret);
+        return write_ret;
+    }
+
+    cache.global_vol = value;
+    cache.global_vol_valid = true;
     next_record_offset += storage_size;
     return 0;
 }
