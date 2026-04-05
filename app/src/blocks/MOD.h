@@ -9,6 +9,7 @@
 #ifndef APP_SRC_BLOCKS_MOD_H_
 #define APP_SRC_BLOCKS_MOD_H_
 
+#include "ModMatrixCapture.h"
 #include "UI_BLOCK.h"
 #include "OSC.h"
 #include "FLT.h"
@@ -48,10 +49,11 @@ static constexpr uint8_t MOD_DEST_COUNT = MOD_FIRST_FLT_DEST + MOD_FLT_DEST_COUN
  * Each MOD source is represented as one bank. The single knob edits the routing
  * amount for the currently selected source and destination. Destinations are
  * borrowed from the OSC and FLT blocks so this block can persist modulation
- * amounts into their mod matrices and temporarily preview the routing table on
- * their knob LEDs.
+ * amounts into their mod matrices and temporarily repurpose the visible OSC
+ * and FLT knobs to edit the routing table for the active source.
  */
-class MOD : public UI_BLOCK<MOD, MOD_KNOB_COUNT, MOD_BUTTON_COUNT, MOD_PARAM_COUNT, MOD_COUNT> {
+class MOD : public UI_BLOCK<MOD, MOD_KNOB_COUNT, MOD_BUTTON_COUNT, MOD_PARAM_COUNT, MOD_COUNT>,
+            public ModMatrixCapture {
 public:
     /** @brief Shorthand for the CRTP base class used by MOD. */
     using ui_block = UI_BLOCK<MOD, MOD_KNOB_COUNT, MOD_BUTTON_COUNT, MOD_PARAM_COUNT, MOD_COUNT>;
@@ -130,8 +132,10 @@ public:
     /**
      * @brief Polls the base block and manages the temporary MOD viewer.
      *
-     * Holding MOD button 0 for longer than one second overlays the OSC and
-     * FLT knob LEDs with the current MOD matrix values for the active source.
+     * Holding any MOD source button for longer than one second overlays the
+     * OSC and FLT knobs with the current MOD matrix values for the active
+     * source and temporarily repurposes those visible knobs to edit route
+     * amounts.
      *
      * @return Aggregated update flags from the CRTP base block.
      */
@@ -175,12 +179,10 @@ public:
      */
     void knob_val_changed(uint8_t index, uint8_t value_scaled) {
         (void)index;
-        store_current_preset_value(value_scaled);
+        store_and_send_route_value_(actual_mod_dest, value_scaled);
 
-        if (get_midi()) {
-            get_midi()->send_cc(get_midi_nr(get_current_instance(), actual_mod_dest),
-                                value_scaled,
-                                get_midi_ch());
+        if (mod_viewer_active_) {
+            sync_visible_destination_knob_(actual_mod_dest, value_scaled);
         }
     }
 
@@ -201,6 +203,10 @@ public:
      * The filter keyboard-tracking knob is intentionally excluded from MOD.
      */
     void poll_mod_destination_selection() {
+        if (mod_viewer_active_) {
+            return;
+        }
+
         if (osc_) {
             const int ret = osc_->get_first_knob_sw_pushed();
             if (ret > -1) {
@@ -256,7 +262,57 @@ public:
         return mod_viewer_active_;
     }
 
+    /**
+     * @brief Consumes one OSC knob change as a MOD route edit when the viewer
+     *        is active.
+     *
+     * @param osc_bank Active OSC bank that owns the visible knob.
+     * @param knob_index OSC knob index within the active bank.
+     * @param value New route amount.
+     *
+     * @retval true The viewer consumed the OSC knob event.
+     * @retval false The caller should keep normal OSC behavior.
+     */
+    bool capture_osc_route_value(uint8_t osc_bank, uint8_t knob_index, uint8_t value) override {
+        if (!mod_viewer_active_) {
+            return false;
+        }
+
+        const uint8_t destination = static_cast<uint8_t>(osc_bank * OSC_KNOB_COUNT + knob_index);
+        actual_mod_dest = destination;
+        store_and_send_route_value_(destination, value);
+        return true;
+    }
+
+    /**
+     * @brief Consumes one FLT knob change as a MOD route edit when the viewer
+     *        is active.
+     *
+     * @param knob_index FLT knob index that changed.
+     * @param value New route amount.
+     *
+     * @retval true The viewer consumed the FLT knob event.
+     * @retval false The caller should keep normal FLT behavior.
+     */
+    bool capture_flt_route_value(uint8_t knob_index, uint8_t value) override {
+        if (!mod_viewer_active_) {
+            return false;
+        }
+
+        if (knob_index >= MOD_FLT_DEST_COUNT) {
+            return true;
+        }
+
+        const uint8_t destination = static_cast<uint8_t>(MOD_FIRST_FLT_DEST + knob_index);
+        actual_mod_dest = destination;
+        store_and_send_route_value_(destination, value);
+        return true;
+    }
+
 private:
+    /** @brief Sentinel used to force viewer resynchronization on first entry. */
+    static constexpr uint8_t viewer_context_invalid_ = 0xFFU;
+
     /**
      * @brief Refreshes the OSC and FLT knob LEDs from the MOD matrix.
      */
@@ -300,6 +356,8 @@ private:
             if (mod_viewer_active_) {
                 mod_viewer_active_ = false;
                 clear_viewer_();
+                last_viewer_source_ = viewer_context_invalid_;
+                last_viewer_osc_bank_ = viewer_context_invalid_;
                 LOG_INF("%s viewer off", get_name());
             }
             return;
@@ -316,11 +374,16 @@ private:
             const uint32_t held_ms = now - viewer_button_pressed_at_ms_;
             if (held_ms >= viewer_hold_ms_) {
                 mod_viewer_active_ = true;
+                sync_viewer_knobs_();
                 LOG_INF("%s viewer on", get_name());
             }
         }
 
         if (mod_viewer_active_) {
+            if ((last_viewer_source_ != get_current_instance()) ||
+                ((osc_ != nullptr) && (last_viewer_osc_bank_ != osc_->get_current_osc()))) {
+                sync_viewer_knobs_();
+            }
             refresh_viewer_();
         }
     }
@@ -361,6 +424,101 @@ private:
         }
     }
 
+    /**
+     * @brief Synchronizes the visible OSC and FLT knobs to the current route
+     *        values so viewer edits continue from the stored modulation state.
+     */
+    void sync_viewer_knobs_() {
+        const uint8_t source = get_current_instance();
+        const uint8_t osc_bank = (osc_ != nullptr) ? osc_->get_current_osc() : 0U;
+
+        sync_osc_viewer_knobs_(source, osc_bank);
+        sync_flt_viewer_knobs_(source);
+
+        last_viewer_source_ = source;
+        last_viewer_osc_bank_ = osc_bank;
+    }
+
+    /**
+     * @brief Synchronizes the visible OSC knobs to the selected source row for
+     *        the current OSC bank.
+     *
+     * @param source Active MOD source.
+     * @param osc_bank Active OSC bank whose knobs are visible.
+     */
+    void sync_osc_viewer_knobs_(uint8_t source, uint8_t osc_bank) {
+        if (osc_ == nullptr) {
+            return;
+        }
+
+        auto &knobs = osc_->get_knobs();
+        for (uint8_t i = 0U; i < OSC_KNOB_COUNT; ++i) {
+            const uint8_t destination = static_cast<uint8_t>(osc_bank * OSC_KNOB_COUNT + i);
+            (void)knobs[i].set_value(osc_->get_preset_mod_value(source, destination));
+        }
+    }
+
+    /**
+     * @brief Synchronizes the visible FLT knobs to the selected source row.
+     *
+     * @param source Active MOD source.
+     */
+    void sync_flt_viewer_knobs_(uint8_t source) {
+        if (filter_ == nullptr) {
+            return;
+        }
+
+        auto &knobs = filter_->get_knobs();
+        for (uint8_t i = 0U; i < MOD_FLT_DEST_COUNT; ++i) {
+            (void)knobs[i].set_value(filter_->get_preset_mod_value(source, i));
+        }
+    }
+
+    /**
+     * @brief Synchronizes one visible borrowed knob to a route value after the
+     *        dedicated MOD amount knob edited the same destination.
+     *
+     * @param destination Absolute MOD destination index.
+     * @param value Route amount written to the matrix.
+     */
+    void sync_visible_destination_knob_(uint8_t destination, uint8_t value) {
+        if (osc_ != nullptr) {
+            const uint8_t osc_bank = osc_->get_current_osc();
+            const uint8_t first_visible_osc_dest = static_cast<uint8_t>(osc_bank * OSC_KNOB_COUNT);
+            const uint8_t past_last_visible_osc_dest = static_cast<uint8_t>(first_visible_osc_dest + OSC_KNOB_COUNT);
+
+            if ((destination >= first_visible_osc_dest) && (destination < past_last_visible_osc_dest)) {
+                (void)osc_->get_knobs()[destination - first_visible_osc_dest].set_value(value);
+                return;
+            }
+        }
+
+        if ((filter_ != nullptr) &&
+            (destination >= MOD_FIRST_FLT_DEST) &&
+            (destination < static_cast<uint8_t>(MOD_FIRST_FLT_DEST + MOD_FLT_DEST_COUNT))) {
+            (void)filter_->get_knobs()[destination - MOD_FIRST_FLT_DEST].set_value(value);
+        }
+    }
+
+    /**
+     * @brief Stores one route value, synchronizes the MOD amount knob, and
+     *        sends the MOD CC.
+     *
+     * @param destination Absolute MOD destination index.
+     * @param value Route amount to persist.
+     */
+    void store_and_send_route_value_(uint8_t destination, uint8_t value) {
+        actual_mod_dest = destination;
+        store_current_preset_value(value);
+        (void)get_knobs()[0].set_value(value);
+
+        if (get_midi()) {
+            get_midi()->send_cc(get_midi_nr(get_current_instance(), destination),
+                                value,
+                                get_midi_ch());
+        }
+    }
+
     /** @brief Currently selected modulation destination. */
     uint8_t actual_mod_dest = 0U;
 
@@ -375,6 +533,12 @@ private:
 
     /** @brief Timestamp captured when the current viewer candidate button was pressed. */
     uint32_t viewer_button_pressed_at_ms_ = 0U;
+
+    /** @brief MOD source last synchronized into viewer-edit knob state. */
+    uint8_t last_viewer_source_ = viewer_context_invalid_;
+
+    /** @brief OSC bank last synchronized into viewer-edit knob state. */
+    uint8_t last_viewer_osc_bank_ = viewer_context_invalid_;
 
     /** @brief Borrowed OSC block used for destination previews and routing storage. */
     OSC *osc_ = nullptr;

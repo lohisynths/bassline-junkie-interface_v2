@@ -64,7 +64,8 @@ The main application sources are:
 - `app/src/blocks/LFO.h`: LFO block with one knob, three bank selectors, four
   waveform buttons, and a SYNC toggle
 - `app/src/blocks/MOD.h` and `app/src/blocks/MOD.cpp`: modulation-routing block
-  with one knob and six selector buttons plus the temporary viewer overlay
+  with one knob, six selector buttons, and a temporary viewer/edit mode that
+  borrows OSC and FLT knobs
 - `app/src/blocks/OSC.h` and `app/src/blocks/OSC.cpp`: oscillator block with
   five knobs and three bank selectors
 - `app/src/blocks/VOL.h`: single volume knob that sends MIDI CC `95` and
@@ -178,8 +179,8 @@ west flash -d build/app
   current value on the LED display. Its value is stored globally and restored
   on boot, independent of preset slots.
 - `MOD` sends its routing Control Change messages on channel `2` and can
-  temporarily preview the current modulation row on the OSC and FLT LEDs while a
-  selector button is held.
+  temporarily repurpose the visible OSC and FLT knobs to edit the current
+  modulation row while a selector button is held long enough.
 - `Preset` restores the last active slot on boot, falls back to slot `0` if no
   startup slot has been stored yet, and uses the display encoder for browse/load
   and save gestures.
