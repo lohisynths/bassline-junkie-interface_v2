@@ -1,6 +1,6 @@
 /**
  * @file LED_DISP.h
- * @brief 3-digit LED display control-surface block.
+ * @brief Up to 3-digit LED display control-surface block.
  *
  * Created on: Apr 1, 2026
  *     Author: alax
@@ -48,13 +48,14 @@ enum LED_DISP_PARAMS {
 };
 
 /**
- * @brief 3-digit display block driven by a single encoder with push switch.
+ * @brief Up to 3-digit display block driven by a single encoder with push switch.
  *
  * Hardware wiring is declared in the public constexpr config tables and
  * consumed automatically by @ref UI_BLOCK::init through CRTP.
  *
  * The display value is stored in the single preset parameter and rendered on
- * a 3-digit seven-segment LED bank starting at @c LED_DISP_FIRST_LED.
+ * a 3-digit seven-segment LED bank starting at @c LED_DISP_FIRST_LED, with
+ * leading zeros suppressed.
  * The block keeps the old helper methods (@ref get_long_push,
  * @ref preset_changed, and @ref get_actual_preset_nr) so legacy polling code
  * can still use the same control flow.
@@ -353,6 +354,22 @@ private:
     }
 
     /**
+     * @brief Blanks one digit of the display.
+     *
+     * @param digit_nr Zero-based digit index to clear.
+     */
+    void clear_digit(uint8_t digit_nr) {
+        if (leds_ == nullptr || digit_nr >= LED_DISP_DIGIT_COUNT) {
+            return;
+        }
+
+        for (uint8_t i = 0U; i < LED_DISP_SEGMENTS; i++) {
+            leds_->set_channel_percent(static_cast<size_t>(LED_DISP_FIRST_LED + i + (digit_nr * LED_DISP_SEGMENTS)),
+                                       100U);
+        }
+    }
+
+    /**
      * @brief Splits the value into three digits and updates the LED bank.
      *
      * @param value_scaled Display value to render and store.
@@ -372,9 +389,18 @@ private:
         const uint8_t tens = static_cast<uint8_t>((value_scaled / 10U) % 10U);
         const uint8_t hundreds = static_cast<uint8_t>(value_scaled / 100U);
 
+        if (value_scaled >= 100U) {
+            set_digit(0U, hundreds);
+            set_digit(1U, tens);
+        } else if (value_scaled >= 10U) {
+            clear_digit(0U);
+            set_digit(1U, tens);
+        } else {
+            clear_digit(0U);
+            clear_digit(1U);
+        }
+
         set_digit(2U, ones);
-        set_digit(1U, tens);
-        set_digit(0U, hundreds);
     }
 
     /**
