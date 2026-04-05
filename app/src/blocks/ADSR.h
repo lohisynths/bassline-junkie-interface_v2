@@ -113,19 +113,31 @@ public:
     /*  Required CRTP hooks                                               */
     /* ------------------------------------------------------------------ */
 
-    /** @brief Returns the block name used in log output. */
+    /**
+     * @brief Returns the block name used in log output.
+     *
+     * @return Static block name string.
+     */
     const char *get_name() { return "ADSR"; }
 
     /**
      * @brief Maps a bank and parameter index to a MIDI CC number.
      *
      * Layout: CC `18..22` for bank 0, `23..27` for bank 1, `28..32` for bank 2.
+     *
+     * @param instance ADSR bank index.
+     * @param index Parameter index within the selected bank.
+     * @return MIDI CC number for the requested ADSR parameter.
      */
     uint8_t get_midi_nr(uint8_t instance, uint8_t index) {
         return static_cast<uint8_t>(ADSR_MIDI_OFFSET + instance * ADSR_PARAM_NR + index);
     }
 
-    /** @brief MIDI channel used for all ADSR control-change messages. */
+    /**
+     * @brief MIDI channel used for all ADSR control-change messages.
+     *
+     * @return Fixed ADSR MIDI channel number.
+     */
     uint8_t get_midi_ch() { return 1U; }
 
     /* ------------------------------------------------------------------ */
@@ -152,7 +164,8 @@ public:
      *
      * @param index Function button index (always `0` for this block).
      */
-    void select_function(uint8_t /*index*/) {
+    void select_function(uint8_t index) {
+        (void)index;
         toggle_loop();
     }
 
@@ -175,7 +188,11 @@ public:
         }
     }
 
-    /** @brief Returns the currently selected ADSR bank index. */
+    /**
+     * @brief Returns the currently selected ADSR bank index.
+     *
+     * @return Active ADSR bank index.
+     */
     uint8_t get_current_adsr() { return get_current_instance(); }
 };
 

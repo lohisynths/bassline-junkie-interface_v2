@@ -77,7 +77,11 @@ public:
     /** @brief Number of FLT knobs shown in the MOD viewer. */
     static constexpr uint8_t mod_knob_count_ = 2U;
 
-    /** @brief Binds the shared display used to preview keyboard-track values. */
+    /**
+     * @brief Binds the shared display used to preview keyboard-track values.
+     *
+     * @param display Display block used for temporary value previews.
+     */
     void bind_display(LED_DISP &display) {
         display_ = &display;
     }
@@ -124,7 +128,11 @@ public:
     /*  Required CRTP hooks                                               */
     /* ------------------------------------------------------------------ */
 
-    /** @brief Returns the block name used in log output. */
+    /**
+     * @brief Returns the block name used in log output.
+     *
+     * @return Static block name string.
+     */
     const char *get_name() { return "FLT"; }
 
     /**
@@ -132,12 +140,21 @@ public:
      *
      * Layout: CC `33` (FREQ), `34` (RES), `35` (KBTRACK), `36` (TYPE).
      * The @p instance argument is unused since the FLT block is not banked.
+     *
+     * @param instance Unused FLT bank index placeholder.
+     * @param index Parameter index within the FLT block.
+     * @return MIDI CC number for the requested FLT parameter.
      */
-    uint8_t get_midi_nr(uint8_t /*instance*/, uint8_t index) {
+    uint8_t get_midi_nr(uint8_t instance, uint8_t index) {
+        (void)instance;
         return static_cast<uint8_t>(FLT_MIDI_OFFSET + index);
     }
 
-    /** @brief MIDI channel used for all FLT control-change messages. */
+    /**
+     * @brief MIDI channel used for all FLT control-change messages.
+     *
+     * @return Fixed FLT MIDI channel number.
+     */
     uint8_t get_midi_ch() { return 1U; }
 
     /* ------------------------------------------------------------------ */
@@ -178,6 +195,9 @@ public:
 
     /**
      * @brief Stores a knob change and previews the keyboard-track value on the display.
+     *
+     * @param index Knob index that changed.
+     * @param value_scaled New clamped knob value.
      */
     void knob_val_changed(uint8_t index, uint8_t value_scaled) {
         UI_BLOCK<FLT, FLT_KNOB_COUNT, FLT_BUTTON_COUNT, FLT_PARAM_COUNT, FLT_COUNT>::knob_val_changed(index,
@@ -210,7 +230,11 @@ public:
         }
     }
 
-    /** @brief Returns the currently active filter type index. */
+    /**
+     * @brief Returns the currently active filter type index.
+     *
+     * @return Stored filter type value.
+     */
     uint8_t get_current_filter_type() { return get_current_preset_value(FLT_TYPE); }
 
     /**
@@ -218,6 +242,8 @@ public:
      *
      * Only the FREQ and RES knob LEDs are previewed; the KBTRACK knob and
      * filter-type selector buttons stay on the normal FLT preset state.
+     *
+     * @param source MOD source index to preview.
      */
     void show_mod_view(uint8_t source) {
         auto &knobs = get_knobs();

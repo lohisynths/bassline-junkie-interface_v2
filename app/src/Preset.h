@@ -35,6 +35,13 @@ public:
     /**
      * @brief Binds the preset controller to the storage backend and UI blocks.
      *
+     * @param eeprom EEPROM backend used for persistence.
+     * @param display LED display block used for browsing and feedback.
+     * @param adsr ADSR block whose preset state is stored and restored.
+     * @param flt FLT block whose preset state is stored and restored.
+     * @param lfo LFO block whose preset state is stored and restored.
+     * @param mod MOD block whose routing state is stored and restored.
+     * @param osc OSC block whose preset state is stored and restored.
      * @retval 0 The controller is ready.
      * @retval negative Error propagated from the EEPROM backend.
      */
@@ -45,12 +52,19 @@ public:
      */
     void update();
 
-    /** @brief Returns the currently active preset slot. */
+    /**
+     * @brief Returns the currently active preset slot.
+     *
+     * @return Active preset slot number.
+     */
     uint8_t get_active_slot() const;
 
 private:
     /**
      * @brief Returns true when all borrowed blocks have been bound.
+     *
+     * @retval true All required collaborators are available.
+     * @retval false One or more collaborators have not been bound yet.
      */
     bool is_ready_() const;
 
