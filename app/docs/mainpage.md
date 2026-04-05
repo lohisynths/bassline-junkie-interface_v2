@@ -18,7 +18,7 @@ device.
 - `LFO`: one-knob LFO block with three bank selectors, four waveform buttons,
   and a SYNC toggle
 - `MOD`: one-knob modulation-routing block with six selector buttons and a
-  temporary viewer overlay for OSC and FLT routing values
+  temporary viewer/edit mode for OSC and FLT routing values
 - `OSC`: five-knob oscillator block with three bank selectors
 - `VOL`: single volume knob that sends MIDI CC `95` and previews on the LED
   display, with a global value restored on boot
@@ -53,8 +53,8 @@ device.
   currently selected bank.
 - `FLT` exposes one set of knobs and three filter-type buttons.
 - `MOD` edits OSC and FLT routing matrices, sends its MIDI Control Change data
-  on channel `2`, and shows a temporary LED preview when a selector button is
-  held long enough.
+  on channel `2`, and temporarily repurposes the visible OSC and FLT knobs to
+  edit the active source row when a selector button is held long enough.
 - `Preset` restores the last active slot on boot, saves and loads through the
   display encoder, and briefly blanks the display as save or timeout feedback.
 - `EEPROM` provides 128 preset slots plus startup-slot metadata in the dedicated

@@ -10,6 +10,7 @@
 #define APP_SRC_BLOCKS_FLT_H_
 
 #include "LED_DISP.h"
+#include "ModMatrixCapture.h"
 #include "UI_BLOCK.h"
 
 /** @brief Number of encoder knobs in the FLT block (frequency, resonance, keyboard tracking). */
@@ -84,6 +85,16 @@ public:
      */
     void bind_display(LED_DISP &display) {
         display_ = &display;
+    }
+
+    /**
+     * @brief Binds the MOD viewer-edit sink used to repurpose routable FLT
+     *        knobs while the MOD viewer is active.
+     *
+     * @param capture MOD-owned route-capture sink.
+     */
+    void bind_mod_capture(ModMatrixCapture &capture) {
+        mod_capture_ = &capture;
     }
 
     /** @brief Mux/LED bindings for the three filter-type selector buttons. */
@@ -200,6 +211,10 @@ public:
      * @param value_scaled New clamped knob value.
      */
     void knob_val_changed(uint8_t index, uint8_t value_scaled) {
+        if ((mod_capture_ != nullptr) && mod_capture_->capture_flt_route_value(index, value_scaled)) {
+            return;
+        }
+
         UI_BLOCK<FLT, FLT_KNOB_COUNT, FLT_BUTTON_COUNT, FLT_PARAM_COUNT, FLT_COUNT>::knob_val_changed(index,
                                                                                                        value_scaled);
 
@@ -238,10 +253,12 @@ public:
     uint8_t get_current_filter_type() { return get_current_preset_value(FLT_TYPE); }
 
     /**
-     * @brief Shows one MOD routing row on the FREQ and RES FLT knob LEDs.
+     * @brief Shows one MOD routing row on the FREQ and RES FLT knobs during
+     *        MOD viewer edit mode.
      *
-     * Only the FREQ and RES knob LEDs are previewed; the KBTRACK knob and
-     * filter-type selector buttons stay on the normal FLT preset state.
+     * Only the FREQ and RES knobs are repurposed for route editing. The
+     * KBTRACK knob and filter-type selector buttons stay on the normal FLT
+     * preset state and are restored immediately when the viewer closes.
      *
      * @param source MOD source index to preview.
      */
@@ -263,6 +280,9 @@ public:
 private:
     /** @brief Borrowed display used to preview keyboard-track changes. */
     LED_DISP *display_ = nullptr;
+
+    /** @brief Borrowed MOD viewer-edit sink, or `nullptr` when unbound. */
+    ModMatrixCapture *mod_capture_ = nullptr;
 };
 
 #endif /* APP_SRC_BLOCKS_FLT_H_ */

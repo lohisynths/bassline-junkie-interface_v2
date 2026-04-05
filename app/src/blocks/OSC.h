@@ -9,6 +9,7 @@
 #ifndef APP_SRC_BLOCKS_OSC_H_
 #define APP_SRC_BLOCKS_OSC_H_
 
+#include "ModMatrixCapture.h"
 #include "UI_BLOCK.h"
 
 /** @brief Number of encoder knobs in the OSC block. */
@@ -48,6 +49,16 @@ enum OSC_PARAMS {
  */
 class OSC : public UI_BLOCK<OSC, OSC_KNOB_COUNT, OSC_BUTTON_COUNT, OSC_PARAM_COUNT, OSC_COUNT> {
 public:
+    /**
+     * @brief Binds the MOD viewer-edit sink used to repurpose OSC knobs while
+     *        the MOD viewer is active.
+     *
+     * @param capture MOD-owned route-capture sink.
+     */
+    void bind_mod_capture(ModMatrixCapture &capture) {
+        mod_capture_ = &capture;
+    }
+
     /** @brief Mux/LED bindings for the three bank-selector buttons. */
     static constexpr std::array button_configs_ = {
         Button::Config{ .mux_index = 3U, .pin = 3U, .led_number = 110U },
@@ -143,10 +154,28 @@ public:
     uint8_t get_current_osc() { return get_current_instance(); }
 
     /**
-     * @brief Shows one MOD routing row on the five OSC knob LEDs.
+     * @brief Stores a knob change or forwards it into the active MOD viewer.
      *
-     * The preview uses the currently selected OSC bank as the destination
-     * range and only changes the knob LEDs, not the stored knob values.
+     * @param index Knob index that changed.
+     * @param value_scaled New clamped knob value.
+     */
+    void knob_val_changed(uint8_t index, uint8_t value_scaled) {
+        if ((mod_capture_ != nullptr) &&
+            mod_capture_->capture_osc_route_value(get_current_osc(), index, value_scaled)) {
+            return;
+        }
+
+        UI_BLOCK<OSC, OSC_KNOB_COUNT, OSC_BUTTON_COUNT, OSC_PARAM_COUNT, OSC_COUNT>::knob_val_changed(index,
+                                                                                                       value_scaled);
+    }
+
+    /**
+     * @brief Shows one MOD routing row on the five OSC knobs during MOD viewer
+     *        edit mode.
+     *
+     * The viewer uses the currently selected OSC bank as the destination range
+     * and repurposes the visible OSC knobs to edit route amounts instead of OSC
+     * parameters until the viewer is released.
      *
      * @param source MOD source index to preview.
      */
@@ -166,6 +195,10 @@ public:
     void clear_mod_view() {
         reset();
     }
+
+private:
+    /** @brief Borrowed MOD viewer-edit sink, or `nullptr` when unbound. */
+    ModMatrixCapture *mod_capture_ = nullptr;
 };
 
 #endif /* APP_SRC_BLOCKS_OSC_H_ */

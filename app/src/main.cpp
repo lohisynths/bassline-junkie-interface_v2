@@ -91,6 +91,8 @@ static void input_thread(void *p1, void *, void *) {
     lfo.init(midi, leds, inputs);
     flt.init(midi, leds, inputs);
     mod.bind_sources(osc, flt);
+    osc.bind_mod_capture(mod);
+    flt.bind_mod_capture(mod);
     mod.init(midi, leds, inputs);
     led_disp.init(midi, leds, inputs);
     flt.bind_display(led_disp);
@@ -106,11 +108,11 @@ static void input_thread(void *p1, void *, void *) {
             return;
         }
 
+        mod.update();
         osc.update();
         adsr.update();
         lfo.update();
         flt.update();
-        mod.update();
         vol.update();
         mod.poll_mod_destination_selection();
         led_disp.update();
