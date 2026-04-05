@@ -61,6 +61,7 @@ enum LED_DISP_PARAMS {
  */
 class LED_DISP : public UI_BLOCK<LED_DISP, LED_DISP_KNOB_COUNT, LED_DISP_BUTTON_COUNT, LED_DISP_PARAM_COUNT, LED_DISP_COUNT> {
 public:
+    using ui_block = UI_BLOCK<LED_DISP, LED_DISP_KNOB_COUNT, LED_DISP_BUTTON_COUNT, LED_DISP_PARAM_COUNT, LED_DISP_COUNT>;
     /** @brief Mux/LED bindings for the zero display buttons. */
     static constexpr std::array<Button::Config, LED_DISP_BUTTON_COUNT> button_configs_ = {};
 
@@ -108,9 +109,7 @@ public:
      */
     void init(MIDI &midi, LEDSController &leds, InputController &inputs) {
         leds_ = &leds;
-        UI_BLOCK<LED_DISP, LED_DISP_KNOB_COUNT, LED_DISP_BUTTON_COUNT, LED_DISP_PARAM_COUNT, LED_DISP_COUNT>::init(midi,
-                                                                                                                     leds,
-                                                                                                                     inputs);
+        ui_block::init(midi, leds, inputs);
         refresh_display();
     }
 
@@ -118,7 +117,8 @@ public:
      * @brief Loads a full preset and refreshes the LED display after the base class applies it.
      */
     void set_preset(const preset &input) {
-        UI_BLOCK<LED_DISP, LED_DISP_KNOB_COUNT, LED_DISP_BUTTON_COUNT, LED_DISP_PARAM_COUNT, LED_DISP_COUNT>::set_preset(input);
+        ui_block::set_preset(input);
+        clear_preview_();
         refresh_display();
     }
 
@@ -126,7 +126,8 @@ public:
      * @brief Loads a full mod-routing preset and refreshes the display.
      */
     void set_mod_preset(const mod_preset &input) {
-        UI_BLOCK<LED_DISP, LED_DISP_KNOB_COUNT, LED_DISP_BUTTON_COUNT, LED_DISP_PARAM_COUNT, LED_DISP_COUNT>::set_mod_preset(input);
+        ui_block::set_mod_preset(input);
+        clear_preview_();
         refresh_display();
     }
 
@@ -134,8 +135,18 @@ public:
      * @brief Re-applies the current bank selection and refreshes the display.
      */
     void reset() {
-        UI_BLOCK<LED_DISP, LED_DISP_KNOB_COUNT, LED_DISP_BUTTON_COUNT, LED_DISP_PARAM_COUNT, LED_DISP_COUNT>::reset();
+        ui_block::reset();
+        clear_preview_();
         refresh_display();
+    }
+
+    /**
+     * @brief Polls the base UI block and restores the preset slot after a short preview timeout.
+     */
+    ui_block::ret_value update() {
+        const ui_block::ret_value ret = ui_block::update();
+        update_preview_restore_();
+        return ret;
     }
 
     /**
@@ -153,10 +164,27 @@ public:
             value_scaled = 127U;
         }
 
+        clear_preview_();
         actual_preset_value_ = value_scaled;
         set_current_preset_value(LED_DISP_VALUE, value_scaled);
         last_preset_selected_ = static_cast<int>(value_scaled);
         render_value_(value_scaled);
+    }
+
+    /**
+     * @brief Renders a transient value on the display without changing the stored preset slot.
+     *
+     * This is used by other blocks to preview parameter values while leaving the preset browsing
+     * state untouched.
+     */
+    void show_preview_value(uint8_t value_scaled) {
+        if (value_scaled > 127U) {
+            value_scaled = 127U;
+        }
+
+        preview_active_ = true;
+        preview_ends_at_ms_ = k_uptime_get_32() + preview_ms_;
+        render_digits_(value_scaled);
     }
 
     /**
@@ -283,7 +311,13 @@ private:
      */
     void render_value_(uint8_t value_scaled) {
         actual_preset_value_ = value_scaled;
+        render_digits_(value_scaled);
+    }
 
+    /**
+     * @brief Renders the numeric digits without touching the stored preset value.
+     */
+    void render_digits_(uint8_t value_scaled) {
         const uint8_t ones = static_cast<uint8_t>(value_scaled % 10U);
         const uint8_t tens = static_cast<uint8_t>((value_scaled / 10U) % 10U);
         const uint8_t hundreds = static_cast<uint8_t>(value_scaled / 100U);
@@ -291,6 +325,32 @@ private:
         set_digit(2U, ones);
         set_digit(1U, tens);
         set_digit(0U, hundreds);
+    }
+
+    /**
+     * @brief Clears any active temporary preview state.
+     */
+    void clear_preview_() {
+        preview_active_ = false;
+        preview_ends_at_ms_ = 0U;
+    }
+
+    /**
+     * @brief Restores the preset slot after the preview timeout expires.
+     */
+    void update_preview_restore_() {
+        if (!preview_active_) {
+            return;
+        }
+
+        const uint32_t now = k_uptime_get_32();
+        if ((int32_t)(now - preview_ends_at_ms_) < 0) {
+            return;
+        }
+
+        preview_active_ = false;
+        preview_ends_at_ms_ = 0U;
+        refresh_display();
     }
 
     /** @brief Cached LED controller used for direct display updates. */
@@ -310,6 +370,15 @@ private:
 
     /** @brief Legacy preset-change guard. */
     int last_preset_selected_ = 0;
+
+    /** @brief Tracks whether a temporary parameter preview is active. */
+    bool preview_active_ = false;
+
+    /** @brief Timestamp when the parameter preview should end. */
+    uint32_t preview_ends_at_ms_ = 0U;
+
+    /** @brief Duration of the parameter preview in milliseconds. */
+    static constexpr uint32_t preview_ms_ = 1000U;
 };
 
 #endif /* APP_SRC_BLOCKS_LED_DISP_H_ */
