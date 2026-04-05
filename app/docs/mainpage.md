@@ -13,8 +13,8 @@ device.
 - `ADSR`: four-knob envelope block with three bank selectors and a LOOP toggle
 - `FLT`: frequency, resonance, and keyboard-tracking filter block with three
   filter-type buttons
-- `LED_DISP`: preset browse/save block with one encoder and a three-digit
-  seven-segment display
+- `LED_DISP`: preset browse/save block with one encoder and an up-to-three-digit
+  seven-segment display with leading zeros suppressed
 - `LFO`: one-knob LFO block with three bank selectors, four waveform buttons,
   and a SYNC toggle
 - `MOD`: one-knob modulation-routing block with six selector buttons and a

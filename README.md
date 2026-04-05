@@ -59,8 +59,8 @@ The main application sources are:
   and a LOOP toggle
 - `app/src/blocks/FLT.h`: filter block with frequency, resonance, and keyboard
   tracking knobs plus three filter-type buttons
-- `app/src/blocks/LED_DISP.h`: preset browse/save block with one encoder and a
-  three-digit seven-segment display
+- `app/src/blocks/LED_DISP.h`: preset browse/save block with one encoder and an
+  up-to-three-digit seven-segment display with leading zeros suppressed
 - `app/src/blocks/LFO.h`: LFO block with one knob, three bank selectors, four
   waveform buttons, and a SYNC toggle
 - `app/src/blocks/MOD.h` and `app/src/blocks/MOD.cpp`: modulation-routing block
