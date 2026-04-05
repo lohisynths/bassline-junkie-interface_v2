@@ -3,7 +3,8 @@
 Zephyr firmware for the ST Nucleo-F411RE. The application scans CD4067
 multiplexers and discrete GPIO inputs, drives PCA9685 LED outputs, exposes a
 banked control surface built on the `UI_BLOCK` CRTP template, stores presets in
-flash, and sends MIDI over an app-owned UART transport.
+flash, and handles MIDI over an app-owned UART transport plus a USB MIDI
+device.
 
 The repository is split into three main pieces:
 
@@ -42,7 +43,8 @@ The board overlay in `app/app.overlay` defines the runtime wiring:
   - `USART1_TX` -> `PA9`
   - `USART1_RX` -> `PA10`
 - Serial transports:
-  - `USART1` on `PA9`/`PA10`: app-owned UART transport at `1000000` baud
+  - `USART1` on `PA9`/`PA10`: app-owned UART MIDI transport at `1000000` baud
+  - USB MIDI on the `usbotg_fs` peripheral: host-facing MIDI device
   - `USART2` on the ST-LINK virtual COM port: Zephyr console and logs at
     `1000000` baud
 
@@ -81,6 +83,10 @@ The main application sources are:
 - `app/src/UART.h` and `app/src/UART.cpp`: polling UART wrapper for `USART1`
 - `app/src/MIDI.h` and `app/src/MIDI.cpp`: MIDI channel-message helper on top of
   `UART`
+- `app/src/USB_MIDI.h` and `app/src/USB_MIDI.cpp`: USB MIDI facade that
+  receives host messages and forwards them into the firmware MIDI path
+- `app/src/usb_midi_init.h` and `app/src/usb_midi_init.c`: Zephyr USB device
+  setup and MIDI class binding for the USB transport
 - `app/src/EEPROM.h` and `app/src/EEPROM.cpp`: flash-backed preset storage
 - `app/src/Preset.h` and `app/src/Preset.cpp`: high-level preset load/save
   controller for `LED_DISP`
@@ -96,6 +102,7 @@ The main application sources are:
 - Zephyr SDK `0.17.4`
 - STM32CubeProgrammer installed
 - Board target: `nucleo_f411re`
+- USB support enabled on the host if you want to use the USB MIDI device
 - Doxygen, if you want to generate the API docs locally
 
 ## Shell Setup
@@ -159,6 +166,8 @@ west flash -d build/app
 - The onboard LD2 LED toggles every second as a heartbeat.
 - The app-owned `USART1` transport prints `Bassline Junkie Interface UART1 ready`
   during boot.
+- The USB MIDI device initializes during the input-thread startup path and
+  accepts Note On, Note Off, and Control Change messages from a host.
 - `InputController` caches the mux and discrete GPIO inputs for the control
   blocks.
 - `UI_BLOCK`-based control surfaces keep banked knob and button state in sync
@@ -178,6 +187,9 @@ west flash -d build/app
   flash partition.
 - The preset display uses a reduced encoder step so presses are less likely to
   move the selected slot accidentally.
+- USB MIDI input is bridged into the app's internal MIDI transport in the input
+  thread, so host-generated Note On, Note Off, and Control Change events share
+  the same control path as the hardware-driven messages.
 
 For more detailed implementation notes, see the Doxygen main page in
 `app/docs/mainpage.md`.

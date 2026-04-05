@@ -3,7 +3,8 @@
 Zephyr firmware for the STM32 Nucleo-F411RE. The application scans CD4067
 multiplexers and discrete GPIO inputs, drives PCA9685 LED outputs, exposes a
 banked control surface through the `UI_BLOCK` CRTP template, stores presets in
-flash, and sends MIDI over an app-owned UART transport.
+flash, and moves MIDI through an app-owned UART transport and a USB MIDI
+device.
 
 ## Modules
 
@@ -31,6 +32,10 @@ flash, and sends MIDI over an app-owned UART transport.
 - `MUX`: CD4067 multiplexer wrapper
 - `UART`: polling UART facade for `USART1`
 - `MIDI`: channel-message helper layered on top of `UART`
+- `USB_MIDI`: USB MIDI facade that receives host Note On, Note Off, and Control
+  Change messages and forwards them into the firmware MIDI path
+- `usb_midi_init`: Zephyr USB device setup and MIDI class binding for the USB
+  transport
 - `EEPROM`: flash-backed preset storage
 - `Preset`: preset load/save controller for the display encoder
 - `PresetSnapshot`: durable schema for ADSR, FLT, LFO, OSC, and the MOD routing
@@ -59,6 +64,8 @@ flash, and sends MIDI over an app-owned UART transport.
 - `VOL` emits MIDI Control Change message `95` on channel `1` and previews its
   current value on the LED display. Its value is stored globally and restored
   on boot, independent of preset slots.
+- USB MIDI messages are decoded in the input thread and forwarded into the same
+  MIDI transport used by the control-surface blocks.
 - The display encoder uses a reduced step size so a button press is less likely
   to move the selected preset slot.
 
