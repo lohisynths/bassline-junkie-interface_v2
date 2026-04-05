@@ -105,6 +105,20 @@ public:
     int set_value(uint8_t value);
 
     /**
+     * @brief Replaces the current knob value without redrawing the LED indicator.
+     *
+     * This is used by temporary overlays such as the MOD viewer, where the
+     * logical knob value must track the borrowed edit target but the LED
+     * segment is rendered separately in preview mode.
+     *
+     * @param value Requested knob value, clamped to the range `[0, 127]`.
+     *
+     * @retval 0 The stored value was updated successfully.
+     * @retval -EACCES The knob has not been initialized.
+     */
+    int set_value_silent(uint8_t value);
+
+    /**
      * @brief Refreshes the knob value and LED indicator from the encoder state.
      *
      * The internal value is advanced by the encoder delta, clamped to the range
@@ -145,6 +159,19 @@ public:
     int restore_displayed_value();
 
 private:
+    /**
+     * @brief Stores one knob value and optionally redraws the LED indicator.
+     *
+     * @param value Requested knob value, clamped to the range `[0, 127]`.
+     * @param render_value `true` redraws the LED segment, `false` only updates
+     *        the stored value.
+     *
+     * @retval 0 The value was applied successfully.
+     * @retval -EACCES The knob has not been initialized.
+     * @retval negative Error propagated from @ref LEDSController::set_channel_percent.
+     */
+    int set_value_(uint8_t value, bool render_value);
+
     /**
      * @brief Renders the current knob value on the configured LED segment.
      *

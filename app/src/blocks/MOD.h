@@ -454,7 +454,7 @@ private:
         auto &knobs = osc_->get_knobs();
         for (uint8_t i = 0U; i < OSC_KNOB_COUNT; ++i) {
             const uint8_t destination = static_cast<uint8_t>(osc_bank * OSC_KNOB_COUNT + i);
-            (void)knobs[i].set_value(osc_->get_preset_mod_value(source, destination));
+            (void)knobs[i].set_value_silent(osc_->get_preset_mod_value(source, destination));
         }
     }
 
@@ -470,7 +470,7 @@ private:
 
         auto &knobs = filter_->get_knobs();
         for (uint8_t i = 0U; i < MOD_FLT_DEST_COUNT; ++i) {
-            (void)knobs[i].set_value(filter_->get_preset_mod_value(source, i));
+            (void)knobs[i].set_value_silent(filter_->get_preset_mod_value(source, i));
         }
     }
 
@@ -488,7 +488,9 @@ private:
             const uint8_t past_last_visible_osc_dest = static_cast<uint8_t>(first_visible_osc_dest + OSC_KNOB_COUNT);
 
             if ((destination >= first_visible_osc_dest) && (destination < past_last_visible_osc_dest)) {
-                (void)osc_->get_knobs()[destination - first_visible_osc_dest].set_value(value);
+                auto &knob = osc_->get_knobs()[destination - first_visible_osc_dest];
+                (void)knob.set_value_silent(value);
+                (void)knob.show_preview_value(value);
                 return;
             }
         }
@@ -496,7 +498,9 @@ private:
         if ((filter_ != nullptr) &&
             (destination >= MOD_FIRST_FLT_DEST) &&
             (destination < static_cast<uint8_t>(MOD_FIRST_FLT_DEST + MOD_FLT_DEST_COUNT))) {
-            (void)filter_->get_knobs()[destination - MOD_FIRST_FLT_DEST].set_value(value);
+            auto &knob = filter_->get_knobs()[destination - MOD_FIRST_FLT_DEST];
+            (void)knob.set_value_silent(value);
+            (void)knob.show_preview_value(value);
         }
     }
 

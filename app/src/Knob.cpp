@@ -53,19 +53,12 @@ uint8_t Knob::get_value() const
 
 int Knob::set_value(uint8_t value)
 {
-    if (!initialized_) {
-        return -EACCES;
-    }
+    return set_value_(value, true);
+}
 
-    if (value > knob_max_value) {
-        value_ = knob_max_value;
-    } else {
-        value_ = value;
-    }
-
-    pending_encoder_steps_ = 0;
-
-    return render_current_value_();
+int Knob::set_value_silent(uint8_t value)
+{
+    return set_value_(value, false);
 }
 
 int Knob::update(knob_msg &msg)
@@ -155,6 +148,27 @@ int Knob::restore_displayed_value()
 {
     if (!initialized_) {
         return -EACCES;
+    }
+
+    return render_current_value_();
+}
+
+int Knob::set_value_(uint8_t value, bool render_value)
+{
+    if (!initialized_) {
+        return -EACCES;
+    }
+
+    if (value > knob_max_value) {
+        value_ = knob_max_value;
+    } else {
+        value_ = value;
+    }
+
+    pending_encoder_steps_ = 0;
+
+    if (!render_value) {
+        return 0;
     }
 
     return render_current_value_();
