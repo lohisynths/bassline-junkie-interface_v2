@@ -9,6 +9,7 @@
 #ifndef APP_SRC_BLOCKS_FLT_H_
 #define APP_SRC_BLOCKS_FLT_H_
 
+#include "LED_DISP.h"
 #include "UI_BLOCK.h"
 
 /** @brief Number of encoder knobs in the FLT block (frequency, resonance, keyboard tracking). */
@@ -75,6 +76,11 @@ public:
 
     /** @brief Number of FLT knobs shown in the MOD viewer. */
     static constexpr uint8_t mod_knob_count_ = 2U;
+
+    /** @brief Binds the shared display used to preview keyboard-track values. */
+    void bind_display(LED_DISP &display) {
+        display_ = &display;
+    }
 
     /** @brief Mux/LED bindings for the three filter-type selector buttons. */
     static constexpr std::array button_configs_ = {
@@ -170,6 +176,18 @@ public:
         select_filter_type(index);
     }
 
+    /**
+     * @brief Stores a knob change and previews the keyboard-track value on the display.
+     */
+    void knob_val_changed(uint8_t index, uint8_t value_scaled) {
+        UI_BLOCK<FLT, FLT_KNOB_COUNT, FLT_BUTTON_COUNT, FLT_PARAM_COUNT, FLT_COUNT>::knob_val_changed(index,
+                                                                                                       value_scaled);
+
+        if ((index == FLT_KBTRACK) && (display_ != nullptr)) {
+            display_->show_preview_value(value_scaled);
+        }
+    }
+
     /* ------------------------------------------------------------------ */
     /*  FLT-specific helpers                                              */
     /* ------------------------------------------------------------------ */
@@ -215,6 +233,10 @@ public:
     void clear_mod_view() {
         reset();
     }
+
+private:
+    /** @brief Borrowed display used to preview keyboard-track changes. */
+    LED_DISP *display_ = nullptr;
 };
 
 #endif /* APP_SRC_BLOCKS_FLT_H_ */
