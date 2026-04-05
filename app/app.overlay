@@ -55,7 +55,7 @@
         };
 
         enc14a: enc14a_gpio {
-            gpios = <&gpioh 0 GPIO_ACTIVE_LOW>;
+            gpios = <&gpiob 14 GPIO_ACTIVE_LOW>;
         };
     };
 
