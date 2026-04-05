@@ -9,6 +9,7 @@
 #ifndef APP_SRC_BLOCKS_VOL_H_
 #define APP_SRC_BLOCKS_VOL_H_
 
+#include "LED_DISP.h"
 #include "UI_BLOCK.h"
 
 /** @brief Number of encoder knobs in the VOL block. */
@@ -64,6 +65,11 @@ public:
     /** @brief No buttons exist in the VOL block. */
     static constexpr std::array<Button::Config, VOL_BUTTON_COUNT> button_configs_ = {};
 
+    /** @brief Binds the shared display used to preview volume changes. */
+    void bind_display(LED_DISP &display) {
+        display_ = &display;
+    }
+
     /** @brief Returns the block name used in log output. */
     const char *get_name() { return "VOL"; }
 
@@ -78,6 +84,21 @@ public:
 
     /** @brief MIDI channel used for all VOL control-change messages. */
     uint8_t get_midi_ch() { return 1U; }
+
+    /**
+     * @brief Sends the new volume as MIDI and previews it on the display.
+     */
+    void knob_val_changed(uint8_t index, uint8_t value_scaled) {
+        ui_block::knob_val_changed(index, value_scaled);
+
+        if (display_ != nullptr) {
+            display_->show_preview_value(value_scaled);
+        }
+    }
+
+private:
+    /** @brief Borrowed display used to preview volume changes. */
+    LED_DISP *display_ = nullptr;
 };
 
 #endif /* APP_SRC_BLOCKS_VOL_H_ */

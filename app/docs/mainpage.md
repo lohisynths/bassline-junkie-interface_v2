@@ -19,7 +19,8 @@ flash, and sends MIDI over an app-owned UART transport.
 - `MOD`: one-knob modulation-routing block with six selector buttons and a
   temporary viewer overlay for OSC and FLT routing values
 - `OSC`: five-knob oscillator block with three bank selectors
-- `VOL`: single volume knob that sends MIDI CC `95`
+- `VOL`: single volume knob that sends MIDI CC `95` and previews on the LED
+  display
 - `Button`: active-low button decoder with optional LED control
 - `Encoder`: quadrature decoder for muxed encoder inputs
 - `GPIO`: discrete GPIO input wrapper
@@ -55,7 +56,8 @@ flash, and sends MIDI over an app-owned UART transport.
   flash partition.
 - `ADSR`, `FLT`, `LFO`, and `OSC` emit MIDI Control Change messages on channel
   `1`. `FLT` uses CC `33..36`, and `LFO` starts at CC `37`.
-- `VOL` emits MIDI Control Change message `95` on channel `1`.
+- `VOL` emits MIDI Control Change message `95` on channel `1` and previews its
+  current value on the LED display.
 - The display encoder uses a reduced step size so a button press is less likely
   to move the selected preset slot.
 
