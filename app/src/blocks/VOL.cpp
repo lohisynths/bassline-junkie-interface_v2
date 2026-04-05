@@ -8,4 +8,5 @@
 
 #include <zephyr/logging/log.h>
 
+/** @brief Registers the VOL Zephyr log module. */
 LOG_MODULE_REGISTER(VOL, LOG_LEVEL_INF);

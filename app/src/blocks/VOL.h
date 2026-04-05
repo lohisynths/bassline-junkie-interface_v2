@@ -47,6 +47,7 @@ enum VOL_PARAMS {
  */
 class VOL : public UI_BLOCK<VOL, VOL_KNOB_COUNT, VOL_BUTTON_COUNT, VOL_PARAM_COUNT, VOL_COUNT> {
 public:
+    /** @brief Shorthand for the CRTP base class used by VOL. */
     using ui_block = UI_BLOCK<VOL, VOL_KNOB_COUNT, VOL_BUTTON_COUNT, VOL_PARAM_COUNT, VOL_COUNT>;
 
     /** @brief Mux/LED bindings for the single volume knob. */
@@ -66,41 +67,69 @@ public:
     /** @brief No buttons exist in the VOL block. */
     static constexpr std::array<Button::Config, VOL_BUTTON_COUNT> button_configs_ = {};
 
-    /** @brief Binds the shared display used to preview volume changes. */
+    /**
+     * @brief Binds the shared display used to preview volume changes.
+     *
+     * @param display Display block used for temporary volume previews.
+     */
     void bind_display(LED_DISP &display) {
         display_ = &display;
     }
 
-    /** @brief Binds the persistent storage used for the global volume value. */
+    /**
+     * @brief Binds the persistent storage used for the global volume value.
+     *
+     * @param storage EEPROM backend used to persist the global volume.
+     */
     void bind_storage(EEPROM &storage) {
         storage_ = &storage;
     }
 
     /**
      * @brief Initializes the block and restores the last stored volume value.
+     *
+     * @param midi MIDI backend borrowed by the CRTP base block.
+     * @param leds LED controller passed through to the CRTP base block.
+     * @param inputs Input controller used to initialize the volume encoder.
      */
     void init(MIDI &midi, LEDSController &leds, InputController &inputs) {
         ui_block::init(midi, leds, inputs);
         restore_persistent_value_();
     }
 
-    /** @brief Returns the block name used in log output. */
+    /**
+     * @brief Returns the block name used in log output.
+     *
+     * @return Static block name string.
+     */
     const char *get_name() { return "VOL"; }
 
     /**
      * @brief Maps the single parameter to a MIDI CC number.
      *
      * The @p instance argument is unused because the VOL block is not banked.
+     *
+     * @param instance Unused VOL bank index placeholder.
+     * @param index Parameter index within the VOL block.
+     * @return MIDI CC number for the requested VOL parameter.
      */
-    uint8_t get_midi_nr(uint8_t /*instance*/, uint8_t index) {
+    uint8_t get_midi_nr(uint8_t instance, uint8_t index) {
+        (void)instance;
         return static_cast<uint8_t>(VOL_MIDI_OFFSET + index);
     }
 
-    /** @brief MIDI channel used for all VOL control-change messages. */
+    /**
+     * @brief MIDI channel used for all VOL control-change messages.
+     *
+     * @return Fixed VOL MIDI channel number.
+     */
     uint8_t get_midi_ch() { return 1U; }
 
     /**
      * @brief Sends the new volume as MIDI and previews it on the display.
+     *
+     * @param index Knob index that changed.
+     * @param value_scaled New volume value in the MIDI range.
      */
     void knob_val_changed(uint8_t index, uint8_t value_scaled) {
         ui_block::knob_val_changed(index, value_scaled);
@@ -137,6 +166,8 @@ private:
 
     /**
      * @brief Persists the current value if flash storage is available.
+     *
+     * @param value Volume value to store persistently.
      */
     void store_persistent_value_(uint8_t value) {
         LOG_MODULE_DECLARE(VOL, LOG_LEVEL_INF);
