@@ -7,12 +7,22 @@
 #include <zephyr/drivers/mux/cd4067.h>
 #include <zephyr/sys/util.h>
 
+/**
+ * @brief Static devicetree-backed configuration for one CD4067 mux instance.
+ */
 struct cd4067_config {
+	/** @brief Four GPIO lines driving the mux select pins S0..S3. */
 	struct gpio_dt_spec select[4];
+
+	/** @brief GPIO line connected to the mux signal pin. */
 	struct gpio_dt_spec sig;
 };
 
+/**
+ * @brief Runtime state for one CD4067 mux instance.
+ */
 struct cd4067_data {
+	/** @brief Most recently selected mux channel. */
 	uint8_t selected_channel;
 };
 
