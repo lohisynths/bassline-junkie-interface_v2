@@ -9,6 +9,7 @@
 #include "blocks/FLT.h"
 #include "blocks/MOD.h"
 #include "blocks/LED_DISP.h"
+#include "blocks/VOL.h"
 #include "EEPROM.h"
 #include "Preset.h"
 #include "InputController.h"
@@ -48,6 +49,7 @@ static void input_thread(void *p1, void *, void *) {
     FLT flt;
     MOD mod;
     LED_DISP led_disp;
+    VOL vol;
     EEPROM eeprom;
     Preset preset;
 
@@ -90,6 +92,7 @@ static void input_thread(void *p1, void *, void *) {
     flt.init(midi, leds, inputs);
     mod.bind_sources(osc, flt);
     mod.init(midi, leds, inputs);
+    vol.init(midi, leds, inputs);
     led_disp.init(midi, leds, inputs);
     flt.bind_display(led_disp);
     preset.init(eeprom, led_disp, adsr, flt, lfo, mod, osc);
@@ -106,6 +109,7 @@ static void input_thread(void *p1, void *, void *) {
         lfo.update();
         flt.update();
         mod.update();
+        vol.update();
         mod.poll_mod_destination_selection();
         led_disp.update();
         preset.update();

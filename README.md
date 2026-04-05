@@ -65,6 +65,7 @@ The main application sources are:
   with one knob and six selector buttons plus the temporary viewer overlay
 - `app/src/blocks/OSC.h` and `app/src/blocks/OSC.cpp`: oscillator block with
   five knobs and three bank selectors
+- `app/src/blocks/VOL.h`: single volume knob that sends MIDI CC `95`
 - `app/src/Button.h` and `app/src/Button.cpp`: active-low button decoder with an
   optional LED channel
 - `app/src/Encoder.h` and `app/src/Encoder.cpp`: quadrature decoder for the
@@ -163,6 +164,7 @@ west flash -d build/app
   with the LED outputs.
 - `ADSR`, `FLT`, `LFO`, and `OSC` send MIDI Control Change messages on channel
   `1`. `FLT` uses CC `33..36`, and `LFO` now starts at CC `37`.
+- `VOL` sends MIDI Control Change message `95` on channel `1`.
 - `MOD` sends its routing Control Change messages on channel `2` and can
   temporarily preview the current modulation row on the OSC and FLT LEDs while a
   selector button is held.
