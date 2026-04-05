@@ -1,5 +1,5 @@
 PROJECT_NAME           = "Bassline Junkie Interface"
-PROJECT_BRIEF          = "Zephyr firmware for the Nucleo-F411RE with a 1000000-baud ST-LINK console, app-owned USART1 MIDI transport, CD4067 mux scanning, PCA9685 LED outputs, flash-backed 128-slot presets, startup-slot metadata, and UI_BLOCK-based ADSR/FLT/LED_DISP/LFO/MOD/OSC control surfaces."
+PROJECT_BRIEF          = "Zephyr firmware for the Nucleo-F411RE with an app-owned USART1 MIDI transport, USB MIDI device support, CD4067 mux scanning, PCA9685 LED outputs, flash-backed preset storage, startup-slot metadata, and UI_BLOCK-based ADSR/FLT/LED_DISP/LFO/MOD/OSC/VOL control surfaces."
 OUTPUT_DIRECTORY       = app/docs/doxygen
 CREATE_SUBDIRS         = NO
 OUTPUT_LANGUAGE        = English
@@ -7,57 +7,16 @@ USE_MDFILE_AS_MAINPAGE = app/docs/mainpage.md
 
 INPUT                  = README.md \
                          app/docs/mainpage.md \
-                         app/src/blocks/ADSR.h \
-                         app/src/blocks/FLT.h \
-                         app/src/blocks/LED_DISP.h \
-                         app/src/blocks/LFO.h \
-                         app/src/blocks/MOD.h \
-                         app/src/blocks/MOD.cpp \
-                         app/src/blocks/OSC.h \
-                         app/src/blocks/OSC.cpp \
-                         app/src/blocks/UI_BLOCK.h \
-                         app/src/blocks/UI_BLOCK.cpp \
-                         app/src/blocks/VOL.h \
-                         app/src/blocks/VOL.cpp \
-                         app/src/Button.h \
-                         app/src/Button.cpp \
-                         app/src/EEPROM.h \
-                         app/src/EEPROM.cpp \
-                         app/src/Encoder.h \
-                         app/src/Encoder.cpp \
-                         app/src/GPIO.h \
-                         app/src/GPIO.cpp \
-                         app/src/InputController.h \
-                         app/src/InputController.cpp \
-                         app/src/Knob.h \
-                         app/src/Knob.cpp \
-                         app/src/LEDS.h \
-                         app/src/LEDS.cpp \
-                         app/src/MIDI.h \
-                         app/src/MIDI.cpp \
-                         app/src/Preset.h \
-                         app/src/Preset.cpp \
-                         app/src/PresetSnapshot.h \
-                         app/src/MUX.h \
-                         app/src/MUX.cpp \
-                         app/src/UART.h \
-                         app/src/UART.cpp \
-                         app/src/USB_MIDI.h \
-                         app/src/USB_MIDI.cpp \
-                         app/src/usb_midi_init.h \
-                         app/src/usb_midi_init.c \
-                         app/src/utils.h \
-                         app/src/utils.cpp \
-                         app/src/main.cpp \
+                         app/src \
                          app/app.overlay \
-                         cd4067/include/zephyr/drivers/mux/cd4067.h \
-                         cd4067/drivers/cd4067/cd4067.c
+                         cd4067/include \
+                         cd4067/drivers
 FILE_PATTERNS          = *.md \
                          *.overlay \
                          *.h \
                          *.c \
                          *.cpp
-RECURSIVE              = NO
+RECURSIVE              = YES
 EXCLUDE_SYMBOLS        = cd4067_driver_api
 
 EXTRACT_ALL            = NO
