@@ -22,7 +22,7 @@ int UART::init() {
     }
 
     initialized_ = true;
-    LOG_INF("USART1 ready on PA9/PA10 at 115200 baud");
+    LOG_INF("USART1 ready on PA9/PA10 at 1000000 baud");
 
     return 0;
 }
