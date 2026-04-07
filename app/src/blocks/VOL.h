@@ -13,6 +13,8 @@
 #include "LED_DISP.h"
 #include "UI_BLOCK.h"
 
+#include <zephyr/kernel.h>
+
 /** @brief Number of encoder knobs in the VOL block. */
 static constexpr uint8_t VOL_KNOB_COUNT = 1U;
 
@@ -126,7 +128,31 @@ public:
     uint8_t get_midi_ch() { return 1U; }
 
     /**
+     * @brief Polls knobs and buttons, then flushes any pending flash write
+     *        once the knob has been idle for @ref store_debounce_ms_.
+     *
+     * @return Change flags from this update cycle.
+     */
+    ui_block::ret_value update() {
+        const ui_block::ret_value ret = ui_block::update();
+
+        if (pending_store_) {
+            const int64_t now = k_uptime_get();
+            if ((now - last_change_ms_) >= store_debounce_ms_) {
+                store_persistent_value_(pending_value_);
+                pending_store_ = false;
+            }
+        }
+
+        return ret;
+    }
+
+    /**
      * @brief Sends the new volume as MIDI and previews it on the display.
+     *
+     * The flash write is not performed here; it is deferred to @ref update
+     * so that rapid knob movement does not trigger a blocking flash write
+     * (or worse, a full flash compaction) on every encoder step.
      *
      * @param index Knob index that changed.
      * @param value_scaled New volume value in the MIDI range.
@@ -134,7 +160,9 @@ public:
     void knob_val_changed(uint8_t index, uint8_t value_scaled) {
         ui_block::knob_val_changed(index, value_scaled);
 
-        store_persistent_value_(value_scaled);
+        pending_value_ = value_scaled;
+        pending_store_ = true;
+        last_change_ms_ = k_uptime_get();
 
         if (display_ != nullptr) {
             display_->show_preview_value(value_scaled);
@@ -192,11 +220,29 @@ private:
         }
     }
 
+    /**
+     * @brief Knob idle time in milliseconds before a flash write is issued.
+     *
+     * Rapid knob movement produces one write per step; deferring until the
+     * knob is idle collapses those into a single write and prevents a
+     * blocking flash-erase (compaction) from stalling the input loop.
+     */
+    static constexpr int64_t store_debounce_ms_ = 500;
+
     /** @brief Borrowed display used to preview volume changes. */
     LED_DISP *display_ = nullptr;
 
     /** @brief Borrowed storage used to persist the global volume value. */
     EEPROM *storage_ = nullptr;
+
+    /** @brief Value waiting to be flushed to flash after the debounce delay. */
+    uint8_t pending_value_ = 0U;
+
+    /** @brief True when a flash write is pending. */
+    bool pending_store_ = false;
+
+    /** @brief Uptime timestamp of the last knob change, in milliseconds. */
+    int64_t last_change_ms_ = 0;
 };
 
 #endif /* APP_SRC_BLOCKS_VOL_H_ */
