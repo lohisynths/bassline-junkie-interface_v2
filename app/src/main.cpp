@@ -37,6 +37,81 @@ static K_SEM_DEFINE(input_thread_started, 0, 1);
 
 static int input_thread_status = 0;
 
+/**
+ * @brief Blocks until the DSP engine sends its ready signal over UART.
+ *
+ * Polls UART for the 0xFE byte (MIDI Active Sensing) that the DSP engine
+ * transmits as soon as its Engine constructor returns.  While waiting,
+ * animates a bouncing dash on the 3-digit display: the middle segment (g)
+ * of each digit is lit one at a time in a ping-pong sequence
+ * (digit 2 → 1 → 0 → 1 → 2 …).
+ *
+ * The display is cleared on exit so that the subsequent preset load can
+ * render the correct slot number cleanly.
+ *
+ * @param uart1 Initialised UART transport used to receive the signal.
+ * @param leds  Initialised LED controller used to drive the display directly.
+ */
+static void wait_for_dsp_ready(UART &uart1, LEDSController &leds)
+{
+    static constexpr uint8_t  bounce_digits[] = {2U, 1U, 0U, 1U};
+    static constexpr size_t   bounce_len      = 4U;
+    static constexpr uint32_t frame_ms        = 200U;
+    static constexpr uint8_t  seg_g_offset    = 6U;
+
+    LOG_INF("Waiting for DSP engine ready signal (0xFE)...");
+
+    // Clear all display segments.
+    for (size_t i = 0U; i < (LED_DISP_SEGMENTS * LED_DISP_DIGIT_COUNT); ++i) {
+        leds.set_channel_percent(LED_DISP_FIRST_LED + i, 100U);
+    }
+
+    // Light the first frame immediately so the display is not blank at entry.
+    leds.set_channel_percent(
+        LED_DISP_FIRST_LED + (bounce_digits[0U] * LED_DISP_SEGMENTS) + seg_g_offset,
+        0U);
+
+    size_t   bounce_frame  = 0U;
+    uint32_t last_frame_at = k_uptime_get_32();
+
+    uint8_t signal_byte = 0U;
+    for (;;) {
+        const int ret = uart1.read_byte(&signal_byte);
+        if (ret == 0) {
+            if (signal_byte == 0xFE) {
+                break;
+            }
+            LOG_WRN("Unexpected byte while waiting for DSP ready: 0x%02X", signal_byte);
+        }
+
+        // Advance the animation frame every frame_ms milliseconds.
+        const uint32_t now = k_uptime_get_32();
+        if ((int32_t)(now - last_frame_at) >= (int32_t)frame_ms) {
+            last_frame_at = now;
+            bounce_frame  = (bounce_frame + 1U) % bounce_len;
+
+            // Clear all display segments.
+            for (size_t i = 0U; i < (LED_DISP_SEGMENTS * LED_DISP_DIGIT_COUNT); ++i) {
+                leds.set_channel_percent(LED_DISP_FIRST_LED + i, 100U);
+            }
+
+            // Light segment g of the next bounce digit.
+            leds.set_channel_percent(
+                LED_DISP_FIRST_LED + (bounce_digits[bounce_frame] * LED_DISP_SEGMENTS) + seg_g_offset,
+                0U);
+        }
+
+        k_msleep(10);
+    }
+
+    // Clear the display before preset.init() renders the slot number.
+    for (size_t i = 0U; i < (LED_DISP_SEGMENTS * LED_DISP_DIGIT_COUNT); ++i) {
+        leds.set_channel_percent(LED_DISP_FIRST_LED + i, 100U);
+    }
+
+    LOG_INF("DSP engine ready signal received (0xFE) - loading preset");
+}
+
 static void input_thread(void *p1, void *, void *) {
     UART uart1;
     MIDI midi;
@@ -81,23 +156,7 @@ static void input_thread(void *p1, void *, void *) {
         return;
     }
 
-    // Block until the DSP engine signals it is ready to receive the preset
-    // dump.  The engine sends 0xFE (MIDI Active Sensing) over UART as soon as
-    // its Engine constructor returns.  Polling every 10 ms is fine: the preset
-    // dump is not time-critical and we want to avoid busy-waiting.
-    LOG_INF("Waiting for DSP engine ready signal (0xFE)...");
-    uint8_t signal_byte = 0U;
-    for (;;) {
-        const int ret = uart1.read_byte(&signal_byte);
-        if (ret == 0) {
-            if (signal_byte == 0xFE) {
-                break;
-            }
-            LOG_WRN("Unexpected byte while waiting for DSP ready: 0x%02X", signal_byte);
-        }
-        k_msleep(10);
-    }
-    LOG_INF("DSP engine ready signal received (0xFE) - loading preset");
+    wait_for_dsp_ready(uart1, leds);
 
     osc.init(midi, leds, inputs);
     adsr.init(midi, leds, inputs);
