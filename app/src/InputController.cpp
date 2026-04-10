@@ -15,12 +15,7 @@ LOG_MODULE_REGISTER(input_controller, LOG_LEVEL_INF);
 int InputController::init() {
     initialized_ = false;
 
-    int ret = mux_.init();
-    if (ret < 0) {
-        return ret;
-    }
-
-    ret = gpio_.init();
+    const int ret = mux_.init();
     if (ret < 0) {
         return ret;
     }
@@ -45,7 +40,7 @@ int InputController::update() {
         }
     }
 
-    return gpio_.read_state(&active_masks_[gpio_mux_index_]);
+    return 0;
 }
 
 int InputController::log_state() {
@@ -53,12 +48,7 @@ int InputController::log_state() {
         return -EACCES;
     }
 
-    int ret = mux_.log_state_binary();
-    if (ret < 0) {
-        return ret;
-    }
-
-    return gpio_.log_state_binary();
+    return mux_.log_state_binary();
 }
 
 uint16_t InputController::state(size_t state_index) const {

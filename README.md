@@ -1,7 +1,7 @@
 # Bassline Junkie Interface
 
 Zephyr firmware for the ST Nucleo-F411RE. The application scans CD4067
-multiplexers and discrete GPIO inputs, drives PCA9685 LED outputs, exposes a
+multiplexers, drives PCA9685 LED outputs, exposes a
 banked control surface built on the `UI_BLOCK` CRTP template, stores presets in
 flash, and handles MIDI over an app-owned UART transport plus a USB MIDI
 device.
@@ -29,16 +29,7 @@ The board overlay in `app/app.overlay` defines the runtime wiring:
   - `MUX1` -> `PA1`
   - `MUX2` -> `PA4`
   - `MUX3` -> `PB0`
-- Discrete GPIO inputs:
-  - `ENC10SW` -> `PB2`
-  - `ENC10A` -> `PB1`
-  - `ENC10B` -> `PB15`
-  - `ENC13SW` -> `PB13`
-  - `ENC13B` -> `PC2`
-  - `ENC13A` -> `PC3`
-  - `ENC14SW` -> `PC0`
-  - `ENC14B` -> `PC1`
-  - `ENC14A` -> `PH0`
+  - `MUX4` -> `PC1`
 - App-owned UART pins:
   - `USART1_TX` -> `PA9`
   - `USART1_RX` -> `PA10`
@@ -74,9 +65,8 @@ The main application sources are:
   optional LED channel
 - `app/src/Encoder.h` and `app/src/Encoder.cpp`: quadrature decoder for the
   muxed encoder channels
-- `app/src/GPIO.h` and `app/src/GPIO.cpp`: discrete GPIO input handling
 - `app/src/InputController.h` and `app/src/InputController.cpp`: aggregates the
-  mux and GPIO state into one cached input table
+  mux state into one cached input table
 - `app/src/Knob.h` and `app/src/Knob.cpp`: reusable knob UI that owns one
   encoder, one push switch, and one LED segment
 - `app/src/LEDS.h` and `app/src/LEDS.cpp`: PCA9685 LED controller wrapper
@@ -169,8 +159,7 @@ west flash -d build/app
   during boot.
 - The USB MIDI device initializes during the input-thread startup path and
   accepts Note On, Note Off, and Control Change messages from a host.
-- `InputController` caches the mux and discrete GPIO inputs for the control
-  blocks.
+- `InputController` caches the mux inputs for the control blocks.
 - `UI_BLOCK`-based control surfaces keep banked knob and button state in sync
   with the LED outputs.
 - `ADSR`, `FLT`, `LFO`, and `OSC` send MIDI Control Change messages on channel

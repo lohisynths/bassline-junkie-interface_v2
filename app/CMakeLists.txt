@@ -19,7 +19,6 @@ target_sources(app PRIVATE
     src/Knob.cpp
     src/main.cpp
     src/MIDI.cpp
-    src/GPIO.cpp
     src/InputController.cpp
     src/LEDS.cpp
     src/MUX.cpp
