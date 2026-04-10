@@ -156,7 +156,7 @@ static void input_thread(void *p1, void *, void *) {
         return;
     }
 
-    wait_for_dsp_ready(uart1, leds);
+//    wait_for_dsp_ready(uart1, leds);
 
     osc.init(midi, leds, inputs);
     adsr.init(midi, leds, inputs);
@@ -180,35 +180,37 @@ static void input_thread(void *p1, void *, void *) {
             return;
         }
 
-        mod.update();
-        osc.update();
-        adsr.update();
-        lfo.update();
-        flt.update();
-        vol.update();
-        mod.poll_mod_destination_selection();
-        led_disp.update();
-        preset.update();
+        inputs.log_mux_changes();+
 
-        USB_MIDI::Message usb_msg;
-        while (usb_midi.receive(&usb_msg) == 0) {
-            switch (usb_msg.command) {
-            case 0x9U:
-                midi.send_note_on(usb_msg.data1, usb_msg.data2,
-                                  usb_msg.channel);
-                break;
-            case 0x8U:
-                midi.send_note_off(usb_msg.data1, usb_msg.data2,
-                                   usb_msg.channel);
-                break;
-            case 0xBU:
-                midi.send_cc(usb_msg.data1, usb_msg.data2,
-                             usb_msg.channel);
-                break;
-            default:
-                break;
-            }
-        }
+//        mod.update();
+//        osc.update();
+//        adsr.update();
+//        lfo.update();
+//        flt.update();
+//        vol.update();
+//        mod.poll_mod_destination_selection();
+//        led_disp.update();
+//        preset.update();
+//
+//        USB_MIDI::Message usb_msg;
+//        while (usb_midi.receive(&usb_msg) == 0) {
+//            switch (usb_msg.command) {
+//            case 0x9U:
+//                midi.send_note_on(usb_msg.data1, usb_msg.data2,
+//                                  usb_msg.channel);
+//                break;
+//            case 0x8U:
+//                midi.send_note_off(usb_msg.data1, usb_msg.data2,
+//                                   usb_msg.channel);
+//                break;
+//            case 0xBU:
+//                midi.send_cc(usb_msg.data1, usb_msg.data2,
+//                             usb_msg.channel);
+//                break;
+//            default:
+//                break;
+//            }
+//        }
 
         k_msleep(input_poll_interval_ms);
     }

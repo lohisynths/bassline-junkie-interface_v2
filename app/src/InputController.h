@@ -8,48 +8,45 @@
 #ifndef SRC_INPUTCONTROLLER_H_
 #define SRC_INPUTCONTROLLER_H_
 
-#include "GPIO.h"
 #include "MUX.h"
 
 #include <stddef.h>
 #include <stdint.h>
 
 /**
- * @brief Aggregates all configured GPIO and CD4067 inputs.
+ * @brief Aggregates all configured CD4067 inputs.
  */
 class InputController {
 public:
     /** @brief Total number of cached input state masks. */
-    static const size_t input_count = MUX::mux_count + 1U;
+    static const size_t input_count = MUX::mux_count;
 
     /** @brief Constructs an input controller facade. */
     InputController() = default;
 
     /**
-     * @brief Initializes the GPIO and CD4067 input subsystems.
+     * @brief Initializes the CD4067 input subsystem.
      *
      * @retval 0 Initialization completed successfully.
-     * @retval negative Error propagated from @ref MUX::init or @ref GPIO::init.
+     * @retval negative Error propagated from @ref MUX::init.
      */
     int init();
 
     /**
-     * @brief Reads all configured mux and GPIO inputs into cached bitmasks.
+     * @brief Reads all configured mux inputs into cached bitmasks.
      *
      * @retval 0 All inputs were read successfully.
      * @retval -EACCES The input controller has not been initialized.
-     * @retval negative Error propagated from @ref MUX::read_state or
-     *         @ref GPIO::read_state.
+     * @retval negative Error propagated from @ref MUX::read_state.
      */
     int update();
 
     /**
-     * @brief Logs the current mux and GPIO input states.
+     * @brief Logs the current mux input states.
      *
      * @retval 0 All input states were logged successfully.
      * @retval -EACCES The input controller has not been initialized.
-     * @retval negative Error propagated from @ref MUX::log_state or
-     *         @ref GPIO::log_state.
+     * @retval negative Error propagated from @ref MUX::log_state.
      */
     int log_state();
 
@@ -71,19 +68,13 @@ private:
     /** @brief Total number of configured CD4067 instances. */
     static const size_t mux_count_ = MUX::mux_count;
 
-    /** @brief Mux-style index of the cached discrete GPIO state in @ref active_masks_. */
-    static const size_t gpio_mux_index_ = mux_count_;
-
     /** @brief Tracks whether @ref init completed successfully. */
     bool initialized_ = false;
-
-    /** @brief GPIO input facade. */
-    GPIO gpio_;
 
     /** @brief CD4067 input facade. */
     MUX mux_;
 
-    /** @brief Cached raw masks for all mux inputs plus the GPIO input mask. */
+    /** @brief Cached raw masks for all mux inputs. */
     uint16_t active_masks_[input_count] = {};
 
     /** @brief Previous cached input masks used for change logging. */
