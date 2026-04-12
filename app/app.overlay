@@ -192,6 +192,20 @@
     status = "okay";
 };
 
+&spi1 {
+    status = "disabled";
+};
+
+&sdmmc1 {
+    pinctrl-0 = <&sdio_cmd_pa6 &sdio_ck_pb15
+                 &sdio_d0_pc8 &sdio_d1_pc9
+                 &sdio_d2_pc10 &sdio_d3_pc11>;
+    pinctrl-names = "default";
+    bus-width = <4>;
+    status = "okay";
+    disk-name = "SD";
+};
+
 / {
     usb_midi: usb_midi {
         compatible = "zephyr,midi2-device";
