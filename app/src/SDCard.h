@@ -2,7 +2,7 @@
  * SDCard.h
  *
  *  Created on: Apr 13, 2026
- *      Author: Codex
+ *      Author: alax
  */
 
 #ifndef SRC_SDCARD_H_
