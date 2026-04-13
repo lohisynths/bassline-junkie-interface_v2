@@ -15,6 +15,7 @@
 #include "InputController.h"
 #include "LEDS.h"
 #include "MIDI.h"
+#include "SDCard.h"
 #include "UART.h"
 #include "USB_MIDI.h"
 
@@ -219,6 +220,7 @@ static void input_thread(void *p1, void *, void *) {
 int main(void)
 {
     int ret;
+    SDCard sd_card;
 
     if (!gpio_is_ready_dt(&led)) {
         LOG_ERR("LED GPIO device is not ready");
@@ -233,6 +235,11 @@ int main(void)
 
     LOG_INF("Bassline Junkie Interface");
     LOG_INF("Console TX ready on ttyACM0");
+
+    ret = sd_card.init();
+    if (ret < 0) {
+        LOG_WRN("Continuing without mounted SD card");
+    }
 
     k_thread_create(&input_thread_data,
                     input_thread_stack,
