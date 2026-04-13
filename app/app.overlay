@@ -202,6 +202,7 @@
                  &sdio_d2_pc10 &sdio_d3_pc11>;
     pinctrl-names = "default";
     bus-width = <4>;
+    clk-div = <1>;
     status = "okay";
     disk-name = "SD";
 };
