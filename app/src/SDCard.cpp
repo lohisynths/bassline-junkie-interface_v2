@@ -17,7 +17,7 @@ namespace {
 
 constexpr const char *sd_drive_name = "SD";
 constexpr const char *sd_mount_point = "/SD:";
-constexpr const char *sd_test_file_path = "/SD:/SDTEST.TXT";
+constexpr const char *sd_test_file_path = "/SD:/sdmmc-test.txt";
 
 } // namespace
 
