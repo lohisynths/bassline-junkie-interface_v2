@@ -141,6 +141,7 @@ public:
      */
     ui_block::ret_value update() {
         const ui_block::ret_value ret = ui_block::update();
+        update_destination_selection_arm_(ret);
         update_viewer_state_();
         return ret;
     }
@@ -203,7 +204,7 @@ public:
      * The filter keyboard-tracking knob is intentionally excluded from MOD.
      */
     void poll_mod_destination_selection() {
-        if (mod_viewer_active_) {
+        if (mod_viewer_active_ || !mod_destination_select_armed_) {
             return;
         }
 
@@ -325,6 +326,37 @@ public:
 private:
     /** @brief Sentinel used to force viewer resynchronization on first entry. */
     static constexpr uint8_t viewer_context_invalid_ = 0xFFU;
+
+    /**
+     * @brief Arms MOD destination selection only after the MOD knob has
+     *        already been held across at least one update cycle.
+     *
+     * This prevents arbitrary OSC/FLT knob presses from changing the active
+     * MOD destination and also rejects near-simultaneous MOD+destination
+     * presses that do not satisfy the "hold MOD first, then press another
+     * knob" interaction.
+     *
+     * @param ret Change summary returned by the base UI block update.
+     */
+    void update_destination_selection_arm_(const ui_block::ret_value &ret) {
+        const bool mod_knob_pressed = get_knobs()[0].get_state();
+        if (!mod_knob_pressed) {
+            mod_destination_select_armed_ = false;
+            return;
+        }
+
+        const bool mod_knob_just_pressed =
+            ret.knobs_sw_changed &&
+            ret.knobs_sw_changed_array[0] &&
+            ret.knobs_sw[0];
+
+        if (mod_knob_just_pressed) {
+            mod_destination_select_armed_ = false;
+            return;
+        }
+
+        mod_destination_select_armed_ = true;
+    }
 
     /**
      * @brief Refreshes the OSC and FLT knob LEDs from the MOD matrix.
@@ -538,6 +570,9 @@ private:
 
     /** @brief Currently selected modulation destination. */
     uint8_t actual_mod_dest = 0U;
+
+    /** @brief True once the MOD knob has been held long enough to allow destination picks. */
+    bool mod_destination_select_armed_ = false;
 
     /** @brief True while the MOD matrix viewer overlay is active. */
     bool mod_viewer_active_ = false;
