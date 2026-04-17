@@ -10,6 +10,7 @@
 #include "blocks/MOD.h"
 #include "blocks/LED_DISP.h"
 #include "blocks/VOL.h"
+#include "wait_for_dsp.h"
 #include "EEPROM.h"
 #include "Preset.h"
 #include "InputController.h"
@@ -81,23 +82,7 @@ static void input_thread(void *p1, void *, void *) {
         return;
     }
 
-    // Block until the DSP engine signals it is ready to receive the preset
-    // dump.  The engine sends 0xFE (MIDI Active Sensing) over UART as soon as
-    // its Engine constructor returns.  Polling every 10 ms is fine: the preset
-    // dump is not time-critical and we want to avoid busy-waiting.
-    LOG_INF("Waiting for DSP engine ready signal (0xFE)...");
-    uint8_t signal_byte = 0U;
-    for (;;) {
-        const int ret = uart1.read_byte(&signal_byte);
-        if (ret == 0) {
-            if (signal_byte == 0xFE) {
-                break;
-            }
-            LOG_WRN("Unexpected byte while waiting for DSP ready: 0x%02X", signal_byte);
-        }
-        k_msleep(10);
-    }
-    LOG_INF("DSP engine ready signal received (0xFE) - loading preset");
+    wait_for_dsp(uart1, leds);
 
     osc.init(midi, leds, inputs);
     adsr.init(midi, leds, inputs);
