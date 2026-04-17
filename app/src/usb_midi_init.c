@@ -61,6 +61,9 @@ static const struct ump_endpoint_dt_spec ump_ep_dt =
 static const struct ump_stream_responder_cfg responder_cfg =
     UMP_STREAM_RESPONDER(midi_dev, usbd_midi_send, &ump_ep_dt);
 
+static bool usb_host_ready;
+static bool usb_host_ready_known;
+
 /* ------------------------------------------------------------------ */
 /*  MIDI class callbacks                                               */
 /* ------------------------------------------------------------------ */
@@ -100,6 +103,13 @@ static void on_rx_packet(const struct device *dev, const struct midi_ump ump)
 static void on_device_ready(const struct device *dev, const bool ready)
 {
     ARG_UNUSED(dev);
+
+    if (usb_host_ready_known && (usb_host_ready == ready)) {
+        return;
+    }
+
+    usb_host_ready = ready;
+    usb_host_ready_known = true;
     LOG_INF("USB MIDI %s", ready ? "enabled by host" : "disabled by host");
 }
 
