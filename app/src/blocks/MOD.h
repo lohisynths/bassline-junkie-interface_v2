@@ -346,9 +346,7 @@ private:
         }
 
         const bool mod_knob_just_pressed =
-            ret.knobs_sw_changed &&
-            ret.knobs_sw_changed_array[0] &&
-            ret.knobs_sw[0];
+            ret.knob_sw_just_pressed(0);
 
         if (mod_knob_just_pressed) {
             mod_destination_select_armed_ = false;

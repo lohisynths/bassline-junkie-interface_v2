@@ -76,18 +76,9 @@ public:
     using knob_array = std::array<Knob, KNOB_COUNT>;
 
     /**
-     * @brief Reports which outputs changed during one @ref update call.
+     * @brief Reports knob changes detected during one @ref update call.
      */
     struct ret_value {
-        /** @brief Set when any button state changed. */
-        bool buttons_changed = false;
-
-        /** @brief Per-button pressed state sampled during this update. */
-        std::array<bool, BUTTON_COUNT> buttons = {};
-
-        /** @brief Set when any knob push-button state changed. */
-        bool knobs_sw_changed = false;
-
         /** @brief Per-knob push-button pressed state sampled during this update. */
         std::array<bool, KNOB_COUNT> knobs_sw = {};
 
@@ -95,10 +86,19 @@ public:
         bool knobs_changed = false;
 
         /** @brief Per-knob push-button change flags for this update. */
-        std::array<bool, KNOB_COUNT> knobs_sw_changed_array = {};
+        std::array<bool, KNOB_COUNT> knobs_sw_changed = {};
 
-        /** @brief Per-knob value sampled during this update. */
-        std::array<uint8_t, KNOB_COUNT> knobs_val = {};
+        /**
+         * @brief Returns @c true when the knob push-button at @p index
+         *        transitioned to pressed during this update.
+         *
+         * @param index Knob index to query.
+         * @retval true The knob switch was newly pressed this cycle.
+         * @retval false No press transition was recorded for the knob.
+         */
+        bool knob_sw_just_pressed(uint8_t index) const {
+            return (index < KNOB_COUNT) && knobs_sw_changed[index] && knobs_sw[index];
+        }
 
         /**
          * @brief Returns the index of the first knob whose push-button
@@ -107,9 +107,9 @@ public:
          * @return Knob index in the range `[0, KNOB_COUNT)`, or `-1` if no
          *         knob push-button was pressed during this update.
          */
-        int8_t get_first_pushed_knob_sw() {
+        int8_t get_first_pushed_knob_sw() const {
             for (uint8_t i = 0; i < KNOB_COUNT; i++) {
-                if (knobs_sw_changed_array[i] && knobs_sw[i]) {
+                if (knob_sw_just_pressed(i)) {
                     return i;
                 }
             }
@@ -150,11 +150,15 @@ public:
     /**
      * @brief Polls all buttons and knobs, dispatches change callbacks.
      *
-     * @return Change flags from this update cycle.
+     * Button transitions are handled immediately through callbacks. The
+     * returned summary keeps only the knob-related data that other blocks
+     * consume after the update finishes.
+     *
+     * @return Knob-change summary from this update cycle.
      */
     ret_value update() {
         last_ret_ = {};
-        update_buttons(last_ret_);
+        update_buttons();
         update_knobs(last_ret_);
         return last_ret_;
     }
@@ -351,10 +355,7 @@ public:
      *         `[0, KNOB_COUNT)`, or `-1` if none was pressed.
      */
     int8_t get_first_knob_sw_pushed() {
-        if (last_ret_.knobs_sw_changed) {
-            return last_ret_.get_first_pushed_knob_sw();
-        }
-        return -1;
+        return last_ret_.get_first_pushed_knob_sw();
     }
 
     /**
@@ -507,8 +508,7 @@ private:
                         state ? "pushed" : "released");
                 self()->knob_sw_changed(i, state);
                 ret.knobs_sw[i] = state;
-                ret.knobs_sw_changed = true;
-                ret.knobs_sw_changed_array[i] = true;
+                ret.knobs_sw_changed[i] = true;
             }
 
             if (msg.value_changed) {
@@ -516,7 +516,6 @@ private:
                         self()->get_name(), current_instance_, i,
                         knobs_[i].get_value());
                 self()->knob_val_changed(i, knobs_[i].get_value());
-                ret.knobs_val[i] = knobs_[i].get_value();
                 ret.knobs_changed = true;
             }
         }
@@ -529,10 +528,8 @@ private:
     /**
      * @brief Polls every button and routes pressed events through
      *        @ref button_changed.
-     *
-     * @param ret Output structure populated with this cycle's button changes.
      */
-    void update_buttons(ret_value &ret) {
+    void update_buttons() {
         LOG_MODULE_DECLARE(UI_BLOCK, LOG_LEVEL_INF);
         for (uint8_t i = 0; i < BUTTON_COUNT; i++) {
             Button::button_msg msg;
@@ -544,8 +541,6 @@ private:
                         self()->get_name(), current_instance_, i,
                         pushed ? "pushed" : "released");
                 button_changed(i, pushed);
-                ret.buttons[i] = pushed;
-                ret.buttons_changed = true;
             }
         }
     }
