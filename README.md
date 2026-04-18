@@ -52,9 +52,9 @@ The board overlay in `app/app.overlay` defines the runtime wiring:
 
 The main application sources are:
 
-- `app/src/blocks/UI_BLOCK.h` and `app/src/blocks/UI_BLOCK.cpp`: CRTP base
-  template that wires banked knobs and buttons, stores preset values, and dumps
-  MIDI
+- `app/src/blocks/UI_BLOCK.h` and `app/src/blocks/UI_BLOCK.cpp`: shared CRTP
+  block infrastructure with metadata-driven name/MIDI defaults; the `.cpp`
+  file registers the `UI_BLOCK` log module used by the base template
 - `app/src/blocks/ADSR.h`: envelope block with four knobs, three bank selectors,
   and a LOOP toggle
 - `app/src/blocks/FLT.h`: filter block with frequency, resonance, and keyboard

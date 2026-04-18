@@ -52,6 +52,15 @@ public:
     /** @brief Shorthand for the CRTP base class used by VOL. */
     using ui_block = UI_BLOCK<VOL, VOL_KNOB_COUNT, VOL_BUTTON_COUNT, VOL_PARAM_COUNT, VOL_COUNT>;
 
+    /** @brief Static block name used by the shared CRTP base logging. */
+    static constexpr const char *block_name_ = "VOL";
+
+    /** @brief MIDI CC offset for the VOL block. */
+    static constexpr uint8_t midi_offset_ = VOL_MIDI_OFFSET;
+
+    /** @brief MIDI channel used for VOL control-change messages. */
+    static constexpr uint8_t midi_channel_ = 1U;
+
     /** @brief Mux/LED bindings for the single volume knob. */
     static constexpr std::array<Knob::Config, VOL_KNOB_COUNT> knob_configs_ = {
         Knob::Config{
@@ -98,34 +107,6 @@ public:
         ui_block::init(midi, leds, inputs);
         restore_persistent_value_();
     }
-
-    /**
-     * @brief Returns the block name used in log output.
-     *
-     * @return Static block name string.
-     */
-    const char *get_name() { return "VOL"; }
-
-    /**
-     * @brief Maps the single parameter to a MIDI CC number.
-     *
-     * The @p instance argument is unused because the VOL block is not banked.
-     *
-     * @param instance Unused VOL bank index placeholder.
-     * @param index Parameter index within the VOL block.
-     * @return MIDI CC number for the requested VOL parameter.
-     */
-    uint8_t get_midi_nr(uint8_t instance, uint8_t index) {
-        (void)instance;
-        return static_cast<uint8_t>(VOL_MIDI_OFFSET + index);
-    }
-
-    /**
-     * @brief MIDI channel used for all VOL control-change messages.
-     *
-     * @return Fixed VOL MIDI channel number.
-     */
-    uint8_t get_midi_ch() { return 1U; }
 
     /**
      * @brief Polls knobs and buttons, then flushes any pending flash write

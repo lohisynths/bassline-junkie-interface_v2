@@ -34,6 +34,9 @@ static constexpr uint8_t LED_DISP_SEGMENTS = 8U;
 /** @brief Number of digits in the display. */
 static constexpr uint8_t LED_DISP_DIGIT_COUNT = 3U;
 
+/** @brief Legacy MIDI CC offset used by the display block. */
+static constexpr uint8_t LED_DISP_MIDI_OFFSET = 1U;
+
 /** @brief MIDI channel used for legacy compatibility. */
 static constexpr uint8_t LED_DISP_MIDI_CHANNEL = 1U;
 
@@ -64,6 +67,16 @@ class LED_DISP : public UI_BLOCK<LED_DISP, LED_DISP_KNOB_COUNT, LED_DISP_BUTTON_
 public:
     /** @brief Shorthand for the CRTP base class used by LED_DISP. */
     using ui_block = UI_BLOCK<LED_DISP, LED_DISP_KNOB_COUNT, LED_DISP_BUTTON_COUNT, LED_DISP_PARAM_COUNT, LED_DISP_COUNT>;
+
+    /** @brief Static block name used by the shared CRTP base logging. */
+    static constexpr const char *block_name_ = "DISP";
+
+    /** @brief Legacy MIDI CC offset used by the display block. */
+    static constexpr uint8_t midi_offset_ = LED_DISP_MIDI_OFFSET;
+
+    /** @brief MIDI channel used for legacy compatibility. */
+    static constexpr uint8_t midi_channel_ = LED_DISP_MIDI_CHANNEL;
+
     /** @brief Mux/LED bindings for the zero display buttons. */
     static constexpr std::array<Button::Config, LED_DISP_BUTTON_COUNT> button_configs_ = {};
 
@@ -94,33 +107,6 @@ public:
         {{1U, 1U, 1U, 1U, 1U, 1U, 1U, 0U}},
         {{1U, 1U, 1U, 1U, 0U, 1U, 1U, 0U}},
     }};
-
-    /**
-     * @brief Returns the block name used in log output.
-     *
-     * @return Static block name string.
-     */
-    const char *get_name() { return "Disp"; }
-
-    /**
-     * @brief Maps the single parameter to a legacy MIDI CC number.
-     *
-     * @param instance Unused display bank index placeholder.
-     * @param index Unused display parameter index placeholder.
-     * @return Legacy MIDI CC number used by the display block.
-     */
-    uint8_t get_midi_nr(uint8_t instance, uint8_t index) {
-        (void)instance;
-        (void)index;
-        return LED_DISP_MIDI_CHANNEL;
-    }
-
-    /**
-     * @brief MIDI channel used for legacy compatibility.
-     *
-     * @return Fixed display MIDI channel number.
-     */
-    uint8_t get_midi_ch() { return LED_DISP_MIDI_CHANNEL; }
 
     /**
      * @brief Binds the block and caches the LED controller for direct segment writes.

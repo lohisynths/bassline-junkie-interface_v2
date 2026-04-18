@@ -1,6 +1,6 @@
 /**
  * @file VOL.cpp
- * @brief Registers the Zephyr log module used by the VOL template.
+ * @brief Registers the Zephyr log module used by the VOL block.
  *
  * Created on: Apr 5, 2026
  *     Author: alax

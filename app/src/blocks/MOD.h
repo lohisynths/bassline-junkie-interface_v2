@@ -58,6 +58,15 @@ public:
     /** @brief Shorthand for the CRTP base class used by MOD. */
     using ui_block = UI_BLOCK<MOD, MOD_KNOB_COUNT, MOD_BUTTON_COUNT, MOD_PARAM_COUNT, MOD_COUNT>;
 
+    /** @brief Static block name used by the shared CRTP base logging. */
+    static constexpr const char *block_name_ = "MOD";
+
+    /** @brief MIDI CC offset used by the MOD block. */
+    static constexpr uint8_t midi_offset_ = MOD_MIDI_OFFSET;
+
+    /** @brief MIDI channel used for MOD control-change messages. */
+    static constexpr uint8_t midi_channel_ = MOD_MIDI_CHANNEL;
+
     /** @brief LED arc length for the MOD amount knob. */
     static constexpr uint8_t knob_led_count_ = 10U;
 
@@ -97,37 +106,6 @@ public:
         osc_ = &osc;
         filter_ = &filter;
     }
-
-    /* ------------------------------------------------------------------ */
-    /*  Required CRTP hooks                                               */
-    /* ------------------------------------------------------------------ */
-
-    /**
-     * @brief Returns the block name used in log output.
-     *
-     * @return Static block name string.
-     */
-    const char *get_name() { return "MOD"; }
-
-    /**
-     * @brief Maps a source bank and destination index to a MIDI CC number.
-     *
-     * Layout matches the legacy MOD class: `source + destination * MOD_COUNT`.
-     *
-     * @param instance MOD source index.
-     * @param index MOD destination index.
-     * @return MIDI CC number for the requested MOD route.
-     */
-    uint8_t get_midi_nr(uint8_t instance, uint8_t index) {
-        return static_cast<uint8_t>(MOD_MIDI_OFFSET + instance + (index * MOD_COUNT));
-    }
-
-    /**
-     * @brief MIDI channel used for all MOD control-change messages.
-     *
-     * @return Fixed MOD MIDI channel number.
-     */
-    uint8_t get_midi_ch() { return MOD_MIDI_CHANNEL; }
 
     /**
      * @brief Polls the base block and manages the temporary MOD viewer.

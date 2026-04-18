@@ -1,11 +1,10 @@
 /**
  * @file MOD.cpp
- * @brief Registers the Zephyr log module used by the MOD template.
+ * @brief Registers the Zephyr log module used by the MOD block.
  *
  * Created on: Apr 1, 2026
  *     Author: alax
  */
-
 
 #include <zephyr/logging/log.h>
 

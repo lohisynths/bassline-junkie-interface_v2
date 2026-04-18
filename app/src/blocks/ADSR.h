@@ -58,6 +58,15 @@ enum ADSR_PARAMS {
  */
 class ADSR : public UI_BLOCK<ADSR, ADSR_KNOB_COUNT, ADSR_BUTTON_COUNT, ADSR_PARAM_NR, ADSR_COUNT> {
 public:
+    /** @brief Static block name used by the shared CRTP base logging. */
+    static constexpr const char *block_name_ = "ADSR";
+
+    /** @brief MIDI CC offset for the ADSR block. */
+    static constexpr uint8_t midi_offset_ = ADSR_MIDI_OFFSET;
+
+    /** @brief MIDI channel used for ADSR control-change messages. */
+    static constexpr uint8_t midi_channel_ = 1U;
+
     /** @brief LED arc length shared by all four knobs. */
     static constexpr uint8_t knob_led_count_ = 10U;
 
@@ -108,37 +117,6 @@ public:
             .led_count = knob_led_count_,
         },
     };
-
-    /* ------------------------------------------------------------------ */
-    /*  Required CRTP hooks                                               */
-    /* ------------------------------------------------------------------ */
-
-    /**
-     * @brief Returns the block name used in log output.
-     *
-     * @return Static block name string.
-     */
-    const char *get_name() { return "ADSR"; }
-
-    /**
-     * @brief Maps a bank and parameter index to a MIDI CC number.
-     *
-     * Layout: CC `18..22` for bank 0, `23..27` for bank 1, `28..32` for bank 2.
-     *
-     * @param instance ADSR bank index.
-     * @param index Parameter index within the selected bank.
-     * @return MIDI CC number for the requested ADSR parameter.
-     */
-    uint8_t get_midi_nr(uint8_t instance, uint8_t index) {
-        return static_cast<uint8_t>(ADSR_MIDI_OFFSET + instance * ADSR_PARAM_NR + index);
-    }
-
-    /**
-     * @brief MIDI channel used for all ADSR control-change messages.
-     *
-     * @return Fixed ADSR MIDI channel number.
-     */
-    uint8_t get_midi_ch() { return 1U; }
 
     /* ------------------------------------------------------------------ */
     /*  CRTP hook overrides                                               */
