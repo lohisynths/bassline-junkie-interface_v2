@@ -69,7 +69,7 @@ The main application sources are:
 - `app/src/blocks/OSC.h` and `app/src/blocks/OSC.cpp`: oscillator block with
   five knobs and three bank selectors
 - `app/src/blocks/VOL.h`: single volume knob that sends MIDI CC `95` and
-  previews on the LED display, with a global value restored on boot
+  previews on the LED display, with its value stored in each preset
 - `app/src/Button.h` and `app/src/Button.cpp`: active-low button decoder with an
   optional LED channel
 - `app/src/Encoder.h` and `app/src/Encoder.cpp`: quadrature decoder for the
@@ -92,7 +92,7 @@ The main application sources are:
 - `app/src/Preset.h` and `app/src/Preset.cpp`: high-level preset load/save
   controller for `LED_DISP`
 - `app/src/PresetSnapshot.h`: durable preset schema for ADSR, FLT, LFO, OSC,
-  and the MOD routing matrices
+  VOL, and the MOD routing matrices
 - `app/src/utils.h` and `app/src/utils.cpp`: shared utility helpers
 - `app/src/main.cpp`: entry point, LED heartbeat, and input-thread setup
 
@@ -176,16 +176,16 @@ west flash -d build/app
 - `ADSR`, `FLT`, `LFO`, and `OSC` send MIDI Control Change messages on channel
   `1`. `FLT` uses CC `33..36`, and `LFO` now starts at CC `37`.
 - `VOL` sends MIDI Control Change message `95` on channel `1` and previews its
-  current value on the LED display. Its value is stored globally and restored
-  on boot, independent of preset slots.
+  current value on the LED display. Its value is stored per preset and restored
+  when the startup slot or any saved slot is loaded.
 - `MOD` sends its routing Control Change messages on channel `2` and can
   temporarily repurpose the visible OSC and FLT knobs to edit the current
   modulation row while a selector button is held long enough.
 - `Preset` restores the last active slot on boot, falls back to slot `0` if no
   startup slot has been stored yet, and uses the display encoder for browse/load
   and save gestures.
-- `EEPROM` stores 128 preset slots plus startup-slot metadata in the dedicated
-  flash partition.
+- `EEPROM` stores 128 preset snapshots plus startup-slot metadata in the
+  dedicated flash partition.
 - The preset display uses a reduced encoder step so presses are less likely to
   move the selected slot accidentally.
 - USB MIDI input is bridged into the app's internal MIDI transport in the input

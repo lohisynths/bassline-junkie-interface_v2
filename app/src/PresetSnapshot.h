@@ -5,20 +5,21 @@
 #include "blocks/FLT.h"
 #include "blocks/LFO.h"
 #include "blocks/OSC.h"
+#include "blocks/VOL.h"
 
 #include <cstdint>
 
 /**
  * @brief Captures the durable state of one full surface preset.
  *
- * The snapshot stores the banked values for ADSR, FLT, LFO, and OSC, plus
- * the OSC and FLT modulation matrices edited through the MOD block. Live bank
- * selections remain outside the durable snapshot and are intentionally not
- * stored here.
+ * The snapshot stores the banked values for ADSR, FLT, LFO, OSC, and VOL,
+ * plus the OSC and FLT modulation matrices edited through the MOD block.
+ * Live bank selections remain outside the durable snapshot and are
+ * intentionally not stored here.
  */
 struct PresetSnapshot {
     /** @brief Snapshot format version for compatibility checks. */
-    static constexpr uint16_t version = 1U;
+    static constexpr uint16_t version = 2U;
 
     /** @brief Durable ADSR banked values. */
     ADSR::preset adsr = {};
@@ -31,6 +32,9 @@ struct PresetSnapshot {
 
     /** @brief Durable OSC banked values. */
     OSC::preset osc = {};
+
+    /** @brief Durable VOL values. */
+    VOL::preset vol = {};
 
     /** @brief Durable OSC modulation matrix edited through MOD. */
     OSC::mod_preset osc_mod = {};

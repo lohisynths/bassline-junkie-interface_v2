@@ -21,7 +21,7 @@ device.
   temporary viewer/edit mode for OSC and FLT routing values
 - `OSC`: five-knob oscillator block with three bank selectors
 - `VOL`: single volume knob that sends MIDI CC `95` and previews on the LED
-  display, with a global value restored on boot
+  display, with its value stored in each preset
 - `Button`: active-low button decoder with optional LED control
 - `Encoder`: quadrature decoder for muxed encoder inputs
 - `GPIO`: discrete GPIO input wrapper
@@ -38,8 +38,8 @@ device.
   transport
 - `EEPROM`: flash-backed preset storage
 - `Preset`: preset load/save controller for the display encoder
-- `PresetSnapshot`: durable schema for ADSR, FLT, LFO, OSC, and the MOD routing
-  matrices
+- `PresetSnapshot`: durable schema for ADSR, FLT, LFO, OSC, VOL, and the MOD
+  routing matrices
 - `utils`: shared helper functions
 - `main.cpp`: application entry point and input-thread setup
 - `cd4067`: out-of-tree Zephyr module that provides the CD4067 GPIO mux driver
@@ -57,13 +57,13 @@ device.
   edit the active source row when a selector button is held long enough.
 - `Preset` restores the last active slot on boot, saves and loads through the
   display encoder, and briefly blanks the display as save or timeout feedback.
-- `EEPROM` provides 128 preset slots plus startup-slot metadata in the dedicated
-  flash partition.
+- `EEPROM` provides 128 preset snapshots plus startup-slot metadata in the
+  dedicated flash partition.
 - `ADSR`, `FLT`, `LFO`, and `OSC` emit MIDI Control Change messages on channel
   `1`. `FLT` uses CC `33..36`, and `LFO` starts at CC `37`.
 - `VOL` emits MIDI Control Change message `95` on channel `1` and previews its
-  current value on the LED display. Its value is stored globally and restored
-  on boot, independent of preset slots.
+  current value on the LED display. Its value is stored per preset and restored
+  when the startup slot or any saved slot is loaded.
 - USB MIDI messages are decoded in the input thread and forwarded into the same
   MIDI transport used by the control-surface blocks.
 - The display encoder uses a reduced step size so a button press is less likely
