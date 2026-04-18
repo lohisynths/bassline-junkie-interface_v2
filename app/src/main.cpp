@@ -95,9 +95,8 @@ static void input_thread(void *p1, void *, void *) {
     led_disp.init(midi, leds, inputs);
     flt.bind_display(led_disp);
     vol.bind_display(led_disp);
-    vol.bind_storage(eeprom);
-    preset.init(eeprom, led_disp, adsr, flt, lfo, mod, osc);
     vol.init(midi, leds, inputs);
+    preset.init(eeprom, led_disp, adsr, flt, lfo, mod, osc, vol);
 
     while (1) {
         ret = inputs.update();

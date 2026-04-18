@@ -11,6 +11,7 @@ class LFO;
 class MOD;
 class OSC;
 class LED_DISP;
+class VOL;
 
 /**
  * @brief High-level preset controller for the LED_DISP encoder.
@@ -42,10 +43,18 @@ public:
      * @param lfo LFO block whose preset state is stored and restored.
      * @param mod MOD block whose routing state is stored and restored.
      * @param osc OSC block whose preset state is stored and restored.
+     * @param vol VOL block whose preset state is stored and restored.
      * @retval 0 The controller is ready.
      * @retval negative Error propagated from the EEPROM backend.
      */
-    int init(EEPROM &eeprom, LED_DISP &display, ADSR &adsr, FLT &flt, LFO &lfo, MOD &mod, OSC &osc);
+    int init(EEPROM &eeprom,
+             LED_DISP &display,
+             ADSR &adsr,
+             FLT &flt,
+             LFO &lfo,
+             MOD &mod,
+             OSC &osc,
+             VOL &vol);
 
     /**
      * @brief Advances the preset save/load state machine.
@@ -151,6 +160,9 @@ private:
 
     /** @brief Borrowed oscillator block restored from preset snapshots. */
     OSC *osc_ = nullptr;
+
+    /** @brief Borrowed volume block restored from preset snapshots. */
+    VOL *vol_ = nullptr;
 
     /** @brief Slot number of the currently active preset. */
     uint8_t active_slot_ = 0U;

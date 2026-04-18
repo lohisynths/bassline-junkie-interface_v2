@@ -6,6 +6,7 @@
 #include "blocks/LFO.h"
 #include "blocks/MOD.h"
 #include "blocks/OSC.h"
+#include "blocks/VOL.h"
 
 #include <errno.h>
 
@@ -56,7 +57,14 @@ bool lfo_snapshot_valid(const LFO::preset &preset)
 
 } // namespace
 
-int Preset::init(EEPROM &eeprom, LED_DISP &display, ADSR &adsr, FLT &flt, LFO &lfo, MOD &mod, OSC &osc)
+int Preset::init(EEPROM &eeprom,
+                 LED_DISP &display,
+                 ADSR &adsr,
+                 FLT &flt,
+                 LFO &lfo,
+                 MOD &mod,
+                 OSC &osc,
+                 VOL &vol)
 {
     eeprom_ = &eeprom;
     display_ = &display;
@@ -65,6 +73,7 @@ int Preset::init(EEPROM &eeprom, LED_DISP &display, ADSR &adsr, FLT &flt, LFO &l
     lfo_ = &lfo;
     mod_ = &mod;
     osc_ = &osc;
+    vol_ = &vol;
 
     const int ret = eeprom_->init();
     if (ret < 0) {
@@ -151,7 +160,7 @@ uint8_t Preset::get_active_slot() const
 bool Preset::is_ready_() const
 {
     return (eeprom_ != nullptr) && (display_ != nullptr) && (adsr_ != nullptr) && (flt_ != nullptr) &&
-           (lfo_ != nullptr) && (mod_ != nullptr) && (osc_ != nullptr);
+           (lfo_ != nullptr) && (mod_ != nullptr) && (osc_ != nullptr) && (vol_ != nullptr);
 }
 
 bool Preset::load_slot_(uint8_t slot)
@@ -220,6 +229,7 @@ void Preset::capture_snapshot_(PresetSnapshot &snapshot) const
     snapshot.flt = flt_->get_preset();
     snapshot.lfo = lfo_->get_preset();
     snapshot.osc = osc_->get_preset();
+    snapshot.vol = vol_->get_preset();
     snapshot.osc_mod = osc_->get_mod_preset();
     snapshot.flt_mod = flt_->get_mod_preset();
 }
@@ -230,6 +240,7 @@ void Preset::apply_snapshot_(const PresetSnapshot &snapshot)
     flt_->set_preset(snapshot.flt);
     lfo_->set_preset(snapshot.lfo);
     osc_->set_preset(snapshot.osc);
+    vol_->set_preset(snapshot.vol);
     osc_->get_mod_preset() = snapshot.osc_mod;
     flt_->get_mod_preset() = snapshot.flt_mod;
     send_mod_matrix_(snapshot);
