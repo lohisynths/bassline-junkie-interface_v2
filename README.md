@@ -100,6 +100,7 @@ The main application sources are:
 
 - A working Zephyr installation
 - Zephyr Python virtual environment at `~/zephyrproject/.venv`
+- This repository has been verified against Zephyr `v4.3.0`
 - Zephyr SDK `0.17.4`
 - STM32CubeProgrammer installed
 - Board target: `nucleo_f411re`
