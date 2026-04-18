@@ -76,6 +76,15 @@ enum LFO_SHAPES {
  */
 class LFO : public UI_BLOCK<LFO, LFO_KNOB_COUNT, LFO_BUTTON_COUNT, LFO_PARAM_COUNT, LFO_COUNT> {
 public:
+    /** @brief Static block name used by the shared CRTP base logging. */
+    static constexpr const char *block_name_ = "LFO";
+
+    /** @brief MIDI CC offset for the LFO block. */
+    static constexpr uint8_t midi_offset_ = LFO_MIDI_OFFSET;
+
+    /** @brief MIDI channel used for LFO control-change messages. */
+    static constexpr uint8_t midi_channel_ = 1U;
+
     /** @brief LED arc length for the frequency knob. */
     static constexpr uint8_t knob_led_count_ = 10U;
 
@@ -103,38 +112,6 @@ public:
             .led_count         = knob_led_count_,
         },
     };
-
-    /* ------------------------------------------------------------------ */
-    /*  Required CRTP hooks                                               */
-    /* ------------------------------------------------------------------ */
-
-    /**
-     * @brief Returns the block name used in log output.
-     *
-     * @return Static block name string.
-     */
-    const char *get_name() { return "LFO"; }
-
-    /**
-     * @brief Maps a bank and parameter index to a MIDI CC number.
-     *
-     * Layout: CC `37..39` for bank 0, `40..42` for bank 1, `43..45` for
-     * bank 2.
-     *
-     * @param instance LFO bank index.
-     * @param index Parameter index within the selected bank.
-     * @return MIDI CC number for the requested LFO parameter.
-     */
-    uint8_t get_midi_nr(uint8_t instance, uint8_t index) {
-        return static_cast<uint8_t>(LFO_MIDI_OFFSET + instance * LFO_PARAM_COUNT + index);
-    }
-
-    /**
-     * @brief MIDI channel used for all LFO control-change messages.
-     *
-     * @return Fixed LFO MIDI channel number.
-     */
-    uint8_t get_midi_ch() { return 1U; }
 
     /* ------------------------------------------------------------------ */
     /*  CRTP hook overrides                                               */

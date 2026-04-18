@@ -72,6 +72,15 @@ enum FLT_TYPES {
  */
 class FLT : public UI_BLOCK<FLT, FLT_KNOB_COUNT, FLT_BUTTON_COUNT, FLT_PARAM_COUNT, FLT_COUNT> {
 public:
+    /** @brief Static block name used by the shared CRTP base logging. */
+    static constexpr const char *block_name_ = "FLT";
+
+    /** @brief MIDI CC offset for the FLT block. */
+    static constexpr uint8_t midi_offset_ = FLT_MIDI_OFFSET;
+
+    /** @brief MIDI channel used for FLT control-change messages. */
+    static constexpr uint8_t midi_channel_ = 1U;
+
     /** @brief LED arc length for the resonance knob. */
     static constexpr uint8_t knob_led_count_ = 10U;
 
@@ -134,39 +143,6 @@ public:
             .led_count         = 0U,
         },
     };
-
-    /* ------------------------------------------------------------------ */
-    /*  Required CRTP hooks                                               */
-    /* ------------------------------------------------------------------ */
-
-    /**
-     * @brief Returns the block name used in log output.
-     *
-     * @return Static block name string.
-     */
-    const char *get_name() { return "FLT"; }
-
-    /**
-     * @brief Maps a parameter index to a MIDI CC number.
-     *
-     * Layout: CC `33` (FREQ), `34` (RES), `35` (KBTRACK), `36` (TYPE).
-     * The @p instance argument is unused since the FLT block is not banked.
-     *
-     * @param instance Unused FLT bank index placeholder.
-     * @param index Parameter index within the FLT block.
-     * @return MIDI CC number for the requested FLT parameter.
-     */
-    uint8_t get_midi_nr(uint8_t instance, uint8_t index) {
-        (void)instance;
-        return static_cast<uint8_t>(FLT_MIDI_OFFSET + index);
-    }
-
-    /**
-     * @brief MIDI channel used for all FLT control-change messages.
-     *
-     * @return Fixed FLT MIDI channel number.
-     */
-    uint8_t get_midi_ch() { return 1U; }
 
     /* ------------------------------------------------------------------ */
     /*  CRTP hook overrides                                               */

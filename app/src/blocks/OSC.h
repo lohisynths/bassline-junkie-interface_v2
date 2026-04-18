@@ -49,6 +49,15 @@ enum OSC_PARAMS {
  */
 class OSC : public UI_BLOCK<OSC, OSC_KNOB_COUNT, OSC_BUTTON_COUNT, OSC_PARAM_COUNT, OSC_COUNT> {
 public:
+    /** @brief Static block name used by the shared CRTP base logging. */
+    static constexpr const char *block_name_ = "OSC";
+
+    /** @brief MIDI CC offset for the OSC block. */
+    static constexpr uint8_t midi_offset_ = OSC_MIDI_OFFSET;
+
+    /** @brief MIDI channel used for OSC control-change messages. */
+    static constexpr uint8_t midi_channel_ = 1U;
+
     /**
      * @brief Binds the MOD viewer-edit sink used to repurpose OSC knobs while
      *        the MOD viewer is active.
@@ -114,37 +123,6 @@ public:
             .led_count = 10U,
         },
     };
-
-    /* ------------------------------------------------------------------ */
-    /*  Required CRTP hooks                                               */
-    /* ------------------------------------------------------------------ */
-
-    /**
-     * @brief Returns the block name used in log output.
-     *
-     * @return Static block name string.
-     */
-    const char *get_name() { return "OSC"; }
-
-    /**
-     * @brief Maps a bank and parameter index to a MIDI CC number.
-     *
-     * Layout: CC `0..4` for bank 0, `5..9` for bank 1, `10..14` for bank 2.
-     *
-     * @param instance Oscillator bank index.
-     * @param index Parameter index within the selected bank.
-     * @return MIDI CC number for the requested OSC parameter.
-     */
-    uint8_t get_midi_nr(uint8_t instance, uint8_t index) {
-        return static_cast<uint8_t>(OSC_MIDI_OFFSET + instance * OSC_PARAM_COUNT + index);
-    }
-
-    /**
-     * @brief MIDI channel used for all OSC control-change messages.
-     *
-     * @return Fixed OSC MIDI channel number.
-     */
-    uint8_t get_midi_ch() { return 1U; }
 
     /**
      * @brief Returns the currently selected oscillator bank index.

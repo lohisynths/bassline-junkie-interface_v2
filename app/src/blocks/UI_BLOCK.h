@@ -27,22 +27,32 @@
  *
  * Each derived class supplies its own hardware configuration by defining two
  * public static constexpr arrays named @c knob_configs_ and
- * @c button_configs_. The base class pulls those tables at compile time
- * through the @p Derived template parameter, so the public @ref init call
- * needs only the shared runtime objects.
+ * @c button_configs_, plus a few small metadata constants. The base class
+ * pulls those definitions at compile time through the @p Derived template
+ * parameter, so the public @ref init call needs only the shared runtime
+ * objects.
  *
- * ## Required derived-class methods (CRTP dispatch, compile error if missing)
+ * ## Required derived-class members (compile error if missing)
  *
- * | Signature                                                       | Purpose                                     |
- * |-----------------------------------------------------------------|---------------------------------------------|
- * | `const char *get_name()`                                        | Block name used in log output               |
- * | `uint8_t get_midi_nr(uint8_t instance, uint8_t index)`          | Maps bank + param index to MIDI CC number   |
- * | `uint8_t get_midi_ch()`                                         | MIDI channel used for CC emission           |
+ * | Member                                   | Purpose                                     |
+ * |------------------------------------------|---------------------------------------------|
+ * | `static constexpr const char *block_name_` | Block name used in log output             |
+ * | `static constexpr uint8_t midi_offset_`    | MIDI CC base offset                        |
+ * | `static constexpr uint8_t midi_channel_`   | MIDI channel used for CC emission          |
+ *
+ * The default @ref get_midi_nr implementation derives the layout from the
+ * template parameters:
+ * - `PARAM_COUNT == 0` uses source-major matrix numbering
+ * - `COUNT == 1` uses unbanked linear numbering
+ * - otherwise numbering is banked linear
  *
  * ## Optional derived-class overrides (shadowed via CRTP, defaults provided)
  *
  * | Signature                                                       | Default behaviour                                            |
  * |-----------------------------------------------------------------|--------------------------------------------------------------|
+ * | `const char *get_name()`                                        | Returns `Derived::block_name_`                               |
+ * | `uint8_t get_midi_nr(uint8_t instance, uint8_t index)`          | Derived from `COUNT` and `PARAM_COUNT`                       |
+ * | `uint8_t get_midi_ch()`                                         | Returns `Derived::midi_channel_`                             |
  * | `void knob_val_changed(uint8_t index, uint8_t value_scaled)`    | Stores value in current bank and sends MIDI CC               |
  * | `void knob_sw_changed(uint8_t index, bool state)`               | Empty                                                        |
  * | `void select_function(uint8_t index)`                           | Empty                                                        |
@@ -387,6 +397,49 @@ public:
      */
     uint8_t get_current_instance_midi_nr(uint8_t index) {
         return self()->get_midi_nr(get_current_instance(), index);
+    }
+
+    /**
+     * @brief Returns the block name used in log output.
+     *
+     * Derived classes may shadow this when they need custom behavior, but the
+     * default implementation simply exposes the compile-time metadata string.
+     *
+     * @return Static block name string.
+     */
+    const char *get_name() {
+        return Derived::block_name_;
+    }
+
+    /**
+     * @brief Maps one logical parameter to a MIDI CC number.
+     *
+     * The default implementation selects a layout from the block template
+     * parameters so most concrete blocks only need to expose
+     * @c Derived::midi_offset_.
+     *
+     * @param instance Bank or source index, depending on block type.
+     * @param index Parameter or destination index.
+     * @return MIDI CC number for the requested value.
+     */
+    uint8_t get_midi_nr(uint8_t instance, uint8_t index) {
+        if constexpr (PARAM_COUNT == 0U) {
+            return static_cast<uint8_t>(Derived::midi_offset_ + instance + (index * COUNT));
+        } else if constexpr (COUNT == 1U) {
+            (void)instance;
+            return static_cast<uint8_t>(Derived::midi_offset_ + index);
+        } else {
+            return static_cast<uint8_t>(Derived::midi_offset_ + (instance * PARAM_COUNT) + index);
+        }
+    }
+
+    /**
+     * @brief MIDI channel used for control-change messages emitted by the block.
+     *
+     * @return Fixed block MIDI channel number.
+     */
+    uint8_t get_midi_ch() {
+        return Derived::midi_channel_;
     }
 
     /* ------------------------------------------------------------------ */
