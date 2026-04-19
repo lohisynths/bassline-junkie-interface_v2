@@ -244,6 +244,7 @@ void Preset::apply_snapshot_(const PresetSnapshot &snapshot)
     osc_->get_mod_preset() = snapshot.osc_mod;
     flt_->get_mod_preset() = snapshot.flt_mod;
     send_mod_matrix_(snapshot);
+    mod_->refresh_from_bound_presets();
 }
 
 bool Preset::snapshot_is_compatible_(const PresetSnapshot &snapshot) const
