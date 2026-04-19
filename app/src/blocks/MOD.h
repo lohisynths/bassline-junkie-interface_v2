@@ -245,6 +245,24 @@ public:
         return mod_viewer_active_;
     }
 
+    /**
+     * @brief Re-synchronizes the MOD amount knob and any active viewer LEDs
+     *        from the current OSC/FLT modulation matrices.
+     *
+     * This is used after preset restores because MOD route state lives inside
+     * the bound OSC and FLT blocks rather than inside MOD-owned preset storage.
+     */
+    void refresh_from_bound_presets() {
+        reset();
+
+        if (!mod_viewer_active_) {
+            return;
+        }
+
+        sync_viewer_knobs_();
+        refresh_viewer_();
+    }
+
     void refresh_mod_viewer() override {
         if (!mod_viewer_active_) {
             return;
