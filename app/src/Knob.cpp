@@ -4,7 +4,6 @@
 
 static const uint8_t knob_brightness_percent = 50U;
 static const uint8_t knob_max_value = 127U;
-static const int32_t knob_pressed_step_multiplier = 4;
 
 int Knob::init(InputController &inputs, const Config &config, LEDSController &leds)
 {
@@ -13,6 +12,7 @@ int Knob::init(InputController &inputs, const Config &config, LEDSController &le
     if ((config.button_mux_index >= InputController::input_count) ||
         (config.button_pin >= 16U) ||
         (config.encoder_step_divider == 0U) ||
+        (config.pressed_step_multiplier == 0U) ||
         ((config.first_led + config.led_count) > LEDSController::led_count)) {
         return -EINVAL;
     }
@@ -32,6 +32,7 @@ int Knob::init(InputController &inputs, const Config &config, LEDSController &le
     first_led_ = config.first_led;
     led_count_ = config.led_count;
     encoder_step_divider_ = config.encoder_step_divider;
+    pressed_step_multiplier_ = config.pressed_step_multiplier;
 
     value_ = 0U;
     pressed_ = false;
@@ -100,7 +101,7 @@ int Knob::update(knob_msg &msg)
     }
 
     const int32_t next_value = (int32_t)value_ +
-                               (delta * (pressed_ ? knob_pressed_step_multiplier : 1));
+                               (delta * (pressed_ ? pressed_step_multiplier_ : 1));
     if (next_value < 0) {
         value_ = 0U;
     } else if (next_value > (int32_t)knob_max_value) {

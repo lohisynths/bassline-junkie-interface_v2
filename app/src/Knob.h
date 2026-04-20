@@ -58,6 +58,9 @@ public:
 
         /** @brief Raw encoder edges required for one visible value step. */
         uint8_t encoder_step_divider = 1U;
+
+        /** @brief Value-step multiplier applied while the knob button is held. */
+        uint8_t pressed_step_multiplier = 4U;
     };
 
     /**
@@ -222,6 +225,9 @@ private:
 
     /** @brief Raw encoder edges required for one visible value step. */
     uint8_t encoder_step_divider_ = 1U;
+
+    /** @brief Value-step multiplier applied while the knob button is held. */
+    uint8_t pressed_step_multiplier_ = 4U;
 
     /** @brief Tracks whether @ref init completed successfully. */
     bool initialized_ = false;

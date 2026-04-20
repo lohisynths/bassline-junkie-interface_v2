@@ -91,6 +91,7 @@ public:
             .first_led = 0U,
             .led_count = 0U,
             .encoder_step_divider = 4U,
+            .pressed_step_multiplier = 1U,
         },
     };
 
