@@ -9,7 +9,7 @@
 #ifndef APP_SRC_BLOCKS_LFO_H_
 #define APP_SRC_BLOCKS_LFO_H_
 
-#include "UI_BLOCK.h"
+#include "LED_DISP.h"
 
 /** @brief Number of encoder knobs in the LFO block (frequency). */
 static constexpr uint8_t LFO_KNOB_COUNT = 1U;
@@ -88,6 +88,15 @@ public:
     /** @brief LED arc length for the frequency knob. */
     static constexpr uint8_t knob_led_count_ = 10U;
 
+    /**
+     * @brief Binds the shared display used to preview knob changes.
+     *
+     * @param display Display block used for temporary value previews.
+     */
+    void bind_display(LED_DISP &display) {
+        display_ = &display;
+    }
+
     /** @brief Mux/LED bindings for the eight buttons (3 bank-selectors + 4 shape + 1 SYNC). */
     static constexpr std::array button_configs_ = {
         Button::Config{ .mux_index = 3U, .pin = 0U,  .led_number = 158U },  /* LFO 0 selector  */
@@ -159,6 +168,21 @@ public:
         }
     }
 
+    /**
+     * @brief Stores a knob change, sends MIDI, and previews the value on the display.
+     *
+     * @param index Knob index that changed.
+     * @param value_scaled New clamped knob value.
+     */
+    void knob_val_changed(uint8_t index, uint8_t value_scaled) {
+        UI_BLOCK<LFO, LFO_KNOB_COUNT, LFO_BUTTON_COUNT, LFO_PARAM_COUNT, LFO_COUNT>::knob_val_changed(index,
+                                                                                                       value_scaled);
+
+        if (display_ != nullptr) {
+            display_->show_preview_value(value_scaled);
+        }
+    }
+
     /* ------------------------------------------------------------------ */
     /*  LFO-specific helpers                                              */
     /* ------------------------------------------------------------------ */
@@ -203,6 +227,10 @@ public:
      * @return Active LFO bank index.
      */
     uint8_t get_current_lfo() { return get_current_instance(); }
+
+private:
+    /** @brief Borrowed display used to preview knob changes. */
+    LED_DISP *display_ = nullptr;
 };
 
 #endif /* APP_SRC_BLOCKS_LFO_H_ */
