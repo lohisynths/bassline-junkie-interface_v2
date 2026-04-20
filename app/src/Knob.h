@@ -61,6 +61,9 @@ public:
 
         /** @brief Value-step multiplier applied while the knob button is held. */
         uint8_t pressed_step_multiplier = 4U;
+
+        /** @brief When true, encoder movement is discarded while the button is held. */
+        bool ignore_rotation_while_pressed = false;
     };
 
     /**
@@ -228,6 +231,9 @@ private:
 
     /** @brief Value-step multiplier applied while the knob button is held. */
     uint8_t pressed_step_multiplier_ = 4U;
+
+    /** @brief When true, encoder movement is discarded while the button is held. */
+    bool ignore_rotation_while_pressed_ = false;
 
     /** @brief Tracks whether @ref init completed successfully. */
     bool initialized_ = false;

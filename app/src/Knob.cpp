@@ -33,6 +33,7 @@ int Knob::init(InputController &inputs, const Config &config, LEDSController &le
     led_count_ = config.led_count;
     encoder_step_divider_ = config.encoder_step_divider;
     pressed_step_multiplier_ = config.pressed_step_multiplier;
+    ignore_rotation_while_pressed_ = config.ignore_rotation_while_pressed;
 
     value_ = 0U;
     pressed_ = false;
@@ -82,6 +83,11 @@ int Knob::update(knob_msg &msg)
     const uint16_t state = inputs_->state(button_mux_index_);
     pressed_ = ((state >> button_pin_) & 0x1U) == 0U;
     msg.switch_changed = (pressed_ != previous_button_pressed);
+
+    if (pressed_ && ignore_rotation_while_pressed_) {
+        pending_encoder_steps_ = 0;
+        return 0;
+    }
 
     pending_encoder_steps_ += encoder_.delta();
 
