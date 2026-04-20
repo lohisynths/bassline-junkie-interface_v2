@@ -92,6 +92,7 @@ public:
             .led_count = 0U,
             .encoder_step_divider = 4U,
             .pressed_step_multiplier = 1U,
+            .ignore_rotation_while_pressed = true,
         },
     };
 
