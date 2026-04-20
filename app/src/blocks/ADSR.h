@@ -9,7 +9,7 @@
 #ifndef APP_SRC_BLOCKS_ADSR_H_
 #define APP_SRC_BLOCKS_ADSR_H_
 
-#include "UI_BLOCK.h"
+#include "LED_DISP.h"
 
 /** @brief Number of encoder knobs in the ADSR block. */
 static constexpr uint8_t ADSR_KNOB_COUNT = 4U;
@@ -69,6 +69,15 @@ public:
 
     /** @brief LED arc length shared by all four knobs. */
     static constexpr uint8_t knob_led_count_ = 10U;
+
+    /**
+     * @brief Binds the shared display used to preview knob changes.
+     *
+     * @param display Display block used for temporary value previews.
+     */
+    void bind_display(LED_DISP &display) {
+        display_ = &display;
+    }
 
     /** @brief Mux/LED bindings for the four buttons (3 bank-selectors + 1 LOOP toggle). */
     static constexpr std::array button_configs_ = {
@@ -147,6 +156,21 @@ public:
         toggle_loop();
     }
 
+    /**
+     * @brief Stores a knob change, sends MIDI, and previews the value on the display.
+     *
+     * @param index Knob index that changed.
+     * @param value_scaled New clamped knob value.
+     */
+    void knob_val_changed(uint8_t index, uint8_t value_scaled) {
+        UI_BLOCK<ADSR, ADSR_KNOB_COUNT, ADSR_BUTTON_COUNT, ADSR_PARAM_NR, ADSR_COUNT>::knob_val_changed(index,
+                                                                                                          value_scaled);
+
+        if (display_ != nullptr) {
+            display_->show_preview_value(value_scaled);
+        }
+    }
+
     /* ------------------------------------------------------------------ */
     /*  ADSR-specific helpers                                             */
     /* ------------------------------------------------------------------ */
@@ -172,6 +196,10 @@ public:
      * @return Active ADSR bank index.
      */
     uint8_t get_current_adsr() { return get_current_instance(); }
+
+private:
+    /** @brief Borrowed display used to preview knob changes. */
+    LED_DISP *display_ = nullptr;
 };
 
 #endif /* APP_SRC_BLOCKS_ADSR_H_ */

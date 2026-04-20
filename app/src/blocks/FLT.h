@@ -188,13 +188,16 @@ public:
      */
     void knob_val_changed(uint8_t index, uint8_t value_scaled) {
         if ((mod_capture_ != nullptr) && mod_capture_->capture_flt_route_value(index, value_scaled)) {
+            if (display_ != nullptr) {
+                display_->show_preview_value(value_scaled);
+            }
             return;
         }
 
         UI_BLOCK<FLT, FLT_KNOB_COUNT, FLT_BUTTON_COUNT, FLT_PARAM_COUNT, FLT_COUNT>::knob_val_changed(index,
                                                                                                        value_scaled);
 
-        if ((index == FLT_KBTRACK) && (display_ != nullptr)) {
+        if (display_ != nullptr) {
             display_->show_preview_value(value_scaled);
         }
     }

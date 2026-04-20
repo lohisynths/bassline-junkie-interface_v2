@@ -9,8 +9,8 @@
 #ifndef APP_SRC_BLOCKS_OSC_H_
 #define APP_SRC_BLOCKS_OSC_H_
 
+#include "LED_DISP.h"
 #include "ModMatrixCapture.h"
-#include "UI_BLOCK.h"
 
 /** @brief Number of encoder knobs in the OSC block. */
 static constexpr uint8_t OSC_KNOB_COUNT = 5U;
@@ -66,6 +66,15 @@ public:
      */
     void bind_mod_capture(ModMatrixCapture &capture) {
         mod_capture_ = &capture;
+    }
+
+    /**
+     * @brief Binds the shared display used to preview knob changes.
+     *
+     * @param display Display block used for temporary value previews.
+     */
+    void bind_display(LED_DISP &display) {
+        display_ = &display;
     }
 
     /** @brief Mux/LED bindings for the three bank-selector buttons. */
@@ -164,11 +173,18 @@ public:
     void knob_val_changed(uint8_t index, uint8_t value_scaled) {
         if ((mod_capture_ != nullptr) &&
             mod_capture_->capture_osc_route_value(get_current_osc(), index, value_scaled)) {
+            if (display_ != nullptr) {
+                display_->show_preview_value(value_scaled);
+            }
             return;
         }
 
         UI_BLOCK<OSC, OSC_KNOB_COUNT, OSC_BUTTON_COUNT, OSC_PARAM_COUNT, OSC_COUNT>::knob_val_changed(index,
                                                                                                        value_scaled);
+
+        if (display_ != nullptr) {
+            display_->show_preview_value(value_scaled);
+        }
     }
 
     /**
@@ -199,6 +215,9 @@ public:
     }
 
 private:
+    /** @brief Borrowed display used to preview knob changes. */
+    LED_DISP *display_ = nullptr;
+
     /** @brief Borrowed MOD viewer-edit sink, or `nullptr` when unbound. */
     ModMatrixCapture *mod_capture_ = nullptr;
 };

@@ -9,8 +9,8 @@
 #ifndef APP_SRC_BLOCKS_MOD_H_
 #define APP_SRC_BLOCKS_MOD_H_
 
+#include "LED_DISP.h"
 #include "ModMatrixCapture.h"
-#include "UI_BLOCK.h"
 #include "OSC.h"
 #include "FLT.h"
 
@@ -108,6 +108,15 @@ public:
     }
 
     /**
+     * @brief Binds the shared display used to preview knob changes.
+     *
+     * @param display Display block used for temporary value previews.
+     */
+    void bind_display(LED_DISP &display) {
+        display_ = &display;
+    }
+
+    /**
      * @brief Polls the base block and manages the temporary MOD viewer.
      *
      * Holding any MOD source button for longer than one second overlays the
@@ -162,6 +171,10 @@ public:
 
         if (mod_viewer_active_) {
             sync_visible_destination_knob_(actual_mod_dest, value_scaled);
+        }
+
+        if (display_ != nullptr) {
+            display_->show_preview_value(value_scaled);
         }
     }
 
@@ -322,6 +335,9 @@ public:
 private:
     /** @brief Sentinel used to force viewer resynchronization on first entry. */
     static constexpr uint8_t viewer_context_invalid_ = 0xFFU;
+
+    /** @brief Borrowed display used to preview knob changes. */
+    LED_DISP *display_ = nullptr;
 
     /**
      * @brief Arms MOD destination selection only after the MOD knob has
