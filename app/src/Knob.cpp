@@ -4,6 +4,7 @@
 
 static const uint8_t knob_brightness_percent = 50U;
 static const uint8_t knob_max_value = 127U;
+static const int32_t knob_pressed_step_multiplier = 4;
 
 int Knob::init(InputController &inputs, const Config &config, LEDSController &leds)
 {
@@ -98,7 +99,8 @@ int Knob::update(knob_msg &msg)
         return 0;
     }
 
-    const int32_t next_value = (int32_t)value_ + delta;
+    const int32_t next_value = (int32_t)value_ +
+                               (delta * (pressed_ ? knob_pressed_step_multiplier : 1));
     if (next_value < 0) {
         value_ = 0U;
     } else if (next_value > (int32_t)knob_max_value) {
