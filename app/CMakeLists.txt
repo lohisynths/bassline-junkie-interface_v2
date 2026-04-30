@@ -11,10 +11,8 @@ target_sources(app PRIVATE
     src/EEPROM.cpp
     src/wait_for_dsp.cpp
     src/blocks/Preset.cpp
-    src/blocks/OSC.cpp
     src/blocks/UI_BLOCK.cpp
     src/blocks/MOD.cpp
-    src/blocks/VOL.cpp
     src/Button.cpp
     src/Encoder.cpp
     src/Knob.cpp
