@@ -84,6 +84,7 @@ static void input_thread(void *p1, void *, void *) {
 
     wait_for_dsp(uart1, leds);
 
+    led_disp.init(midi, leds, inputs);
     osc.init(midi, leds, inputs, led_disp);
     adsr.init(midi, leds, inputs, led_disp);
     lfo.init(midi, leds, inputs, led_disp);
@@ -92,7 +93,6 @@ static void input_thread(void *p1, void *, void *) {
     osc.bind_mod_capture(mod);
     flt.bind_mod_capture(mod);
     mod.init(midi, leds, inputs, led_disp);
-    led_disp.init(midi, leds, inputs);
     vol.init(midi, leds, inputs, led_disp);
     preset.init(eeprom, led_disp, adsr, flt, lfo, mod, osc, vol);
 
