@@ -58,6 +58,9 @@ enum ADSR_PARAMS {
  */
 class ADSR : public UI_BLOCK<ADSR, ADSR_KNOB_COUNT, ADSR_BUTTON_COUNT, ADSR_PARAM_NR, ADSR_COUNT> {
 public:
+    /** @brief Shorthand for the CRTP base class used by ADSR. */
+    using ui_block = UI_BLOCK<ADSR, ADSR_KNOB_COUNT, ADSR_BUTTON_COUNT, ADSR_PARAM_NR, ADSR_COUNT>;
+
     /** @brief Static block name used by the shared CRTP base logging. */
     static constexpr const char *block_name_ = "ADSR";
 
@@ -79,7 +82,7 @@ public:
      * @param display Display block used for temporary value previews.
      */
     void init(MIDI &midi, LEDSController &leds, InputController &inputs, LED_DISP &display) {
-        UI_BLOCK<ADSR, ADSR_KNOB_COUNT, ADSR_BUTTON_COUNT, ADSR_PARAM_NR, ADSR_COUNT>::init(midi, leds, inputs);
+        ui_block::init(midi, leds, inputs);
         display_ = &display;
     }
 
@@ -167,8 +170,7 @@ public:
      * @param value_scaled New clamped knob value.
      */
     void knob_val_changed(uint8_t index, uint8_t value_scaled) {
-        UI_BLOCK<ADSR, ADSR_KNOB_COUNT, ADSR_BUTTON_COUNT, ADSR_PARAM_NR, ADSR_COUNT>::knob_val_changed(index,
-                                                                                                          value_scaled);
+        ui_block::knob_val_changed(index, value_scaled);
 
         if (display_ != nullptr) {
             display_->show_preview_value(value_scaled);

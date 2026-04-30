@@ -76,6 +76,9 @@ enum LFO_SHAPES {
  */
 class LFO : public UI_BLOCK<LFO, LFO_KNOB_COUNT, LFO_BUTTON_COUNT, LFO_PARAM_COUNT, LFO_COUNT> {
 public:
+    /** @brief Shorthand for the CRTP base class used by LFO. */
+    using ui_block = UI_BLOCK<LFO, LFO_KNOB_COUNT, LFO_BUTTON_COUNT, LFO_PARAM_COUNT, LFO_COUNT>;
+
     /** @brief Static block name used by the shared CRTP base logging. */
     static constexpr const char *block_name_ = "LFO";
 
@@ -97,7 +100,7 @@ public:
      * @param display Display block used for temporary value previews.
      */
     void init(MIDI &midi, LEDSController &leds, InputController &inputs, LED_DISP &display) {
-        UI_BLOCK<LFO, LFO_KNOB_COUNT, LFO_BUTTON_COUNT, LFO_PARAM_COUNT, LFO_COUNT>::init(midi, leds, inputs);
+        ui_block::init(midi, leds, inputs);
         display_ = &display;
     }
 
@@ -179,8 +182,7 @@ public:
      * @param value_scaled New clamped knob value.
      */
     void knob_val_changed(uint8_t index, uint8_t value_scaled) {
-        UI_BLOCK<LFO, LFO_KNOB_COUNT, LFO_BUTTON_COUNT, LFO_PARAM_COUNT, LFO_COUNT>::knob_val_changed(index,
-                                                                                                       value_scaled);
+        ui_block::knob_val_changed(index, value_scaled);
 
         if (display_ != nullptr) {
             display_->show_preview_value(value_scaled);
