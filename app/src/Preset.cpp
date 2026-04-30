@@ -58,6 +58,9 @@ bool lfo_snapshot_valid(const LFO::preset &preset)
 } // namespace
 
 int Preset::init(EEPROM &eeprom,
+                 MIDI &midi,
+                 LEDSController &leds,
+                 InputController &inputs,
                  LED_DISP &display,
                  ADSR &adsr,
                  FLT &flt,
@@ -66,6 +69,7 @@ int Preset::init(EEPROM &eeprom,
                  OSC &osc,
                  VOL &vol)
 {
+    ui_block::init(midi, leds, inputs);
     eeprom_ = &eeprom;
     display_ = &display;
     adsr_ = &adsr;
@@ -92,10 +96,11 @@ void Preset::update()
         return;
     }
 
+    (void)ui_block::update();
     update_display_restore_();
 
-    const uint8_t current_display = display_->get_actual_preset_nr();
-    const bool pressed = display_->get_knobs()[0].get_state();
+    const uint8_t current_display = get_current_preset_value(preset_value_param_);
+    const bool pressed = get_knobs()[0].get_state();
     const uint32_t now = k_uptime_get_32();
 
     if (pressed) {
@@ -152,6 +157,12 @@ void Preset::update()
     }
 }
 
+void Preset::knob_val_changed(uint8_t index, uint8_t value_scaled)
+{
+    (void)index;
+    sync_preset_value_(value_scaled);
+}
+
 uint8_t Preset::get_active_slot() const
 {
     return active_slot_;
@@ -185,7 +196,7 @@ bool Preset::load_slot_(uint8_t slot)
     apply_snapshot_(snapshot);
     active_slot_ = slot;
     displayed_slot_ = slot;
-    display_->sync_preset_value(slot);
+    sync_preset_value_(slot);
     const int startup_ret = eeprom_->save_startup_slot(slot);
     if (startup_ret < 0) {
         LOG_WRN("Failed to remember startup preset %u: %d",
@@ -213,6 +224,7 @@ bool Preset::save_slot_(uint8_t slot)
 
     active_slot_ = slot;
     displayed_slot_ = slot;
+    sync_preset_value_(slot);
     const int startup_ret = eeprom_->save_startup_slot(slot);
     if (startup_ret < 0) {
         LOG_WRN("Failed to remember startup preset %u after save: %d",
@@ -297,7 +309,21 @@ void Preset::update_display_restore_()
         return;
     }
 
-    display_->sync_preset_value(blink_restore_slot_);
+    sync_preset_value_(blink_restore_slot_);
     blink_active_ = false;
     blink_ends_at_ms_ = 0U;
+}
+
+void Preset::sync_preset_value_(uint8_t slot)
+{
+    set_current_preset_value(preset_value_param_, slot);
+
+    auto &knobs = get_knobs();
+    if (!knobs.empty()) {
+        (void)knobs[0].set_value(slot);
+    }
+
+    if (display_ != nullptr) {
+        display_->sync_preset_value(slot);
+    }
 }

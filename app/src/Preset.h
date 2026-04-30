@@ -2,6 +2,7 @@
 #define SRC_PRESET_H_
 
 #include "EEPROM.h"
+#include "blocks/UI_BLOCK.h"
 
 #include <cstdint>
 
@@ -13,13 +14,59 @@ class OSC;
 class LED_DISP;
 class VOL;
 
+/** @brief Number of encoder knobs in the preset block. */
+static constexpr uint8_t PRESET_KNOB_COUNT = 1U;
+
+/** @brief Number of buttons in the preset block. */
+static constexpr uint8_t PRESET_BUTTON_COUNT = 0U;
+
+/** @brief Number of banked instances in the preset block. */
+static constexpr uint8_t PRESET_COUNT = 1U;
+
+/** @brief Number of logical parameters exposed by the preset block. */
+static constexpr uint8_t PRESET_PARAM_COUNT = 1U;
+
 /**
- * @brief High-level preset controller for the LED_DISP encoder.
+ * @brief High-level preset controller owning the preset encoder UI block.
  */
-class Preset {
+class Preset : public UI_BLOCK<Preset, PRESET_KNOB_COUNT, PRESET_BUTTON_COUNT, PRESET_PARAM_COUNT, PRESET_COUNT> {
 public:
+    /** @brief Shorthand for the CRTP base class used by Preset. */
+    using ui_block = UI_BLOCK<Preset, PRESET_KNOB_COUNT, PRESET_BUTTON_COUNT, PRESET_PARAM_COUNT, PRESET_COUNT>;
+
     /** @brief Total preset slot count. */
     static constexpr uint8_t preset_count = EEPROM::preset_count;
+
+    /** @brief Single logical parameter stored by the preset encoder block. */
+    static constexpr uint8_t preset_value_param_ = 0U;
+
+    /** @brief Static block name used by the shared CRTP base logging. */
+    static constexpr const char *block_name_ = "PRESET";
+
+    /** @brief Legacy MIDI offset retained to satisfy the shared UI_BLOCK metadata contract. */
+    static constexpr uint8_t midi_offset_ = 1U;
+
+    /** @brief Legacy MIDI channel retained to satisfy the shared UI_BLOCK metadata contract. */
+    static constexpr uint8_t midi_channel_ = 1U;
+
+    /** @brief Preset encoder has no buttons. */
+    static constexpr std::array<Button::Config, PRESET_BUTTON_COUNT> button_configs_ = {};
+
+    /** @brief Encoder/button binding for preset browsing and save/load actions. */
+    static constexpr std::array<Knob::Config, PRESET_KNOB_COUNT> knob_configs_ = {
+        Knob::Config{
+            .button_mux_index = 4U,
+            .button_pin = 6U,
+            .encoder_mux_index = 4U,
+            .encoder_pin_a = 7U,
+            .encoder_pin_b = 8U,
+            .first_led = 0U,
+            .led_count = 0U,
+            .encoder_step_divider = 4U,
+            .pressed_step_multiplier = 1U,
+            .ignore_rotation_while_pressed = true,
+        },
+    };
 
     /** @brief Hold time required to save the current preset. */
     static constexpr uint32_t save_hold_ms = 1000U;
@@ -37,7 +84,10 @@ public:
      * @brief Binds the preset controller to the storage backend and UI blocks.
      *
      * @param eeprom EEPROM backend used for persistence.
-     * @param display LED display block used for browsing and feedback.
+     * @param midi MIDI backend used to initialize the shared UI block base.
+     * @param leds LED controller passed through to the shared UI block base.
+     * @param inputs Input controller used to initialize the preset encoder.
+     * @param display LED display wrapper used for browsing and feedback.
      * @param adsr ADSR block whose preset state is stored and restored.
      * @param flt FLT block whose preset state is stored and restored.
      * @param lfo LFO block whose preset state is stored and restored.
@@ -48,6 +98,9 @@ public:
      * @retval negative Error propagated from the EEPROM backend.
      */
     int init(EEPROM &eeprom,
+             MIDI &midi,
+             LEDSController &leds,
+             InputController &inputs,
              LED_DISP &display,
              ADSR &adsr,
              FLT &flt,
@@ -60,6 +113,14 @@ public:
      * @brief Advances the preset save/load state machine.
      */
     void update();
+
+    /**
+     * @brief Stores the browsed slot and mirrors it to the LED display.
+     *
+     * @param index Unused knob index placeholder.
+     * @param value_scaled New browsed preset slot.
+     */
+    void knob_val_changed(uint8_t index, uint8_t value_scaled);
 
     /**
      * @brief Returns the currently active preset slot.
@@ -139,6 +200,13 @@ private:
      * @brief Restores the display after a blink timeout has elapsed.
      */
     void update_display_restore_();
+
+    /**
+     * @brief Synchronizes the browsed slot across the encoder preset and display.
+     *
+     * @param slot Slot number to show and resume browsing from.
+     */
+    void sync_preset_value_(uint8_t slot);
 
     /** @brief Borrowed EEPROM backend used for preset persistence. */
     EEPROM *eeprom_ = nullptr;
