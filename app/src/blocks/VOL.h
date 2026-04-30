@@ -28,14 +28,6 @@ static constexpr uint8_t VOL_PARAM_COUNT = 1U;
 static constexpr uint8_t VOL_MIDI_OFFSET = 95U;
 
 /**
- * @brief Logical parameter indices for the VOL block.
- */
-enum VOL_PARAMS {
-    VOL_LEVEL,
-    VOL_PARAM_NR
-};
-
-/**
  * @brief Volume block owning one knob and no buttons.
  *
  * Hardware wiring is declared in the public constexpr config table and
