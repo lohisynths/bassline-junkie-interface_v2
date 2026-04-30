@@ -97,26 +97,24 @@ public:
     };
 
     /**
-     * @brief Attach the OSC and FLT blocks used for destination lookups.
-     *
-     * @param osc OSC block providing oscillator destinations and mod storage.
-     * @param filter FLT block providing filter destinations and mod storage.
-     */
-    void bind_sources(OSC &osc, FLT &filter) {
-        osc_ = &osc;
-        filter_ = &filter;
-    }
-
-    /**
      * @brief Initializes the block and binds the shared preview display.
      *
      * @param midi MIDI backend borrowed by the CRTP base block.
      * @param leds LED controller passed through to the CRTP base block.
      * @param inputs Input controller used to initialize the block hardware.
+     * @param osc OSC block providing oscillator destinations and mod storage.
+     * @param filter FLT block providing filter destinations and mod storage.
      * @param display Display block used for temporary value previews.
      */
-    void init(MIDI &midi, LEDSController &leds, InputController &inputs, LED_DISP &display) {
+    void init(MIDI &midi,
+              LEDSController &leds,
+              InputController &inputs,
+              OSC &osc,
+              FLT &filter,
+              LED_DISP &display) {
         ui_block::init(midi, leds, inputs);
+        osc_ = &osc;
+        filter_ = &filter;
         display_ = &display;
     }
 
