@@ -69,11 +69,15 @@ public:
     }
 
     /**
-     * @brief Binds the shared display used to preview knob changes.
+     * @brief Initializes the block and binds the shared preview display.
      *
+     * @param midi MIDI backend borrowed by the CRTP base block.
+     * @param leds LED controller passed through to the CRTP base block.
+     * @param inputs Input controller used to initialize the block hardware.
      * @param display Display block used for temporary value previews.
      */
-    void bind_display(LED_DISP &display) {
+    void init(MIDI &midi, LEDSController &leds, InputController &inputs, LED_DISP &display) {
+        UI_BLOCK<OSC, OSC_KNOB_COUNT, OSC_BUTTON_COUNT, OSC_PARAM_COUNT, OSC_COUNT>::init(midi, leds, inputs);
         display_ = &display;
     }
 
