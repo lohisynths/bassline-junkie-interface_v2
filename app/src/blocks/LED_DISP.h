@@ -15,7 +15,6 @@
 #include <zephyr/kernel.h>
 
 #include "LEDS.h"
-#include "UI_BLOCK.h"
 
 /** @brief First LED channel used by the display digits. */
 static constexpr uint16_t LED_DISP_FIRST_LED = 11U * 16U;

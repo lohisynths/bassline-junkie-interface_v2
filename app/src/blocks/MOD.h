@@ -13,6 +13,7 @@
 #include "ModMatrixCapture.h"
 #include "OSC.h"
 #include "FLT.h"
+#include "UI_BLOCK.h"
 
 #include <zephyr/kernel.h>
 
@@ -112,10 +113,9 @@ public:
               OSC &osc,
               FLT &filter,
               LED_DISP &display) {
-        ui_block::init(midi, leds, inputs);
+        ui_block::init(midi, leds, inputs, &display);
         osc_ = &osc;
         filter_ = &filter;
-        display_ = &display;
     }
 
     /**
@@ -337,9 +337,6 @@ public:
 private:
     /** @brief Sentinel used to force viewer resynchronization on first entry. */
     static constexpr uint8_t viewer_context_invalid_ = 0xFFU;
-
-    /** @brief Borrowed display used to preview knob changes. */
-    LED_DISP *display_ = nullptr;
 
     /**
      * @brief Arms MOD destination selection only after the MOD knob has
