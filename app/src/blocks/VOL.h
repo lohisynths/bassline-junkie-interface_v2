@@ -76,23 +76,16 @@ public:
     static constexpr std::array<Button::Config, VOL_BUTTON_COUNT> button_configs_ = {};
 
     /**
-     * @brief Binds the shared display used to preview volume changes.
-     *
-     * @param display Display block used for temporary volume previews.
-     */
-    void bind_display(LED_DISP &display) {
-        display_ = &display;
-    }
-
-    /**
-     * @brief Initializes the block.
+     * @brief Initializes the block and binds the shared preview display.
      *
      * @param midi MIDI backend borrowed by the CRTP base block.
      * @param leds LED controller passed through to the CRTP base block.
      * @param inputs Input controller used to initialize the volume encoder.
+     * @param display Display block used for temporary volume previews.
      */
-    void init(MIDI &midi, LEDSController &leds, InputController &inputs) {
+    void init(MIDI &midi, LEDSController &leds, InputController &inputs, LED_DISP &display) {
         ui_block::init(midi, leds, inputs);
+        display_ = &display;
     }
 
     /**
