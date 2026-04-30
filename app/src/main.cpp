@@ -12,7 +12,7 @@
 #include "blocks/VOL.h"
 #include "wait_for_dsp.h"
 #include "EEPROM.h"
-#include "Preset.h"
+#include "blocks/Preset.h"
 #include "InputController.h"
 #include "LEDS.h"
 #include "MIDI.h"
