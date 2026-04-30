@@ -10,6 +10,7 @@
 #define APP_SRC_BLOCKS_ADSR_H_
 
 #include "LED_DISP.h"
+#include "UI_BLOCK.h"
 
 /** @brief Number of encoder knobs in the ADSR block. */
 static constexpr uint8_t ADSR_KNOB_COUNT = 4U;
@@ -72,19 +73,6 @@ public:
 
     /** @brief LED arc length shared by all four knobs. */
     static constexpr uint8_t knob_led_count_ = 10U;
-
-    /**
-     * @brief Initializes the block and binds the shared preview display.
-     *
-     * @param midi MIDI backend borrowed by the CRTP base block.
-     * @param leds LED controller passed through to the CRTP base block.
-     * @param inputs Input controller used to initialize the block hardware.
-     * @param display Display block used for temporary value previews.
-     */
-    void init(MIDI &midi, LEDSController &leds, InputController &inputs, LED_DISP &display) {
-        ui_block::init(midi, leds, inputs);
-        display_ = &display;
-    }
 
     /** @brief Mux/LED bindings for the four buttons (3 bank-selectors + 1 LOOP toggle). */
     static constexpr std::array button_configs_ = {
@@ -163,20 +151,6 @@ public:
         toggle_loop();
     }
 
-    /**
-     * @brief Stores a knob change, sends MIDI, and previews the value on the display.
-     *
-     * @param index Knob index that changed.
-     * @param value_scaled New clamped knob value.
-     */
-    void knob_val_changed(uint8_t index, uint8_t value_scaled) {
-        ui_block::knob_val_changed(index, value_scaled);
-
-        if (display_ != nullptr) {
-            display_->show_preview_value(value_scaled);
-        }
-    }
-
     /* ------------------------------------------------------------------ */
     /*  ADSR-specific helpers                                             */
     /* ------------------------------------------------------------------ */
@@ -203,9 +177,6 @@ public:
      */
     uint8_t get_current_adsr() { return get_current_instance(); }
 
-private:
-    /** @brief Borrowed display used to preview knob changes. */
-    LED_DISP *display_ = nullptr;
 };
 
 #endif /* APP_SRC_BLOCKS_ADSR_H_ */

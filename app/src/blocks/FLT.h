@@ -91,19 +91,6 @@ public:
     static constexpr uint8_t mod_knob_count_ = 2U;
 
     /**
-     * @brief Initializes the block and binds the shared preview display.
-     *
-     * @param midi MIDI backend borrowed by the CRTP base block.
-     * @param leds LED controller passed through to the CRTP base block.
-     * @param inputs Input controller used to initialize the block hardware.
-     * @param display Display block used for temporary value previews.
-     */
-    void init(MIDI &midi, LEDSController &leds, InputController &inputs, LED_DISP &display) {
-        ui_block::init(midi, leds, inputs);
-        display_ = &display;
-    }
-
-    /**
      * @brief Binds the MOD viewer-edit sink used to repurpose routable FLT
      *        knobs while the MOD viewer is active.
      *
@@ -202,10 +189,6 @@ public:
         }
 
         ui_block::knob_val_changed(index, value_scaled);
-
-        if (display_ != nullptr) {
-            display_->show_preview_value(value_scaled);
-        }
     }
 
     /* ------------------------------------------------------------------ */
@@ -263,9 +246,6 @@ public:
     }
 
 private:
-    /** @brief Borrowed display used to preview keyboard-track changes. */
-    LED_DISP *display_ = nullptr;
-
     /** @brief Borrowed MOD viewer-edit sink, or `nullptr` when unbound. */
     ModMatrixCapture *mod_capture_ = nullptr;
 };

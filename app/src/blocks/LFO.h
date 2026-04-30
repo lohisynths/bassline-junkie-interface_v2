@@ -10,6 +10,7 @@
 #define APP_SRC_BLOCKS_LFO_H_
 
 #include "LED_DISP.h"
+#include "UI_BLOCK.h"
 
 /** @brief Number of encoder knobs in the LFO block (frequency). */
 static constexpr uint8_t LFO_KNOB_COUNT = 1U;
@@ -91,19 +92,6 @@ public:
     /** @brief LED arc length for the frequency knob. */
     static constexpr uint8_t knob_led_count_ = 10U;
 
-    /**
-     * @brief Initializes the block and binds the shared preview display.
-     *
-     * @param midi MIDI backend borrowed by the CRTP base block.
-     * @param leds LED controller passed through to the CRTP base block.
-     * @param inputs Input controller used to initialize the block hardware.
-     * @param display Display block used for temporary value previews.
-     */
-    void init(MIDI &midi, LEDSController &leds, InputController &inputs, LED_DISP &display) {
-        ui_block::init(midi, leds, inputs);
-        display_ = &display;
-    }
-
     /** @brief Mux/LED bindings for the eight buttons (3 bank-selectors + 4 shape + 1 SYNC). */
     static constexpr std::array button_configs_ = {
         Button::Config{ .mux_index = 3U, .pin = 0U,  .led_number = 158U },  /* LFO 0 selector  */
@@ -175,20 +163,6 @@ public:
         }
     }
 
-    /**
-     * @brief Stores a knob change, sends MIDI, and previews the value on the display.
-     *
-     * @param index Knob index that changed.
-     * @param value_scaled New clamped knob value.
-     */
-    void knob_val_changed(uint8_t index, uint8_t value_scaled) {
-        ui_block::knob_val_changed(index, value_scaled);
-
-        if (display_ != nullptr) {
-            display_->show_preview_value(value_scaled);
-        }
-    }
-
     /* ------------------------------------------------------------------ */
     /*  LFO-specific helpers                                              */
     /* ------------------------------------------------------------------ */
@@ -234,9 +208,6 @@ public:
      */
     uint8_t get_current_lfo() { return get_current_instance(); }
 
-private:
-    /** @brief Borrowed display used to preview knob changes. */
-    LED_DISP *display_ = nullptr;
 };
 
 #endif /* APP_SRC_BLOCKS_LFO_H_ */

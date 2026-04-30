@@ -11,6 +11,7 @@
 
 #include "LED_DISP.h"
 #include "ModMatrixCapture.h"
+#include "UI_BLOCK.h"
 
 /** @brief Number of encoder knobs in the OSC block. */
 static constexpr uint8_t OSC_KNOB_COUNT = 5U;
@@ -69,19 +70,6 @@ public:
      */
     void bind_mod_capture(ModMatrixCapture &capture) {
         mod_capture_ = &capture;
-    }
-
-    /**
-     * @brief Initializes the block and binds the shared preview display.
-     *
-     * @param midi MIDI backend borrowed by the CRTP base block.
-     * @param leds LED controller passed through to the CRTP base block.
-     * @param inputs Input controller used to initialize the block hardware.
-     * @param display Display block used for temporary value previews.
-     */
-    void init(MIDI &midi, LEDSController &leds, InputController &inputs, LED_DISP &display) {
-        ui_block::init(midi, leds, inputs);
-        display_ = &display;
     }
 
     /** @brief Mux/LED bindings for the three bank-selector buttons. */
@@ -187,10 +175,6 @@ public:
         }
 
         ui_block::knob_val_changed(index, value_scaled);
-
-        if (display_ != nullptr) {
-            display_->show_preview_value(value_scaled);
-        }
     }
 
     /**
@@ -221,9 +205,6 @@ public:
     }
 
 private:
-    /** @brief Borrowed display used to preview knob changes. */
-    LED_DISP *display_ = nullptr;
-
     /** @brief Borrowed MOD viewer-edit sink, or `nullptr` when unbound. */
     ModMatrixCapture *mod_capture_ = nullptr;
 };

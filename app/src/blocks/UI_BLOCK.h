@@ -18,6 +18,7 @@
 #include "MIDI.h"
 #include "InputController.h"
 #include "LEDS.h"
+#include "LED_DISP.h"
 
 #include <zephyr/logging/log.h>
 
@@ -143,9 +144,14 @@ public:
      * @param midi   MIDI transport used for control-change emission (may be @c nullptr).
      * @param leds   Shared LED controller for indicator output.
      * @param inputs Shared input controller holding the cached input masks.
+     * @param display Optional display block used for temporary value previews.
      */
-    void init(MIDI &midi, LEDSController &leds, InputController &inputs) {
+    void init(MIDI &midi,
+              LEDSController &leds,
+              InputController &inputs,
+              LED_DISP *display = nullptr) {
         midi_ = &midi;
+        display_ = display;
 
         for (uint8_t i = 0; i < KNOB_COUNT; i++) {
             knobs_[i].init(inputs, Derived::knob_configs_[i], leds);
@@ -155,6 +161,21 @@ public:
         }
 
         select_instance_(current_instance_, true);
+    }
+
+    /**
+     * @brief Initializes the block and binds a shared preview display.
+     *
+     * @param midi MIDI transport used for control-change emission.
+     * @param leds Shared LED controller for indicator output.
+     * @param inputs Shared input controller holding the cached input masks.
+     * @param display Display block used for temporary value previews.
+     */
+    void init(MIDI &midi,
+              LEDSController &leds,
+              InputController &inputs,
+              LED_DISP &display) {
+        init(midi, leds, inputs, &display);
     }
 
     /**
@@ -463,6 +484,10 @@ public:
                            value_scaled,
                            self()->get_midi_ch());
         }
+
+        if (display_ != nullptr) {
+            display_->show_preview_value(value_scaled);
+        }
     }
 
     /**
@@ -520,6 +545,10 @@ public:
     void force_function(uint8_t value) {
         (void)value;
     }
+
+protected:
+    /** @brief Borrowed display used to preview knob changes. */
+    LED_DISP *display_ = nullptr;
 
 private:
     /**
