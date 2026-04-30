@@ -72,6 +72,9 @@ enum FLT_TYPES {
  */
 class FLT : public UI_BLOCK<FLT, FLT_KNOB_COUNT, FLT_BUTTON_COUNT, FLT_PARAM_COUNT, FLT_COUNT> {
 public:
+    /** @brief Shorthand for the CRTP base class used by FLT. */
+    using ui_block = UI_BLOCK<FLT, FLT_KNOB_COUNT, FLT_BUTTON_COUNT, FLT_PARAM_COUNT, FLT_COUNT>;
+
     /** @brief Static block name used by the shared CRTP base logging. */
     static constexpr const char *block_name_ = "FLT";
 
@@ -96,7 +99,7 @@ public:
      * @param display Display block used for temporary value previews.
      */
     void init(MIDI &midi, LEDSController &leds, InputController &inputs, LED_DISP &display) {
-        UI_BLOCK<FLT, FLT_KNOB_COUNT, FLT_BUTTON_COUNT, FLT_PARAM_COUNT, FLT_COUNT>::init(midi, leds, inputs);
+        ui_block::init(midi, leds, inputs);
         display_ = &display;
     }
 
@@ -198,8 +201,7 @@ public:
             return;
         }
 
-        UI_BLOCK<FLT, FLT_KNOB_COUNT, FLT_BUTTON_COUNT, FLT_PARAM_COUNT, FLT_COUNT>::knob_val_changed(index,
-                                                                                                       value_scaled);
+        ui_block::knob_val_changed(index, value_scaled);
 
         if (display_ != nullptr) {
             display_->show_preview_value(value_scaled);
