@@ -11,6 +11,8 @@ Related repositories:
 - [Lohi Buildroot](https://github.com/lohisynths/lohi-buildroot): Buildroot
   support repository for Lohi systems.
 
+# Overview
+
 Zephyr firmware for the ST Nucleo-F411RE. The application scans CD4067
 multiplexers and discrete GPIO inputs, drives PCA9685 LED outputs, exposes a
 banked control surface built on the `UI_BLOCK` CRTP template, stores presets in
