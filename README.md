@@ -1,5 +1,16 @@
 # Bassline Junkie Interface
 
+![Bassline Junkie](app/docs/images/bassline-junkie.jpg)
+
+Related repositories:
+
+- [Bassline Junkie](https://github.com/lohisynths/bassline-junkie): main
+  Bassline Junkie project repository.
+- [Bassline Junkie Interface v2](https://github.com/lohisynths/bassline-junkie-interface_v2):
+  control-surface interface firmware repository.
+- [Lohi Buildroot](https://github.com/lohisynths/lohi-buildroot): Buildroot
+  support repository for Lohi systems.
+
 Zephyr firmware for the ST Nucleo-F411RE. The application scans CD4067
 multiplexers and discrete GPIO inputs, drives PCA9685 LED outputs, exposes a
 banked control surface built on the `UI_BLOCK` CRTP template, stores presets in
