@@ -38,6 +38,18 @@ static K_SEM_DEFINE(input_thread_started, 0, 1);
 
 static int input_thread_status = 0;
 
+static int set_all_leds(LEDSController &leds, uint8_t percent)
+{
+    for (size_t channel = 0U; channel < LEDSController::led_count; ++channel) {
+        const int ret = leds.set_channel_percent(channel, percent);
+        if (ret < 0) {
+            return ret;
+        }
+    }
+
+    return 0;
+}
+
 /**
  * @brief Blocks until the DSP engine sends its ready signal over UART.
  *
@@ -174,6 +186,16 @@ static void input_thread(void *p1, void *, void *) {
     preset.init(eeprom, led_disp, adsr, flt, lfo, mod, osc);
     vol.init(midi, leds, inputs);
 
+#if 0
+    bool leds_on = false;
+    uint32_t last_led_blink_at = k_uptime_get_32();
+    ret = set_all_leds(leds, 100U);
+    if (ret < 0) {
+        LOG_ERR("Failed to set initial LED blink state: %d", ret);
+        return;
+    }
+    leds_on = true;
+#endif
     while (1) {
         ret = inputs.update();
         if (ret < 0) {
@@ -181,37 +203,52 @@ static void input_thread(void *p1, void *, void *) {
             return;
         }
 
-        inputs.log_mux_changes();+
+        inputs.log_mux_changes();
 
-//        mod.update();
-//        osc.update();
-//        adsr.update();
-//        lfo.update();
-//        flt.update();
-//        vol.update();
-//        mod.poll_mod_destination_selection();
-//        led_disp.update();
-//        preset.update();
-//
-//        USB_MIDI::Message usb_msg;
-//        while (usb_midi.receive(&usb_msg) == 0) {
-//            switch (usb_msg.command) {
-//            case 0x9U:
-//                midi.send_note_on(usb_msg.data1, usb_msg.data2,
-//                                  usb_msg.channel);
-//                break;
-//            case 0x8U:
-//                midi.send_note_off(usb_msg.data1, usb_msg.data2,
-//                                   usb_msg.channel);
-//                break;
-//            case 0xBU:
-//                midi.send_cc(usb_msg.data1, usb_msg.data2,
-//                             usb_msg.channel);
-//                break;
-//            default:
-//                break;
-//            }
-//        }
+#if 0
+
+        const uint32_t now = k_uptime_get_32();
+        if ((int32_t)(now - last_led_blink_at) >= 500) {
+            last_led_blink_at = now;
+            leds_on = !leds_on;
+
+            ret = set_all_leds(leds, leds_on ? 100U : 0U);
+            if (ret < 0) {
+                LOG_ERR("Failed to update LED blink state: %d", ret);
+                return;
+            }
+        }
+#endif
+
+        mod.update();
+        osc.update();
+        adsr.update();
+        lfo.update();
+        flt.update();
+        vol.update();
+        mod.poll_mod_destination_selection();
+        led_disp.update();
+        preset.update();
+
+        USB_MIDI::Message usb_msg;
+        while (usb_midi.receive(&usb_msg) == 0) {
+            switch (usb_msg.command) {
+            case 0x9U:
+                midi.send_note_on(usb_msg.data1, usb_msg.data2,
+                                  usb_msg.channel);
+                break;
+            case 0x8U:
+                midi.send_note_off(usb_msg.data1, usb_msg.data2,
+                                   usb_msg.channel);
+                break;
+            case 0xBU:
+                midi.send_cc(usb_msg.data1, usb_msg.data2,
+                             usb_msg.channel);
+                break;
+            default:
+                break;
+            }
+        }
 
         k_msleep(input_poll_interval_ms);
     }
