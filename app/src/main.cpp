@@ -134,8 +134,6 @@ static void input_thread(void *p1, void *, void *) {
             return;
         }
 
-        mux.log_mux_changes();
-
         mod.update();
         osc.update();
         adsr.update();
