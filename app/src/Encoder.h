@@ -1,7 +1,7 @@
 #ifndef SRC_ENCODER_H_
 #define SRC_ENCODER_H_
 
-#include "InputController.h"
+#include "MUX.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -10,7 +10,7 @@
  * @brief Decodes a quadrature encoder sourced from any cached input-state bits.
  *
  * The encoder is bound to one cached input-state entry inside an
- * @ref InputController through @ref init and then advanced by calling
+ * @ref MUX through @ref init and then advanced by calling
  * @ref update repeatedly after the controller has refreshed its cached inputs.
  * One reported step in @ref delta or @ref position corresponds to one valid
  * quadrature edge.
@@ -23,7 +23,7 @@ public:
      * The caller retains ownership of @p inputs and must keep it alive and
      * initialized for the lifetime of this encoder instance.
      *
-     * @param inputs Input controller holding the cached input masks.
+     * @param inputs Mux holding the cached input masks.
      * @param mux_index Index of the cached input-state entry containing the encoder.
      * @param pin_a Channel number used for encoder phase A.
      * @param pin_b Channel number used for encoder phase B.
@@ -32,7 +32,7 @@ public:
      * @retval -EINVAL The cached state index or one or more channel numbers are
      *         out of range, or the two channels are duplicated.
      */
-    int init(InputController &inputs, size_t mux_index, uint8_t pin_a, uint8_t pin_b);
+    int init(MUX &inputs, size_t mux_index, uint8_t pin_a, uint8_t pin_b);
 
     /**
      * @brief Reads the configured cached input state and advances the decoder.
@@ -72,16 +72,16 @@ private:
      */
     static int8_t transition_(uint8_t previous_ab, uint8_t current_ab);
 
-    /** @brief Borrowed input controller used to read cached input states. */
-    InputController *inputs_ = nullptr;
+    /** @brief Borrowed mux used to read cached input states. */
+    MUX *inputs_ = nullptr;
 
     /** @brief Index of the configured cached input state inside @ref inputs_. */
     size_t mux_index_ = 0U;
 
-    /** @brief InputController channel number carrying encoder phase A. */
+    /** @brief MUX channel number carrying encoder phase A. */
     uint8_t pin_a_ = 0U;
 
-    /** @brief InputController channel number carrying encoder phase B. */
+    /** @brief MUX channel number carrying encoder phase B. */
     uint8_t pin_b_ = 0U;
 
     /** @brief Tracks whether one initial AB sample has been captured. */

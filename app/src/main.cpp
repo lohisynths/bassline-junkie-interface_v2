@@ -13,7 +13,7 @@
 #include "wait_for_dsp.h"
 #include "EEPROM.h"
 #include "blocks/Preset.h"
-#include "InputController.h"
+#include "MUX.h"
 #include "LEDS.h"
 #include "MIDI.h"
 #include "UART.h"
@@ -43,7 +43,7 @@ static void input_thread(void *p1, void *, void *) {
     UART uart1;
     MIDI midi;
     USB_MIDI usb_midi;
-    InputController inputs;
+    MUX mux;
     LEDSController leds;
     OSC osc;
     ADSR adsr;
@@ -55,7 +55,7 @@ static void input_thread(void *p1, void *, void *) {
     EEPROM eeprom;
     Preset preset;
 
-    int ret = inputs.init();
+    int ret = mux.init();
     if (ret == 0) {
         ret = leds.init();
     }
@@ -86,24 +86,24 @@ static void input_thread(void *p1, void *, void *) {
     wait_for_dsp(uart1, leds);
 
     led_disp.init(leds);
-    osc.init(midi, leds, inputs, led_disp);
-    adsr.init(midi, leds, inputs, led_disp);
-    lfo.init(midi, leds, inputs, led_disp);
-    flt.init(midi, leds, inputs, led_disp);
+    osc.init(midi, leds, mux, led_disp);
+    adsr.init(midi, leds, mux, led_disp);
+    lfo.init(midi, leds, mux, led_disp);
+    flt.init(midi, leds, mux, led_disp);
     osc.bind_mod_capture(mod);
     flt.bind_mod_capture(mod);
-    mod.init(midi, leds, inputs, osc, flt, led_disp);
-    vol.init(midi, leds, inputs, led_disp);
-    preset.init(eeprom, midi, leds, inputs, led_disp, adsr, flt, lfo, mod, osc, vol);
+    mod.init(midi, leds, mux, osc, flt, led_disp);
+    vol.init(midi, leds, mux, led_disp);
+    preset.init(eeprom, midi, leds, mux, led_disp, adsr, flt, lfo, mod, osc, vol);
 
     while (1) {
-        ret = inputs.update();
+        ret = mux.update();
         if (ret < 0) {
             LOG_ERR("Failed to read inputs: %d", ret);
             return;
         }
 
-        inputs.log_mux_changes();
+        mux.log_mux_changes();
 
         mod.update();
         osc.update();

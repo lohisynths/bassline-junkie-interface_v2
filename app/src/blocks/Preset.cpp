@@ -60,7 +60,7 @@ bool lfo_snapshot_valid(const LFO::preset &preset)
 int Preset::init(EEPROM &eeprom,
                  MIDI &midi,
                  LEDSController &leds,
-                 InputController &inputs,
+                 MUX &inputs,
                  LED_DISP &display,
                  ADSR &adsr,
                  FLT &flt,

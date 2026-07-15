@@ -34,6 +34,15 @@ public:
     int init();
 
     /**
+     * @brief Reads all configured mux inputs into cached bitmasks.
+     *
+     * @retval 0 All inputs were read successfully.
+     * @retval -EACCES The multiplexer has not been initialized.
+     * @retval negative Error propagated from @ref read_state.
+     */
+    int update();
+
+    /**
      * @brief Scans one CD4067 instance and returns its active bitmask.
      *
      * @param mux_index Index in @ref mux_devices.
@@ -64,6 +73,20 @@ public:
      */
     int log_state_binary();
 
+    /**
+     * @brief Logs mux-bit transitions between previous and current cached snapshots.
+     */
+    void log_mux_changes();
+
+    /**
+     * @brief Returns one cached raw mux-state mask.
+     *
+     * @param state_index Index in the cached mux state table.
+     *
+     * @return Cached 16-bit raw state mask, or `0` if @p state_index is invalid.
+     */
+    uint16_t state(size_t state_index) const;
+
 private:
     /** @brief Describes one configured CD4067 instance. */
     struct mux_device {
@@ -76,6 +99,12 @@ private:
 
     /** @brief Tracks whether @ref init completed successfully. */
     bool initialized_ = false;
+
+    /** @brief Cached raw masks for all mux inputs. */
+    uint16_t active_masks_[mux_count] = {};
+
+    /** @brief Previous input masks used for change logging. */
+    uint16_t previous_masks_[mux_count] = {};
 
     /** @brief Static table of CD4067 devices managed by this class. */
     static const mux_device mux_devices[];

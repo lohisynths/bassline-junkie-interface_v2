@@ -16,7 +16,7 @@
 #include "Button.h"
 #include "Knob.h"
 #include "MIDI.h"
-#include "InputController.h"
+#include "MUX.h"
 #include "LEDS.h"
 #include "LED_DISP.h"
 
@@ -143,12 +143,12 @@ public:
      *
      * @param midi   MIDI transport used for control-change emission (may be @c nullptr).
      * @param leds   Shared LED controller for indicator output.
-     * @param inputs Shared input controller holding the cached input masks.
+     * @param inputs Shared mux holding the cached input masks.
      * @param display Optional display block used for temporary value previews.
      */
     void init(MIDI &midi,
               LEDSController &leds,
-              InputController &inputs,
+              MUX &inputs,
               LED_DISP *display = nullptr) {
         midi_ = &midi;
         display_ = display;
@@ -168,12 +168,12 @@ public:
      *
      * @param midi MIDI transport used for control-change emission.
      * @param leds Shared LED controller for indicator output.
-     * @param inputs Shared input controller holding the cached input masks.
+     * @param inputs Shared mux holding the cached input masks.
      * @param display Display block used for temporary value previews.
      */
     void init(MIDI &midi,
               LEDSController &leds,
-              InputController &inputs,
+              MUX &inputs,
               LED_DISP &display) {
         init(midi, leds, inputs, &display);
     }

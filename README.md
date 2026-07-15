@@ -78,12 +78,11 @@ The main application sources are:
   optional LED channel
 - `app/src/Encoder.h` and `app/src/Encoder.cpp`: quadrature decoder for the
   muxed encoder channels
-- `app/src/InputController.h` and `app/src/InputController.cpp`: aggregates the
-  mux state into one cached input table
 - `app/src/Knob.h` and `app/src/Knob.cpp`: reusable knob UI that owns one
   encoder, one push switch, and one LED segment
 - `app/src/LEDS.h` and `app/src/LEDS.cpp`: PCA9685 LED controller wrapper
-- `app/src/MUX.h` and `app/src/MUX.cpp`: CD4067 multiplexer wrapper
+- `app/src/MUX.h` and `app/src/MUX.cpp`: CD4067 multiplexer wrapper with cached
+  input snapshots for the control blocks
 - `app/src/UART.h` and `app/src/UART.cpp`: polling UART wrapper for `USART1`
 - `app/src/MIDI.h` and `app/src/MIDI.cpp`: MIDI channel-message helper on top of
   `UART`
@@ -173,7 +172,7 @@ west flash -d build/app
   during boot.
 - The USB MIDI device initializes during the input-thread startup path and
   accepts Note On, Note Off, and Control Change messages from a host.
-- `InputController` caches the mux inputs for the control blocks.
+- `MUX` caches the mux inputs for the control blocks.
 - `UI_BLOCK`-based control surfaces keep banked knob and button state in sync
   with the LED outputs.
 - `ADSR`, `FLT`, `LFO`, and `OSC` send MIDI Control Change messages on channel

@@ -5,11 +5,11 @@
 static const uint8_t knob_brightness_percent = 50U;
 static const uint8_t knob_max_value = 127U;
 
-int Knob::init(InputController &inputs, const Config &config, LEDSController &leds)
+int Knob::init(MUX &inputs, const Config &config, LEDSController &leds)
 {
     initialized_ = false;
 
-    if ((config.button_mux_index >= InputController::input_count) ||
+    if ((config.button_mux_index >= MUX::mux_count) ||
         (config.button_pin >= 16U) ||
         (config.encoder_step_divider == 0U) ||
         (config.pressed_step_multiplier == 0U) ||

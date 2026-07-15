@@ -24,11 +24,10 @@ device.
   display, with its value stored in each preset
 - `Button`: active-low button decoder with optional LED control
 - `Encoder`: quadrature decoder for muxed encoder inputs
-- `InputController`: cached aggregator for the mux input sources
 - `Knob`: reusable knob UI that owns one encoder, one push switch, and one LED
   segment
 - `LEDSController`: PCA9685 LED controller wrapper
-- `MUX`: CD4067 multiplexer wrapper
+- `MUX`: CD4067 multiplexer wrapper with cached input snapshots
 - `UART`: polling UART facade for `USART1`
 - `MIDI`: channel-message helper layered on top of `UART`
 - `USB_MIDI`: USB MIDI facade that receives host Note On, Note Off, and Control
@@ -46,7 +45,7 @@ device.
 ## Runtime Overview
 
 - Boot prints `Bassline Junkie Interface UART1 ready` on `USART1`.
-- `InputController` caches the CD4067 scans so the button, encoder, and knob
+- `MUX` caches the CD4067 scans so the button, encoder, and knob
   helpers can consume a stable input snapshot.
 - `ADSR`, `LFO`, and `OSC` expose banked parameters, with LEDs reflecting the
   currently selected bank.

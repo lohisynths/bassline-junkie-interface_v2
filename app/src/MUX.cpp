@@ -15,7 +15,7 @@
 #include <zephyr/logging/log.h>
 #include <zephyr/sys/util.h>
 
-LOG_MODULE_REGISTER(mux, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(MUX, LOG_LEVEL_INF);
 
 #define CD4067_MUX(node_label)                                        \
     {                                                                 \
@@ -56,7 +56,26 @@ int MUX::init() {
         return err;
     }
 
+    for (size_t i = 0U; i < mux_count; ++i) {
+        previous_masks_[i] = 1U;
+    }
+
     initialized_ = true;
+    return 0;
+}
+
+int MUX::update() {
+    if (!initialized_) {
+        return -EACCES;
+    }
+
+    for (size_t i = 0U; i < mux_count; ++i) {
+        const int ret = read_state(i, &active_masks_[i]);
+        if (ret < 0) {
+            return ret;
+        }
+    }
+
     return 0;
 }
 
@@ -121,4 +140,37 @@ int MUX::log_state_binary() {
     }
 
     return 0;
+}
+
+void MUX::log_mux_changes()
+{
+    for (size_t state_index = 0U; state_index < mux_count; ++state_index) {
+        const uint16_t changed_mask = previous_masks_[state_index] ^ active_masks_[state_index];
+        if (changed_mask == 0U) {
+            continue;
+        }
+
+        for (uint8_t bit = 0U; bit < 16U; ++bit) {
+            const uint16_t bit_mask = (uint16_t)(1U << bit);
+            if ((changed_mask & bit_mask) == 0U) {
+                continue;
+            }
+
+            const bool active = (active_masks_[state_index] & bit_mask) != 0U;
+            LOG_INF("MUX %u bit %u changed to %u",
+                    (unsigned int)state_index,
+                    (unsigned int)bit,
+                    active ? 1U : 0U);
+        }
+
+        previous_masks_[state_index] = active_masks_[state_index];
+    }
+}
+
+uint16_t MUX::state(size_t state_index) const {
+    if (state_index >= mux_count) {
+        return 0U;
+    }
+
+    return active_masks_[state_index];
 }

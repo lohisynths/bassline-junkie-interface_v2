@@ -86,7 +86,7 @@ public:
      * @param eeprom EEPROM backend used for persistence.
      * @param midi MIDI backend used to initialize the shared UI block base.
      * @param leds LED controller passed through to the shared UI block base.
-     * @param inputs Input controller used to initialize the preset encoder.
+     * @param inputs Mux used to initialize the preset encoder.
      * @param display LED display wrapper used for browsing and feedback.
      * @param adsr ADSR block whose preset state is stored and restored.
      * @param flt FLT block whose preset state is stored and restored.
@@ -100,7 +100,7 @@ public:
     int init(EEPROM &eeprom,
              MIDI &midi,
              LEDSController &leds,
-             InputController &inputs,
+             MUX &inputs,
              LED_DISP &display,
              ADSR &adsr,
              FLT &flt,

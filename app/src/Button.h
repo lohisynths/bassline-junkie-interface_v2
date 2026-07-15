@@ -1,7 +1,7 @@
 #ifndef SRC_BUTTON_H_
 #define SRC_BUTTON_H_
 
-#include "InputController.h"
+#include "MUX.h"
 #include "LEDS.h"
 
 #include <stddef.h>
@@ -10,7 +10,7 @@
 /**
  * @brief Tracks one active-low button sourced from one cached input bit.
  *
- * The button is bound to one cached mux state inside an @ref InputController
+ * The button is bound to one cached mux state inside an @ref MUX
  * and one LED channel inside an @ref LEDSController through @ref init, then
  * advanced by calling @ref update repeatedly after the controller has
  * refreshed its cached inputs.
@@ -45,7 +45,7 @@ public:
      * The caller retains ownership of @p inputs and @p leds and must keep both
      * alive and initialized for the lifetime of this button instance.
      *
-     * @param inputs Input controller holding the cached input masks.
+     * @param inputs Mux holding the cached input masks.
      * @param config Button-specific channel and LED configuration.
      * @param leds LED controller used to mirror the button state.
      *
@@ -53,7 +53,7 @@ public:
      * @retval -EINVAL The mux index, channel number, or LED channel is out of range.
      * @retval negative Error propagated from @ref LEDSController::set_channel_percent.
      */
-    int init(InputController &inputs, const Config &config, LEDSController &leds);
+    int init(MUX &inputs, const Config &config, LEDSController &leds);
 
     /**
      * @brief Reads the configured cached mux state and advances the button state.
@@ -86,8 +86,8 @@ public:
     int set_led_val(uint8_t percent);
 
 private:
-    /** @brief Borrowed input controller used to read cached input states. */
-    InputController *inputs_ = nullptr;
+    /** @brief Borrowed mux used to read cached input states. */
+    MUX *inputs_ = nullptr;
 
     /** @brief Borrowed LED controller used to mirror the button state. */
     LEDSController *leds_ = nullptr;
@@ -95,7 +95,7 @@ private:
     /** @brief Index of the configured cached mux state inside @ref inputs_. */
     size_t mux_index_ = 0U;
 
-    /** @brief InputController channel number carrying the button bit. */
+    /** @brief MUX channel number carrying the button bit. */
     uint8_t pin_ = 0U;
 
     /** @brief Global LED channel assigned to this button. */

@@ -2,7 +2,7 @@
 #define SRC_KNOB_H_
 
 #include "Encoder.h"
-#include "InputController.h"
+#include "MUX.h"
 #include "LEDS.h"
 
 #include <stddef.h>
@@ -11,7 +11,7 @@
 /**
  * @brief Couples one encoder, one raw button input, and one LED segment into a knob UI.
  *
- * The knob borrows externally managed @ref InputController and @ref LEDSController
+ * The knob borrows externally managed @ref MUX and @ref LEDSController
  * instances through @ref init. It owns its internal @ref Encoder object,
  * samples one configured active-low button bit directly from the cached input
  * state, updates one internal value in the range `[0, 127]` from encoder
@@ -74,7 +74,7 @@ public:
     /**
      * @brief Binds the knob to existing input and LED objects.
      *
-     * @param inputs Shared input controller used by the button bit reader and encoder.
+     * @param inputs Shared mux used by the button bit reader and encoder.
      * @param config Knob-specific channel and LED segment configuration.
      * @param leds Shared LED controller used to render the knob indicator.
      *
@@ -83,7 +83,7 @@ public:
      * @retval negative Error propagated from the internal @ref Encoder::init
      *         or @ref LEDSController::set_channel_percent.
      */
-    int init(InputController &inputs, const Config &config, LEDSController &leds);
+    int init(MUX &inputs, const Config &config, LEDSController &leds);
 
     /**
      * @brief Returns the current knob button state.
@@ -208,8 +208,8 @@ private:
     /** @brief Internal encoder owned by the knob. */
     Encoder encoder_;
 
-    /** @brief Input controller borrowed from the caller for button reads. */
-    InputController *inputs_ = nullptr;
+    /** @brief Mux borrowed from the caller for button reads. */
+    MUX *inputs_ = nullptr;
 
     /** @brief Cached mux index containing the button bit. */
     size_t button_mux_index_ = 0U;
