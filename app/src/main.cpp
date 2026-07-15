@@ -18,6 +18,7 @@
 #include "MIDI.h"
 #include "UART.h"
 #include "USB_MIDI.h"
+#include "SDCard.h"
 
 LOG_MODULE_REGISTER(app, LOG_LEVEL_INF);
 

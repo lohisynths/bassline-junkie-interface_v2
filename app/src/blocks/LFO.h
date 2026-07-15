@@ -108,10 +108,10 @@ public:
     static constexpr std::array knob_configs_ = {
         Knob::Config{
             .button_mux_index  = 4U,
-            .button_pin        = 0U,
+            .button_pin        = 6U,
             .encoder_mux_index = 4U,
-            .encoder_pin_a     = 1U,
-            .encoder_pin_b     = 2U,
+            .encoder_pin_a     = 8U,
+            .encoder_pin_b     = 7U,
             .first_led         = 128U,
             .led_count         = knob_led_count_,
         },
