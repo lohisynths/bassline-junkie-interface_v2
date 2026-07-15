@@ -25,9 +25,11 @@ LOG_MODULE_REGISTER(mux, LOG_LEVEL_INF);
 
 const MUX::mux_device MUX::mux_devices[] = {
     CD4067_MUX(cd4067_0),
+
     CD4067_MUX(cd4067_1),
     CD4067_MUX(cd4067_2),
     CD4067_MUX(cd4067_3),
+    CD4067_MUX(cd4067_4),
 };
 
 int MUX::init() {

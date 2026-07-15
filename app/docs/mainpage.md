@@ -1,7 +1,7 @@
 # Bassline Junkie Interface
 
 Zephyr firmware for the STM32 Nucleo-F411RE. The application scans CD4067
-multiplexers and discrete GPIO inputs, drives PCA9685 LED outputs, exposes a
+multiplexers, drives PCA9685 LED outputs, exposes a
 banked control surface through the `UI_BLOCK` CRTP template, stores presets in
 flash, and moves MIDI through an app-owned UART transport and a USB MIDI
 device.
@@ -24,8 +24,7 @@ device.
   display, with its value stored in each preset
 - `Button`: active-low button decoder with optional LED control
 - `Encoder`: quadrature decoder for muxed encoder inputs
-- `GPIO`: discrete GPIO input wrapper
-- `InputController`: cached aggregator for the mux and GPIO input sources
+- `InputController`: cached aggregator for the mux input sources
 - `Knob`: reusable knob UI that owns one encoder, one push switch, and one LED
   segment
 - `LEDSController`: PCA9685 LED controller wrapper
@@ -47,8 +46,8 @@ device.
 ## Runtime Overview
 
 - Boot prints `Bassline Junkie Interface UART1 ready` on `USART1`.
-- `InputController` caches the CD4067 scans and discrete GPIO reads so the
-  button, encoder, and knob helpers can consume a stable input snapshot.
+- `InputController` caches the CD4067 scans so the button, encoder, and knob
+  helpers can consume a stable input snapshot.
 - `ADSR`, `LFO`, and `OSC` expose banked parameters, with LEDs reflecting the
   currently selected bank.
 - `FLT` exposes one set of knobs and three filter-type buttons.

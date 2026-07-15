@@ -4,59 +4,11 @@
     };
 
     aliases {
-        enc10sw = &enc10sw;
-        enc10a = &enc10a;
-        enc10b = &enc10b;
-        enc13sw = &enc13sw;
-        enc13b = &enc13b;
-        enc13a = &enc13a;
-        enc14sw = &enc14sw;
-        enc14b = &enc14b;
-        enc14a = &enc14a;
         mux0 = &cd4067_0;
         mux1 = &cd4067_1;
         mux2 = &cd4067_2;
         mux3 = &cd4067_3;
-    };
-
-    encoder_inputs: encoder_inputs {
-        compatible = "gpio-keys";
-
-        enc10sw: enc10sw_gpio {
-            gpios = <&gpiob 2 GPIO_ACTIVE_LOW>;
-        };
-
-        enc10a: enc10a_gpio {
-            gpios = <&gpiob 1 GPIO_ACTIVE_LOW>;
-        };
-
-        enc10b: enc10b_gpio {
-            gpios = <&gpiob 15 GPIO_ACTIVE_LOW>;
-        };
-
-        enc13sw: enc13sw_gpio {
-            gpios = <&gpiob 13 GPIO_ACTIVE_LOW>;
-        };
-
-        enc13b: enc13b_gpio {
-            gpios = <&gpioc 2 GPIO_ACTIVE_LOW>;
-        };
-
-        enc13a: enc13a_gpio {
-            gpios = <&gpioc 3 GPIO_ACTIVE_LOW>;
-        };
-
-        enc14sw: enc14sw_gpio {
-            gpios = <&gpioc 0 GPIO_ACTIVE_LOW>;
-        };
-
-        enc14b: enc14b_gpio {
-            gpios = <&gpioc 1 GPIO_ACTIVE_LOW>;
-        };
-
-        enc14a: enc14a_gpio {
-            gpios = <&gpiob 14 GPIO_ACTIVE_LOW>;
-        };
+        mux4 = &cd4067_4;
     };
 
     cd4067_0: cd4067_mux {
@@ -97,6 +49,16 @@
                        <&gpiob 10 GPIO_ACTIVE_HIGH>,
                        <&gpioa 8 GPIO_ACTIVE_HIGH>;
         sig-gpios = <&gpiob 0 GPIO_ACTIVE_HIGH>;
+    };
+
+    cd4067_4: cd4067_mux_4 {
+        compatible = "vnd,cd4067-gpio-mux";
+        status = "okay";
+        select-gpios = <&gpiob 5 GPIO_ACTIVE_HIGH>,
+                       <&gpiob 4 GPIO_ACTIVE_HIGH>,
+                       <&gpiob 10 GPIO_ACTIVE_HIGH>,
+                       <&gpioa 8 GPIO_ACTIVE_HIGH>;
+        sig-gpios = <&gpioc 1 GPIO_ACTIVE_HIGH>;
     };
 };
 
@@ -228,6 +190,21 @@
     pinctrl-0 = <&usb_otg_fs_dm_pa11 &usb_otg_fs_dp_pa12>;
     pinctrl-names = "default";
     status = "okay";
+};
+
+&spi1 {
+    status = "disabled";
+};
+
+&sdmmc1 {
+    pinctrl-0 = <&sdio_cmd_pa6 &sdio_ck_pb15
+                 &sdio_d0_pc8 &sdio_d1_pc9
+                 &sdio_d2_pc10 &sdio_d3_pc11>;
+    pinctrl-names = "default";
+    bus-width = <4>;
+    clk-div = <1>;
+    status = "okay";
+    disk-name = "SD";
 };
 
 / {

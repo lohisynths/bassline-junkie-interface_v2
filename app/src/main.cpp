@@ -95,12 +95,39 @@ static void input_thread(void *p1, void *, void *) {
     vol.init(midi, leds, inputs, led_disp);
     preset.init(eeprom, midi, leds, inputs, led_disp, adsr, flt, lfo, mod, osc, vol);
 
+#if 0
+    bool leds_on = false;
+    uint32_t last_led_blink_at = k_uptime_get_32();
+    ret = set_all_leds(leds, 100U);
+    if (ret < 0) {
+        LOG_ERR("Failed to set initial LED blink state: %d", ret);
+        return;
+    }
+    leds_on = true;
+#endif
     while (1) {
         ret = inputs.update();
         if (ret < 0) {
             LOG_ERR("Failed to read inputs: %d", ret);
             return;
         }
+
+        inputs.log_mux_changes();
+
+#if 0
+
+        const uint32_t now = k_uptime_get_32();
+        if ((int32_t)(now - last_led_blink_at) >= 500) {
+            last_led_blink_at = now;
+            leds_on = !leds_on;
+
+            ret = set_all_leds(leds, leds_on ? 100U : 0U);
+            if (ret < 0) {
+                LOG_ERR("Failed to update LED blink state: %d", ret);
+                return;
+            }
+        }
+#endif
 
         mod.update();
         osc.update();
@@ -139,6 +166,7 @@ static void input_thread(void *p1, void *, void *) {
 int main(void)
 {
     int ret;
+    SDCard sd_card;
 
     if (!gpio_is_ready_dt(&led)) {
         LOG_ERR("LED GPIO device is not ready");
@@ -153,6 +181,11 @@ int main(void)
 
     LOG_INF("Bassline Junkie Interface");
     LOG_INF("Console TX ready on ttyACM0");
+
+    ret = sd_card.init();
+    if (ret < 0) {
+        LOG_WRN("Continuing without mounted SD card");
+    }
 
     k_thread_create(&input_thread_data,
                     input_thread_stack,
