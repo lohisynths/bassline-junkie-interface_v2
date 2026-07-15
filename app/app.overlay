@@ -1,8 +1,4 @@
 / {
-    chosen {
-        zephyr,code-partition = &code_partition;
-    };
-
     aliases {
         mux0 = &cd4067_0;
         mux1 = &cd4067_1;
@@ -59,19 +55,6 @@
                        <&gpiob 10 GPIO_ACTIVE_HIGH>,
                        <&gpioa 8 GPIO_ACTIVE_HIGH>;
         sig-gpios = <&gpioc 1 GPIO_ACTIVE_HIGH>;
-    };
-};
-
-&flash0 {
-    partitions {
-        compatible = "fixed-partitions";
-        #address-cells = <1>;
-        #size-cells = <1>;
-
-        code_partition: partition@0 {
-            label = "image-0";
-            reg = <0x00000000 0x00080000>;
-        };
     };
 };
 
