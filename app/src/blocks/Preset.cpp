@@ -57,7 +57,7 @@ bool lfo_snapshot_valid(const LFO::preset &preset)
 
 } // namespace
 
-int Preset::init(EEPROM &eeprom,
+int Preset::init(PresetStorage &storage,
                  MIDI &midi,
                  LEDSController &leds,
                  MUX &inputs,
@@ -70,7 +70,7 @@ int Preset::init(EEPROM &eeprom,
                  VOL &vol)
 {
     ui_block::init(midi, leds, inputs);
-    eeprom_ = &eeprom;
+    storage_ = &storage;
     display_ = &display;
     adsr_ = &adsr;
     flt_ = &flt;
@@ -79,14 +79,19 @@ int Preset::init(EEPROM &eeprom,
     osc_ = &osc;
     vol_ = &vol;
 
-    const int ret = eeprom_->init();
-    if (ret < 0) {
-        LOG_ERR("EEPROM init failed, continuing with RAM-only presets: %d", ret);
-    }
-
     uint8_t startup_slot = 0U;
-    (void)eeprom_->load_startup_slot(startup_slot);
-    (void)load_slot_(startup_slot);
+    const PresetLoadResult startup_result = storage_->load_startup_slot(startup_slot);
+    if (startup_result == PresetLoadResult::io_error) {
+        LOG_ERR("Failed to read startup preset metadata");
+        return -EIO;
+    }
+    const bool startup_incompatible = startup_result == PresetLoadResult::incompatible;
+    if (startup_incompatible) {
+        LOG_WRN("Startup preset metadata is incompatible, using slot 0");
+        startup_slot = 0U;
+    }
+    if (!load_slot_(startup_slot)) return -EIO;
+    if (startup_incompatible) display_->show_error();
     return 0;
 }
 
@@ -170,7 +175,7 @@ uint8_t Preset::get_active_slot() const
 
 bool Preset::is_ready_() const
 {
-    return (eeprom_ != nullptr) && (display_ != nullptr) && (adsr_ != nullptr) && (flt_ != nullptr) &&
+    return (storage_ != nullptr) && (display_ != nullptr) && (adsr_ != nullptr) && (flt_ != nullptr) &&
            (lfo_ != nullptr) && (mod_ != nullptr) && (osc_ != nullptr) && (vol_ != nullptr);
 }
 
@@ -181,28 +186,35 @@ bool Preset::load_slot_(uint8_t slot)
     }
 
     PresetSnapshot snapshot = default_preset_snapshot();
-    const int ret = eeprom_->load(slot, snapshot);
-    if (ret < 0) {
-        LOG_ERR("Failed to load preset %u: %d", static_cast<unsigned int>(slot), ret);
+    const PresetLoadResult load_result = storage_->load(slot, snapshot);
+    if (load_result == PresetLoadResult::io_error) {
+        LOG_ERR("Failed to load preset %u", static_cast<unsigned int>(slot));
         return false;
     }
 
-    if (!snapshot_is_compatible_(snapshot)) {
+    const bool missing = load_result == PresetLoadResult::not_found;
+    const bool incompatible = (load_result == PresetLoadResult::incompatible) ||
+                              !snapshot_is_compatible_(snapshot);
+    if (incompatible) {
         LOG_WRN("Preset %u is incompatible with the current layout, loading defaults",
                 static_cast<unsigned int>(slot));
         snapshot = default_preset_snapshot();
+    } else if (missing) {
+        LOG_INF("Preset %u has not been saved, loading default preset",
+                static_cast<unsigned int>(slot));
     }
 
     apply_snapshot_(snapshot);
     active_slot_ = slot;
     displayed_slot_ = slot;
     sync_preset_value_(slot);
-    const int startup_ret = eeprom_->save_startup_slot(slot);
+    const int startup_ret = storage_->save_startup_slot(slot);
     if (startup_ret < 0) {
         LOG_WRN("Failed to remember startup preset %u: %d",
                 static_cast<unsigned int>(slot), startup_ret);
     }
     browse_timeout_started_at_ms_ = 0U;
+    if (missing || incompatible) display_->show_error();
     LOG_INF("Loaded preset %u", static_cast<unsigned int>(slot));
     return true;
 }
@@ -216,7 +228,7 @@ bool Preset::save_slot_(uint8_t slot)
     PresetSnapshot snapshot = default_preset_snapshot();
     capture_snapshot_(snapshot);
 
-    const int ret = eeprom_->save(slot, snapshot);
+    const int ret = storage_->save(slot, snapshot);
     if (ret < 0) {
         LOG_ERR("Failed to save preset %u: %d", static_cast<unsigned int>(slot), ret);
         return false;
@@ -225,7 +237,7 @@ bool Preset::save_slot_(uint8_t slot)
     active_slot_ = slot;
     displayed_slot_ = slot;
     sync_preset_value_(slot);
-    const int startup_ret = eeprom_->save_startup_slot(slot);
+    const int startup_ret = storage_->save_startup_slot(slot);
     if (startup_ret < 0) {
         LOG_WRN("Failed to remember startup preset %u after save: %d",
                 static_cast<unsigned int>(slot), startup_ret);

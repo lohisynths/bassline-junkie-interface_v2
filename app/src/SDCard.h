@@ -17,11 +17,13 @@
  */
 class SDCard {
 public:
+    static constexpr const char *drive_name = "SD";
+    static constexpr const char *mount_point = "/SD:";
     /** @brief Constructs an uninitialized SD card helper. */
     SDCard() = default;
 
     /**
-     * @brief Initializes, mounts, and smoke-tests the SD card.
+     * @brief Initializes, mounts, and verifies writable SD-card storage.
      *
      * @retval 0 The card was mounted and the file round-trip test passed.
      * @retval negative SDMMC, FATFS, or file I/O error.

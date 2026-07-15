@@ -8,7 +8,7 @@ project(bassline_junkie_interface)
 target_include_directories(app PRIVATE src)
 
 target_sources(app PRIVATE
-    src/EEPROM.cpp
+    src/PresetStorage.cpp
     src/wait_for_dsp.cpp
     src/blocks/Preset.cpp
     src/blocks/UI_BLOCK.cpp

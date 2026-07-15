@@ -15,8 +15,8 @@ Related repositories:
 
 Zephyr firmware for the ST Nucleo-F411RE. The application scans CD4067
 multiplexers, drives PCA9685 LED outputs, exposes a
-banked control surface built on the `UI_BLOCK` CRTP template, stores presets in
-flash, and handles MIDI over an app-owned UART transport plus a USB MIDI
+banked control surface built on the `UI_BLOCK` CRTP template, stores presets on
+a required SD card, and handles MIDI over an app-owned UART transport plus a USB MIDI
 device.
 
 The repository is split into three main pieces:
@@ -90,7 +90,10 @@ The main application sources are:
   receives host messages and forwards them into the firmware MIDI path
 - `app/src/usb_midi_init.h` and `app/src/usb_midi_init.c`: Zephyr USB device
   setup and MIDI class binding for the USB transport
-- `app/src/EEPROM.h` and `app/src/EEPROM.cpp`: flash-backed preset storage
+- `app/src/PresetStorage.h` and `app/src/PresetStorage.cpp`: versioned,
+  CRC-protected SD-card preset storage with atomic file replacement
+- `app/src/SDCard.h` and `app/src/SDCard.cpp`: required writable SD-card mount
+  and startup verification
 - `app/src/Preset.h` and `app/src/Preset.cpp`: high-level preset load/save
   controller for `LED_DISP`
 - `app/src/PresetSnapshot.h`: durable preset schema for ADSR, FLT, LFO, OSC,
@@ -108,6 +111,7 @@ The main application sources are:
 - Board target: `nucleo_f411re`
 - USB support enabled on the host if you want to use the USB MIDI device
 - Doxygen, if you want to generate the API docs locally
+- A writable FAT-formatted SD card; boot halts with `Err` if it cannot be mounted
 
 ## Shell Setup
 
@@ -186,8 +190,10 @@ west flash -d build/app
 - `Preset` restores the last active slot on boot, falls back to slot `0` if no
   startup slot has been stored yet, and uses the display encoder for browse/load
   and save gestures.
-- `EEPROM` stores 128 preset snapshots plus startup-slot metadata in the
-  dedicated flash partition.
+- `PresetStorage` stores 128 independent snapshot files plus startup-slot
+  metadata under `/SD:/presets`. Missing and incompatible slots load defaults
+  and display `Err` for one second without affecting other slots. Existing
+  flash presets are not migrated.
 - The preset display uses a reduced encoder step so presses are less likely to
   move the selected slot accidentally.
 - USB MIDI input is bridged into the app's internal MIDI transport in the input

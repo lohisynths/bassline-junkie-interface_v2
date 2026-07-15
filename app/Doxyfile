@@ -1,5 +1,5 @@
 PROJECT_NAME           = "Bassline Junkie Interface"
-PROJECT_BRIEF          = "Zephyr firmware for the Nucleo-F411RE with an app-owned USART1 MIDI transport, USB MIDI device support, CD4067 mux scanning, PCA9685 LED outputs, flash-backed preset storage, startup-slot metadata, and UI_BLOCK-based ADSR/FLT/LED_DISP/LFO/MOD/OSC/VOL control surfaces."
+PROJECT_BRIEF          = "Zephyr firmware for the Nucleo-F411RE with an app-owned USART1 MIDI transport, USB MIDI device support, CD4067 mux scanning, PCA9685 LED outputs, required SD-card preset storage, startup-slot metadata, and UI_BLOCK-based ADSR/FLT/LED_DISP/LFO/MOD/OSC/VOL control surfaces."
 OUTPUT_DIRECTORY       = app/docs/doxygen
 CREATE_SUBDIRS         = NO
 OUTPUT_LANGUAGE        = English

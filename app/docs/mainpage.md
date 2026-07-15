@@ -2,8 +2,8 @@
 
 Zephyr firmware for the STM32 Nucleo-F411RE. The application scans CD4067
 multiplexers, drives PCA9685 LED outputs, exposes a
-banked control surface through the `UI_BLOCK` CRTP template, stores presets in
-flash, and moves MIDI through an app-owned UART transport and a USB MIDI
+banked control surface through the `UI_BLOCK` CRTP template, stores presets on
+a required SD card, and moves MIDI through an app-owned UART transport and a USB MIDI
 device.
 
 ## Modules
@@ -34,7 +34,8 @@ device.
   Change messages and forwards them into the firmware MIDI path
 - `usb_midi_init`: Zephyr USB device setup and MIDI class binding for the USB
   transport
-- `EEPROM`: flash-backed preset storage
+- `PresetStorage`: versioned, CRC-protected SD-card preset storage
+- `SDCard`: required writable FATFS mount and startup verification
 - `Preset`: preset load/save controller for the display encoder
 - `PresetSnapshot`: durable schema for ADSR, FLT, LFO, OSC, VOL, and the MOD
   routing matrices
@@ -55,8 +56,11 @@ device.
   edit the active source row when a selector button is held long enough.
 - `Preset` restores the last active slot on boot, saves and loads through the
   display encoder, and briefly blanks the display as save or timeout feedback.
-- `EEPROM` provides 128 preset snapshots plus startup-slot metadata in the
-  dedicated flash partition.
+- `PresetStorage` provides 128 independent preset files plus startup-slot
+  metadata under `/SD:/presets`. Writes use temporary-file replacement.
+- Boot halts with a latched `Err` if the SD card cannot be mounted and verified.
+  Missing and incompatible slots show `Err` for one second, load defaults, and
+  leave other slots intact. Flash presets are not migrated.
 - `ADSR`, `FLT`, `LFO`, and `OSC` emit MIDI Control Change messages on channel
   `1`. `FLT` uses CC `33..36`, and `LFO` starts at CC `37`.
 - `VOL` emits MIDI Control Change message `95` on channel `1` and previews its

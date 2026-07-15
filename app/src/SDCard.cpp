@@ -15,8 +15,6 @@ LOG_MODULE_REGISTER(app_sdcard, LOG_LEVEL_INF);
 
 namespace {
 
-constexpr const char *sd_drive_name = "SD";
-constexpr const char *sd_mount_point = "/SD:";
 constexpr const char *sd_test_file_path = "/SD:/sdmmc-test.txt";
 
 } // namespace
@@ -28,41 +26,44 @@ int SDCard::init()
 
     mounted_ = false;
 
-    if (disk_access_ioctl(sd_drive_name, DISK_IOCTL_CTRL_INIT, nullptr) != 0) {
+    if (disk_access_ioctl(drive_name, DISK_IOCTL_CTRL_INIT, nullptr) != 0) {
         LOG_ERR("SD card init failed");
         return -EIO;
     }
 
-    if (disk_access_ioctl(sd_drive_name, DISK_IOCTL_GET_SECTOR_COUNT, &block_count) != 0) {
+    if (disk_access_ioctl(drive_name, DISK_IOCTL_GET_SECTOR_COUNT, &block_count) != 0) {
         LOG_ERR("Failed to read SD sector count");
         return -EIO;
     }
 
-    if (disk_access_ioctl(sd_drive_name, DISK_IOCTL_GET_SECTOR_SIZE, &block_size) != 0) {
+    if (disk_access_ioctl(drive_name, DISK_IOCTL_GET_SECTOR_SIZE, &block_size) != 0) {
         LOG_ERR("Failed to read SD sector size");
         return -EIO;
     }
 
     mount_.type = FS_FATFS;
     mount_.fs_data = &fat_fs_;
-    mount_.mnt_point = sd_mount_point;
+    mount_.mnt_point = mount_point;
 
     const int ret = fs_mount(&mount_);
     if (ret != FR_OK) {
-        LOG_ERR("Failed to mount SD card at %s: %d", sd_mount_point, ret);
+        LOG_ERR("Failed to mount SD card at %s: %d", mount_point, ret);
         return -EIO;
     }
 
-    mounted_ = true;
-
     const uint64_t size_bytes = static_cast<uint64_t>(block_count) * block_size;
-    LOG_INF("SD card mounted at %s", sd_mount_point);
+    LOG_INF("SD card mounted at %s", mount_point);
     LOG_INF("SD geometry: %u blocks x %u bytes (%u MiB)",
             block_count,
             block_size,
             static_cast<uint32_t>(size_bytes >> 20));
 
-    return exercise();
+    const int exercise_ret = exercise();
+    if (exercise_ret < 0) {
+        return exercise_ret;
+    }
+    mounted_ = true;
+    return 0;
 }
 
 bool SDCard::is_mounted() const

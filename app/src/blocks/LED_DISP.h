@@ -97,6 +97,19 @@ public:
         render_digits_(value_scaled);
     }
 
+    /** @brief Shows a transient three-character error without changing the stored slot. */
+    void show_error(uint32_t duration_ms = 1000U) {
+        preview_active_ = true;
+        preview_ends_at_ms_ = k_uptime_get_32() + duration_ms;
+        render_error_();
+    }
+
+    /** @brief Shows a latched error indication until another display operation occurs. */
+    void show_error_latched() {
+        clear_preview_();
+        render_error_();
+    }
+
     /**
      * @brief Synchronizes the displayed preset number and the encoder state.
      *
@@ -182,6 +195,23 @@ private:
             leds_->set_channel_percent(static_cast<size_t>(LED_DISP_FIRST_LED + i + (digit_nr * LED_DISP_SEGMENTS)),
                                        100U);
         }
+    }
+
+    void set_segments_(uint8_t digit_nr, const std::array<uint8_t, 7U> &segments) {
+        if (leds_ == nullptr || digit_nr >= LED_DISP_DIGIT_COUNT) return;
+        for (uint8_t i = 0U; i < 7U; ++i) {
+            const size_t led_nr = LED_DISP_FIRST_LED + i + (digit_nr * LED_DISP_SEGMENTS);
+            leds_->set_channel_percent(led_nr, segments[i] ? 0U : 100U);
+        }
+        leds_->set_channel_percent(LED_DISP_FIRST_LED + 7U + (digit_nr * LED_DISP_SEGMENTS), 100U);
+    }
+
+    void render_error_() {
+        static constexpr std::array<uint8_t, 7U> glyph_e = {1U, 0U, 0U, 1U, 1U, 1U, 1U};
+        static constexpr std::array<uint8_t, 7U> glyph_r = {0U, 0U, 0U, 0U, 1U, 0U, 1U};
+        set_segments_(0U, glyph_e);
+        set_segments_(1U, glyph_r);
+        set_segments_(2U, glyph_r);
     }
 
     /**

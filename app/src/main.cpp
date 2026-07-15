@@ -11,7 +11,7 @@
 #include "blocks/LED_DISP.h"
 #include "blocks/VOL.h"
 #include "wait_for_dsp.h"
-#include "EEPROM.h"
+#include "PresetStorage.h"
 #include "blocks/Preset.h"
 #include "MUX.h"
 #include "LEDS.h"
@@ -52,40 +52,61 @@ static void input_thread(void *p1, void *, void *) {
     MOD mod;
     LED_DISP led_disp;
     VOL vol;
-    EEPROM eeprom;
+    SDCard sd_card;
+    PresetStorage preset_storage;
     Preset preset;
 
     int ret = mux.init();
-    if (ret == 0) {
-        ret = leds.init();
+    if (ret < 0) {
+        LOG_ERR("Failed to initialize input mux: %d", ret);
+        input_thread_status = ret;
+        k_sem_give(&input_thread_started);
+        return;
+    }
+    ret = leds.init();
+    if (ret < 0) {
+        LOG_ERR("Failed to initialize LED controller: %d", ret);
+        input_thread_status = ret;
+        k_sem_give(&input_thread_started);
+        return;
+    }
+    led_disp.init(leds);
+
+    ret = sd_card.init();
+    if (ret == 0) ret = preset_storage.init(sd_card);
+    if (ret < 0) {
+        LOG_ERR("Required SD preset storage is unavailable: %d", ret);
+        led_disp.show_error_latched();
+        input_thread_status = ret;
+        k_sem_give(&input_thread_started);
+        while (1) k_msleep(1000);
     }
 
     ret = uart1.init();
     if (ret < 0) {
         LOG_ERR("Failed to initialize UART1: %d", ret);
-    } else {
-        ret = midi.init(uart1);
-        if (ret < 0) {
-            LOG_ERR("Failed to initialize MIDI transport: %d", ret);
-        }
+        input_thread_status = ret;
+        k_sem_give(&input_thread_started);
+        return;
+    }
+    ret = midi.init(uart1);
+    if (ret < 0) {
+        LOG_ERR("Failed to initialize MIDI transport: %d", ret);
+        input_thread_status = ret;
+        k_sem_give(&input_thread_started);
+        return;
     }
 
     ret = usb_midi.init();
     if (ret < 0) {
         LOG_ERR("Failed to initialize USB MIDI: %d", ret);
-    }
-
-    input_thread_status = ret;
-    k_sem_give(&input_thread_started);
-
-    if (ret < 0) {
-        LOG_ERR("Failed to initialize input thread: %d", ret);
+        input_thread_status = ret;
+        k_sem_give(&input_thread_started);
         return;
     }
 
     wait_for_dsp(uart1, leds);
 
-    led_disp.init(leds);
     osc.init(midi, leds, mux, led_disp);
     adsr.init(midi, leds, mux, led_disp);
     lfo.init(midi, leds, mux, led_disp);
@@ -94,7 +115,17 @@ static void input_thread(void *p1, void *, void *) {
     flt.bind_mod_capture(mod);
     mod.init(midi, leds, mux, osc, flt, led_disp);
     vol.init(midi, leds, mux, led_disp);
-    preset.init(eeprom, midi, leds, mux, led_disp, adsr, flt, lfo, mod, osc, vol);
+    ret = preset.init(preset_storage, midi, leds, mux, led_disp, adsr, flt, lfo, mod, osc, vol);
+    if (ret < 0) {
+        LOG_ERR("Failed to initialize presets: %d", ret);
+        led_disp.show_error_latched();
+        input_thread_status = ret;
+        k_sem_give(&input_thread_started);
+        while (1) k_msleep(1000);
+    }
+
+    input_thread_status = 0;
+    k_sem_give(&input_thread_started);
 
     while (1) {
         ret = mux.update();
@@ -142,8 +173,6 @@ static void input_thread(void *p1, void *, void *) {
 int main(void)
 {
     int ret;
-    SDCard sd_card;
-
     if (!gpio_is_ready_dt(&led)) {
         LOG_ERR("LED GPIO device is not ready");
         return 0;
@@ -157,11 +186,6 @@ int main(void)
 
     LOG_INF("Bassline Junkie Interface");
     LOG_INF("Console TX ready on ttyACM0");
-
-    ret = sd_card.init();
-    if (ret < 0) {
-        LOG_WRN("Continuing without mounted SD card");
-    }
 
     k_thread_create(&input_thread_data,
                     input_thread_stack,

@@ -1,7 +1,7 @@
 #ifndef SRC_PRESET_H_
 #define SRC_PRESET_H_
 
-#include "EEPROM.h"
+#include "PresetStorage.h"
 #include "blocks/UI_BLOCK.h"
 
 #include <cstdint>
@@ -35,7 +35,7 @@ public:
     using ui_block = UI_BLOCK<Preset, PRESET_KNOB_COUNT, PRESET_BUTTON_COUNT, PRESET_PARAM_COUNT, PRESET_COUNT>;
 
     /** @brief Total preset slot count. */
-    static constexpr uint8_t preset_count = EEPROM::preset_count;
+    static constexpr uint8_t preset_count = PresetStorage::preset_count;
 
     /** @brief Single logical parameter stored by the preset encoder block. */
     static constexpr uint8_t preset_value_param_ = 0U;
@@ -83,7 +83,7 @@ public:
     /**
      * @brief Binds the preset controller to the storage backend and UI blocks.
      *
-     * @param eeprom EEPROM backend used for persistence.
+     * @param storage SD-card backend used for persistence.
      * @param midi MIDI backend used to initialize the shared UI block base.
      * @param leds LED controller passed through to the shared UI block base.
      * @param inputs Mux used to initialize the preset encoder.
@@ -95,9 +95,9 @@ public:
      * @param osc OSC block whose preset state is stored and restored.
      * @param vol VOL block whose preset state is stored and restored.
      * @retval 0 The controller is ready.
-     * @retval negative Error propagated from the EEPROM backend.
+     * @retval negative Error propagated from the storage backend.
      */
-    int init(EEPROM &eeprom,
+    int init(PresetStorage &storage,
              MIDI &midi,
              LEDSController &leds,
              MUX &inputs,
@@ -208,8 +208,8 @@ private:
      */
     void sync_preset_value_(uint8_t slot);
 
-    /** @brief Borrowed EEPROM backend used for preset persistence. */
-    EEPROM *eeprom_ = nullptr;
+    /** @brief Borrowed SD-card backend used for preset persistence. */
+    PresetStorage *storage_ = nullptr;
 
     /** @brief Borrowed LED display block used for preset browsing feedback. */
     LED_DISP *display_ = nullptr;
