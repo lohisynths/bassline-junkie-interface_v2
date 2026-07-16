@@ -129,7 +129,7 @@ public:
     /**
      * @brief Restores the LOOP button LED state during bank recall.
      *
-     * Called by @ref UI_BLOCK::select_instance for the @c ADSR_LOOP special
+     * Called by the UI block's bank-recall path for the @c ADSR_LOOP special
      * parameter whenever a bank switch occurs. Updates the LOOP button LED
      * to match the recalled preset value without emitting MIDI.
      *

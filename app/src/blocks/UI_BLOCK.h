@@ -628,7 +628,7 @@ private:
     }
 
     /**
-     * @brief Routes a pressed button to either @ref select_instance
+     * @brief Routes a pressed button to either the bank-selection path
      *        (for selector buttons) or the CRTP-dispatched
      *        @c select_function (for function buttons).
      *
@@ -661,12 +661,6 @@ private:
     /*  Bank selection                                                    */
     /* ------------------------------------------------------------------ */
 
-    /**
-     * @brief Switches to bank @p index, updates selector LEDs, recalls
-     *        all knob values, and applies special parameters.
-     *
-     * @param index Bank index to activate.
-     */
 protected:
     /**
      * @brief Re-applies one bank and optionally redraws the owned knob LEDs.
@@ -680,6 +674,13 @@ protected:
     }
 
 private:
+    /**
+     * @brief Switches banks, updates selector LEDs, and recalls all parameters.
+     *
+     * @param index Bank index to activate.
+     * @param render_knobs `true` redraws knob LEDs; `false` synchronizes knob
+     *        values without rendering them.
+     */
     void select_instance_(uint8_t index, bool render_knobs) {
         LOG_MODULE_DECLARE(UI_BLOCK, LOG_LEVEL_INF);
         if constexpr (BUTTON_COUNT > 0) {

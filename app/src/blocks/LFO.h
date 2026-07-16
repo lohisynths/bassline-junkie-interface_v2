@@ -66,7 +66,7 @@ enum LFO_SHAPES {
  *
  * Both @c LFO_SHAPE and @c LFO_SYNC are special (non-knob) parameters;
  * @ref force_function restores their LED state on every bank recall.
- * Because @ref UI_BLOCK::select_instance calls @ref force_function once per
+ * Because the UI block's bank-recall path calls @ref force_function once per
  * special parameter, the implementation restores the full visual state on
  * each call, making it idempotent regardless of call order.
  *
@@ -124,7 +124,7 @@ public:
     /**
      * @brief Restores shape and SYNC button LED state during bank recall.
      *
-     * Called by @ref UI_BLOCK::select_instance once for each special
+     * Called by the UI block's bank-recall path once for each special
      * parameter (@c LFO_SHAPE then @c LFO_SYNC) on every bank switch.
      * Both calls fully restore the visual state from the current preset,
      * keeping the function idempotent regardless of which parameter

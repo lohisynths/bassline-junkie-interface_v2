@@ -17,7 +17,9 @@
  */
 class SDCard {
 public:
+    /** @brief Disk-access name of the SD card device. */
     static constexpr const char *drive_name = "SD";
+    /** @brief FATFS mount point used by application storage. */
     static constexpr const char *mount_point = "/SD:";
     /** @brief Constructs an uninitialized SD card helper. */
     SDCard() = default;
@@ -39,10 +41,19 @@ public:
     bool is_mounted() const;
 
 private:
+    /**
+     * @brief Verifies the mounted card with a temporary-file round trip.
+     *
+     * @retval 0 The write, read, comparison, and cleanup succeeded.
+     * @retval negative File-system error or data-verification failure.
+     */
     int exercise();
 
+    /** @brief Whether mounting and the writable-storage check succeeded. */
     bool mounted_ = false;
+    /** @brief FatFs state owned for the lifetime of the mount. */
     FATFS fat_fs_ = {};
+    /** @brief Zephyr file-system mount descriptor for the SD card. */
     struct fs_mount_t mount_ = {};
 };
 

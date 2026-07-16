@@ -145,7 +145,7 @@ public:
     /**
      * @brief Restores filter-type button LED state during recall.
      *
-     * Called by @ref UI_BLOCK::select_instance for the @c FLT_TYPE special
+     * Called by the UI block's bank-recall path for the @c FLT_TYPE special
      * parameter whenever a preset load or viewer-mode toggle occurs.
      * Lights only the button matching the stored type and extinguishes the
      * other two.

@@ -141,7 +141,12 @@ public:
         render_digits_(value_scaled);
     }
 
-    /** @brief Shows a transient three-character error without changing the stored slot. */
+    /**
+     * @brief Shows a transient three-character error without changing the stored slot.
+     *
+     * @param duration_ms Length of time to show the error before restoring the
+     *        stored display value.
+     */
     void show_error(uint32_t duration_ms = 1000U) {
         preview_active_ = true;
         preview_ends_at_ms_ = k_uptime_get_32() + duration_ms;
@@ -241,6 +246,13 @@ private:
         }
     }
 
+    /**
+     * @brief Renders an arbitrary seven-segment glyph on one digit.
+     *
+     * @param digit_nr Zero-based digit index to update.
+     * @param segments Segment states in display wiring order; nonzero lights
+     *        the corresponding segment.
+     */
     void set_segments_(uint8_t digit_nr, const std::array<uint8_t, 7U> &segments) {
         if (leds_ == nullptr || digit_nr >= LED_DISP_DIGIT_COUNT) return;
         for (uint8_t i = 0U; i < 7U; ++i) {
@@ -250,6 +262,7 @@ private:
         leds_->set_channel_percent(LED_DISP_FIRST_LED + 7U + (digit_nr * LED_DISP_SEGMENTS), 100U);
     }
 
+    /** @brief Renders the three-character `Err` indication. */
     void render_error_() {
         static constexpr std::array<uint8_t, 7U> glyph_e = {1U, 0U, 0U, 1U, 1U, 1U, 1U};
         static constexpr std::array<uint8_t, 7U> glyph_r = {0U, 0U, 0U, 0U, 1U, 0U, 1U};
@@ -258,6 +271,11 @@ private:
         set_segments_(2U, glyph_r);
     }
 
+    /**
+     * @brief Renders one frame of the startup face animation.
+     *
+     * @param mouth_u `true` renders a U-shaped mouth; `false` renders a dash.
+     */
     void render_startup_face_(bool mouth_u) {
         static constexpr std::array<uint8_t, 7U> glyph_eye = {1U, 1U, 0U, 0U, 0U, 1U, 1U};
         static constexpr std::array<uint8_t, 7U> glyph_dash = {0U, 0U, 0U, 1U, 0U, 0U, 0U};
