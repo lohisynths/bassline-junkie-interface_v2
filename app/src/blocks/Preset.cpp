@@ -189,6 +189,7 @@ bool Preset::load_slot_(uint8_t slot)
     const PresetLoadResult load_result = storage_->load(slot, snapshot);
     if (load_result == PresetLoadResult::io_error) {
         LOG_ERR("Failed to load preset %u", static_cast<unsigned int>(slot));
+        display_->show_error();
         return false;
     }
 
@@ -214,7 +215,7 @@ bool Preset::load_slot_(uint8_t slot)
                 static_cast<unsigned int>(slot), startup_ret);
     }
     browse_timeout_started_at_ms_ = 0U;
-    if (missing || incompatible) display_->show_error();
+    if (missing || incompatible || (startup_ret < 0)) display_->show_error();
     LOG_INF("Loaded preset %u", static_cast<unsigned int>(slot));
     return true;
 }
@@ -231,6 +232,7 @@ bool Preset::save_slot_(uint8_t slot)
     const int ret = storage_->save(slot, snapshot);
     if (ret < 0) {
         LOG_ERR("Failed to save preset %u: %d", static_cast<unsigned int>(slot), ret);
+        display_->show_error();
         return false;
     }
 
@@ -241,8 +243,10 @@ bool Preset::save_slot_(uint8_t slot)
     if (startup_ret < 0) {
         LOG_WRN("Failed to remember startup preset %u after save: %d",
                 static_cast<unsigned int>(slot), startup_ret);
+        display_->show_error();
+    } else {
+        start_blink_(slot);
     }
-    start_blink_(slot);
     LOG_INF("Saved preset %u", static_cast<unsigned int>(slot));
     return true;
 }

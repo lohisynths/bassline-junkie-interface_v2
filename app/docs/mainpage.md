@@ -64,7 +64,9 @@ device.
   Writes use temporary-file replacement.
 - Boot halts with a latched `Err` if the SD card cannot be mounted and verified.
   Missing and incompatible slots show `Err` for one second, load defaults, and
-  leave other slots intact. Flash presets are not migrated.
+  leave other slots intact. SD-card I/O failures during preset load or save show
+  `Err` for one second; failed loads leave the active preset unchanged. Flash
+  presets are not migrated.
 - `ADSR`, `FLT`, `LFO`, and `OSC` emit MIDI Control Change messages on channel
   `1`. `FLT` uses CC `33..36`, and `LFO` starts at CC `37`.
 - `VOL` emits MIDI Control Change message `95` on channel `1` and previews its

@@ -192,8 +192,10 @@ west flash -d build/app
   and save gestures.
 - `PresetStorage` stores 128 independent snapshot files plus startup-slot
   metadata under `/SD:/presets`. Missing and incompatible slots load defaults
-  and display `Err` for one second without affecting other slots. Existing
-  flash presets are not migrated. Snapshot filenames are zero-based and use
+  and display `Err` for one second without affecting other slots. SD-card I/O
+  failures during preset load or save also display `Err` for one second; failed
+  loads leave the active preset unchanged. Existing flash presets are not
+  migrated. Snapshot filenames are zero-based and use
   three digits (`slot-000.bin` through `slot-127.bin`). The filename alone
   selects the slot, so a snapshot can be moved to another slot by renaming it;
   the slot number is not stored in snapshot files. Startup-slot metadata retains its
