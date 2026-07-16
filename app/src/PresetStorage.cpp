@@ -20,7 +20,7 @@ namespace {
 constexpr uint32_t preset_magic = 0x42535052U; // "RPSB" in little-endian byte order.
 constexpr uint32_t startup_magic = 0x42535452U;
 constexpr uint16_t format_version = PresetSnapshot::version;
-constexpr size_t preset_header_size = 12U;
+constexpr size_t preset_header_size = 8U;
 constexpr size_t startup_prefix_size = 8U;
 constexpr size_t preset_prefix_size = preset_header_size + sizeof(PresetSnapshot);
 constexpr size_t preset_record_size = preset_prefix_size + sizeof(uint32_t);
@@ -177,9 +177,7 @@ PresetLoadResult PresetStorage::load(uint8_t slot, PresetSnapshot &snapshot) con
 
     const bool header_valid = (get_u32_le(record.data()) == preset_magic) &&
         (get_u16_le(record.data() + 4U) == format_version) &&
-        (get_u16_le(record.data() + 6U) == sizeof(PresetSnapshot)) &&
-        (record[8U] == slot) && (record[9U] == 0U) && (record[10U] == 0U) &&
-        (record[11U] == 0U);
+        (get_u16_le(record.data() + 6U) == sizeof(PresetSnapshot));
     const uint32_t stored_crc = get_u32_le(record.data() + preset_prefix_size);
     if (!header_valid || (stored_crc != crc32_ieee(record.data(), preset_prefix_size))) {
         return PresetLoadResult::incompatible;
@@ -197,7 +195,6 @@ int PresetStorage::save(uint8_t slot, const PresetSnapshot &snapshot)
     put_u32_le(record.data(), preset_magic);
     put_u16_le(record.data() + 4U, format_version);
     put_u16_le(record.data() + 6U, sizeof(PresetSnapshot));
-    record[8U] = slot;
     memcpy(record.data() + preset_header_size, &snapshot, sizeof(snapshot));
     put_u32_le(record.data() + preset_prefix_size, crc32_ieee(record.data(), preset_prefix_size));
 

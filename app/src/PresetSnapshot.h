@@ -19,7 +19,7 @@
  */
 struct PresetSnapshot {
     /** @brief Snapshot format version for compatibility checks. */
-    static constexpr uint16_t version = 2U;
+    static constexpr uint16_t version = 0U;
 
     /** @brief Durable ADSR banked values. */
     ADSR::preset adsr = {};

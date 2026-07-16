@@ -57,7 +57,11 @@ device.
 - `Preset` restores the last active slot on boot, saves and loads through the
   display encoder, and briefly blanks the display as save or timeout feedback.
 - `PresetStorage` provides 128 independent preset files plus startup-slot
-  metadata under `/SD:/presets`. Writes use temporary-file replacement.
+  metadata under `/SD:/presets`. Preset files use zero-based, three-digit names
+  from `slot-000.bin` through `slot-127.bin`. The filename is the sole source of
+  the preset slot, allowing a preset to be moved by renaming its file without
+  invalidating it.
+  Writes use temporary-file replacement.
 - Boot halts with a latched `Err` if the SD card cannot be mounted and verified.
   Missing and incompatible slots show `Err` for one second, load defaults, and
   leave other slots intact. Flash presets are not migrated.

@@ -193,7 +193,11 @@ west flash -d build/app
 - `PresetStorage` stores 128 independent snapshot files plus startup-slot
   metadata under `/SD:/presets`. Missing and incompatible slots load defaults
   and display `Err` for one second without affecting other slots. Existing
-  flash presets are not migrated.
+  flash presets are not migrated. Snapshot filenames are zero-based and use
+  three digits (`slot-000.bin` through `slot-127.bin`). The filename alone
+  selects the slot, so a snapshot can be moved to another slot by renaming it;
+  the slot number is not stored in snapshot files. Startup-slot metadata retains its
+  independent version-2 format.
 - The preset display uses a reduced encoder step so presses are less likely to
   move the selected slot accidentally.
 - USB MIDI input is bridged into the app's internal MIDI transport in the input
