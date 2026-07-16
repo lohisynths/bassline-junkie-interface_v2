@@ -10,7 +10,6 @@
 #include "blocks/MOD.h"
 #include "blocks/LED_DISP.h"
 #include "blocks/VOL.h"
-#include "wait_for_dsp.h"
 #include "PresetStorage.h"
 #include "blocks/Preset.h"
 #include "MUX.h"
@@ -105,7 +104,7 @@ static void input_thread(void *p1, void *, void *) {
         return;
     }
 
-    wait_for_dsp(uart1, leds);
+    led_disp.wait_for_dsp(uart1);
 
     osc.init(midi, leds, mux, led_disp);
     adsr.init(midi, leds, mux, led_disp);

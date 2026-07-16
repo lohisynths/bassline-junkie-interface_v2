@@ -13,8 +13,10 @@
 #include <cstdint>
 
 #include <zephyr/kernel.h>
+#include <zephyr/sys/printk.h>
 
 #include "LEDS.h"
+#include "UART.h"
 
 /** @brief First LED channel used by the display digits. */
 static constexpr uint16_t LED_DISP_FIRST_LED = 11U * 16U;
@@ -55,6 +57,48 @@ public:
     void init(LEDSController &leds) {
         leds_ = &leds;
         refresh_display();
+    }
+
+    /**
+     * @brief Waits for the DSP ready byte while animating the display.
+     *
+     * Polls UART for the 0xFE byte that signals the DSP engine is ready.
+     * While waiting, the display alternates between two face glyphs.
+     *
+     * @param uart UART carrying the DSP ready signal.
+     */
+    void wait_for_dsp(UART &uart) {
+        static constexpr uint32_t frame_ms = 500U;
+
+        printk("Waiting for DSP engine ready signal (0xFE)...\n");
+
+        bool mouth_u = false;
+        uint32_t last_frame_at = k_uptime_get_32();
+        render_startup_face_(mouth_u);
+
+        uint8_t signal_byte = 0U;
+        for (;;) {
+            const int ret = uart.read_byte(&signal_byte);
+            if (ret == 0) {
+                if (signal_byte == 0xFEU) {
+                    break;
+                }
+                printk("Unexpected byte while waiting for DSP ready: 0x%02X\n", signal_byte);
+            }
+
+            const uint32_t now = k_uptime_get_32();
+            if ((int32_t)(now - last_frame_at) >= (int32_t)frame_ms) {
+                last_frame_at = now;
+                mouth_u = !mouth_u;
+                render_startup_face_(mouth_u);
+            }
+
+            k_msleep(10);
+        }
+
+        // Clear the animation before preset.init() renders the slot number.
+        set_all(0U);
+        printk("DSP engine ready signal received (0xFE) - loading preset\n");
     }
 
     /**
@@ -212,6 +256,17 @@ private:
         set_segments_(0U, glyph_e);
         set_segments_(1U, glyph_r);
         set_segments_(2U, glyph_r);
+    }
+
+    void render_startup_face_(bool mouth_u) {
+        static constexpr std::array<uint8_t, 7U> glyph_eye = {1U, 1U, 0U, 0U, 0U, 1U, 1U};
+        static constexpr std::array<uint8_t, 7U> glyph_dash = {0U, 0U, 0U, 1U, 0U, 0U, 0U};
+        static constexpr std::array<uint8_t, 7U> glyph_u = {0U, 0U, 1U, 1U, 1U, 0U, 0U};
+
+        set_all(0U);
+        set_segments_(0U, glyph_eye);
+        set_segments_(1U, mouth_u ? glyph_u : glyph_dash);
+        set_segments_(2U, glyph_eye);
     }
 
     /**
